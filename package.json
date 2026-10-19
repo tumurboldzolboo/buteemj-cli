@@ -1,0 +1,21 @@
+{
+  "name": "@buteemj/cli",
+  "version": "0.1.0",
+  "description": "Buteemj BRD+PRD Command Line Interface",
+  "type": "module",
+  "bin": {
+    "bj": "./bin/bj.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "buteemj",
+    "brd",
+    "prd",
+    "architecture",
+    "cli"
+  ],
+  "author": "Buteemj Team",
+  "license": "UNLICENSED"
+}
