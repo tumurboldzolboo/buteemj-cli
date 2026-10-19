@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/numbering",
+  "title": "numbering.yaml",
+  "type": "object",
+  "properties": {
+    "rules": {
+      "type": "array",
+      "description": "Дугаарлалтын дүрмүүд",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2218",
+      "items": {
+        "type": "object",
+        "required": [
+          "table",
+          "column",
+          "pattern"
+        ],
+        "properties": {
+          "table": {
+            "type": "string",
+            "description": "Хүснэгт (ERD-д байх)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2219",
+            "x-ref": "table"
+          },
+          "column": {
+            "type": "string",
+            "description": "Дугаар авах багана",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2219",
+            "x-ref": "column"
+          },
+          "pattern": {
+            "type": "string",
+            "description": "Загвар: {yyyy}{yy}{mm}{dd} + {000…} тоолуур",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2223",
+            "pattern": "\\{0+\\}",
+            "x-pattern-hint": "{0000} тоолуур заавал"
+          },
+          "perOrg": {
+            "type": "boolean",
+            "description": "Байгууллага тус бүр тусдаа тоолуур (анхдагч true)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2221"
+          },
+          "resetEvery": {
+            "type": "string",
+            "enum": [
+              "year",
+              "month",
+              "day",
+              "none"
+            ],
+            "description": "Тоолуур шинэчлэх үе (анхдагч year; day — өдөр бүр 1-ээс, schema/postgresql/99a-numbering-reset-day.sql)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3774"
+          },
+          "when": {
+            "type": "string",
+            "description": "Олгох үе: create | state:<төлөв>",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3646",
+            "pattern": "^(create|state:.+)$",
+            "x-pattern-hint": "create эсвэл state:<төлөв>"
+          },
+          "sequence": {
+            "type": "string",
+            "description": "Хуваалцсан тоолуурын нэр",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2226"
+          }
+        }
+      }
+    }
+  }
+}

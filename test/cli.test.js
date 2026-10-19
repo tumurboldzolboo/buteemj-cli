@@ -13,7 +13,7 @@ describe('Buteemj CLI core tests', () => {
     assert.ok(files['requirements.md'].includes('R01'));
     assert.ok(files['erd.dbml'].includes('Table "Хүсэлт"'));
     assert.ok(files['states.mmd'].includes('stateDiagram-v2'));
-    assert.ok(files['screens.yaml'].includes('request_list'));
+    assert.ok(files['screens.yaml'].includes('request-list'));
   });
 
   it('scaffolds project on disk and validates cleanly', () => {

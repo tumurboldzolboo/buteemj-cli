@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/calc",
+  "title": "calc/*.yaml — тооцооны граф (ST1611–1613)",
+  "description": "Тооцооны граф: оролт, зангилаа, гаралт, тест. Сервер: Package.cpp (ачаалах), SolutionDeploy.cpp plan/calcs(), calc/Calc.cpp (шалгалт).",
+  "type": "object",
+  "required": ["name", "nodes", "outputs"],
+  "properties": {
+    "name": { "type": "string", "description": "Тооцооны нэр (давхардахгүй, ST161102)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2581" },
+    "version": { "type": "integer", "minimum": 1, "description": "Хувилбар — экспорт бичдэг, суулгахад сервер өөрөө дугаарлана (мэдээллийн)", "x-source": "cgi/src/solution/ModelExport.cpp:840" },
+    "description": { "type": "string", "description": "Тайлбар (ST161104)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4858" },
+    "inputs": { "type": "array", "items": { "$ref": "#/$defs/input" }, "description": "Оролтууд", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4869" },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" }, "description": "Тооцоолох зангилаанууд", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4931" },
+    "outputs": { "type": "array", "items": { "type": "string", "description": "Гаралт болох зангилааны нэр" }, "description": "Гаралтын зангилаанууд (calc(<нэр>).<гаралт>)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4810" },
+    "tests": { "type": "array", "items": { "$ref": "#/$defs/test" }, "description": "Жишээ тестүүд (ST1613)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4978" }
+  },
+  "$defs": {
+    "valueType": { "type": "string", "enum": ["decimal", "integer", "text", "boolean", "date", "any"], "description": "Зангилааны утгын төрөл", "x-source": "cgi/src/calc/Calc.cpp:18" },
+    "rounding": { "type": "string", "enum": ["half-up", "half-even", "floor", "ceil", "down", "up"], "description": "Дугуйлах горим (scale-тэй хамт)", "x-source": "cgi/src/calc/Decimal.cpp:107" },
+    "input": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "description": "Оролтын нэр (илэрхийлэлд ашиглана)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4811" },
+        "type": { "type": "string", "enum": ["number", "text", "date", "boolean", "rows", "ref"], "description": "Оролтын төрөл (анхдагч number); rows — хүү мөрүүд, ref — мөрийн лавлагаа", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4870" },
+        "source": { "type": "string", "description": "rows: хүү хүснэгт; скаляр: <Хүснэгт>.<Багана> эсвэл <Багана>", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4877" },
+        "via": { "type": "string", "description": "rows: эцэг рүү заах FK баганын нэр", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4822" },
+        "table": { "type": "string", "x-ref": "table", "description": "ref: лавлах хүснэгт", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4843" },
+        "required": { "type": "boolean", "description": "Заавал эсэх (скаляр)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4874" },
+        "default": { "type": ["string", "number", "boolean", "null"], "description": "Анхдагч утга (скаляр)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4874" }
+      }
+    },
+    "common": {
+      "name": { "type": "string", "description": "Зангилааны нэр", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4932" },
+      "valueType": { "$ref": "#/$defs/valueType", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4974" },
+      "scale": { "type": "integer", "minimum": 0, "description": "Бутархайн орон (decimal)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4974" },
+      "rounding": { "$ref": "#/$defs/rounding", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4974" }
+    },
+    "node": {
+      "oneOf": [
+        { "$ref": "#/$defs/exprNode" }, { "$ref": "#/$defs/forEachNode" }, { "$ref": "#/$defs/aggregateNode" },
+        { "$ref": "#/$defs/lookupNode" }, { "$ref": "#/$defs/decisionNode" }
+      ],
+      "x-discriminator": "type",
+      "x-discriminator-default": "expr",
+      "description": "Зангилаа — type-аар (анхдагч expr)"
+    },
+    "exprNode": {
+      "type": "object",
+      "required": ["name", "expr"],
+      "properties": {
+        "type": { "enum": ["expr", "output"], "description": "Илэрхийлэл зангилаа", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4968" },
+        "name": { "$ref": "#/$defs/common/name" },
+        "expr": { "type": "string", "x-expr": "calc", "description": "Тооцооны илэрхийлэл", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4969" },
+        "valueType": { "$ref": "#/$defs/common/valueType" },
+        "scale": { "$ref": "#/$defs/common/scale" },
+        "rounding": { "$ref": "#/$defs/common/rounding" }
+      }
+    },
+    "forEachNode": {
+      "type": "object",
+      "required": ["name", "type", "over", "expr"],
+      "properties": {
+        "type": { "const": "forEach", "description": "Мөр бүрээр илэрхийлэл (row.<Багана>)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4935" },
+        "name": { "$ref": "#/$defs/common/name" },
+        "over": { "type": "string", "description": "rows оролт / зангилааны нэр", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4936" },
+        "expr": { "type": "string", "x-expr": "calc", "description": "Мөр тус бүрийн илэрхийлэл", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4939" },
+        "valueType": { "$ref": "#/$defs/common/valueType" },
+        "scale": { "$ref": "#/$defs/common/scale" },
+        "rounding": { "$ref": "#/$defs/common/rounding" }
+      }
+    },
+    "aggregateNode": {
+      "type": "object",
+      "required": ["name", "type", "of"],
+      "properties": {
+        "type": { "const": "aggregate", "description": "Нэгтгэл", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4940" },
+        "name": { "$ref": "#/$defs/common/name" },
+        "of": { "type": "string", "description": "Эх: rows оролт, forEach эсвэл lookup зангилаа", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4941" },
+        "fn": { "type": "string", "enum": ["sum", "count", "avg", "min", "max"], "description": "Нэгтгэх функц (анхдагч sum)", "x-source": "cgi/src/calc/Calc.cpp:19" },
+        "field": { "type": "string", "description": "Мөрийн багана (rows/lookup эх)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4946" },
+        "filter": { "type": "string", "x-expr": "calc", "description": "Мөрийн шүүлт", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4951" },
+        "valueType": { "$ref": "#/$defs/common/valueType" },
+        "scale": { "$ref": "#/$defs/common/scale" },
+        "rounding": { "$ref": "#/$defs/common/rounding" }
+      }
+    },
+    "lookupNode": {
+      "type": "object",
+      "required": ["name", "type", "table"],
+      "properties": {
+        "type": { "const": "lookup", "description": "Хүснэгтээс мөр хайх", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4952" },
+        "name": { "$ref": "#/$defs/common/name" },
+        "table": { "type": "string", "x-ref": "table", "description": "Хайх хүснэгт", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4953" },
+        "filter": { "type": "string", "x-expr": "calc", "description": "Мөрийн шүүлт", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4955" },
+        "sort": {
+          "type": "array",
+          "description": "Эрэмбэ",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:4960",
+          "items": {
+            "type": "object",
+            "required": ["field"],
+            "properties": {
+              "field": { "type": "string", "description": "Багана", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4961" },
+              "dir": { "type": "string", "enum": ["asc", "desc"], "description": "Чиглэл (анхдагч asc)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4963" }
+            }
+          }
+        },
+        "limit": { "type": "integer", "minimum": 1, "description": "Мөрийн дээд тоо", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4966" },
+        "required": { "type": "boolean", "description": "Мөр олдохгүй бол алдаа", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4967" },
+        "valueType": { "$ref": "#/$defs/common/valueType" },
+        "scale": { "$ref": "#/$defs/common/scale" },
+        "rounding": { "$ref": "#/$defs/common/rounding" }
+      }
+    },
+    "decisionNode": {
+      "type": "object",
+      "required": ["name", "type", "decision", "output"],
+      "properties": {
+        "type": { "const": "decision", "description": "Шийдвэрийн хүснэгт (DMN) дуудах", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4970" },
+        "name": { "$ref": "#/$defs/common/name" },
+        "decision": { "type": "string", "x-ref": "decision", "description": "Шийдвэрийн нэр", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4971" },
+        "output": { "type": "string", "description": "Шийдвэрийн гаралт", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4971" },
+        "context": { "type": "object", "additionalProperties": true, "description": "Шийдвэрт дамжуулах оролт", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4972" },
+        "valueType": { "$ref": "#/$defs/common/valueType" },
+        "scale": { "$ref": "#/$defs/common/scale" },
+        "rounding": { "$ref": "#/$defs/common/rounding" }
+      }
+    },
+    "test": {
+      "type": "object",
+      "properties": {
+        "name": { "type": ["string", "number"], "description": "Тестийн нэр (анхдагч «тест»)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:5030" },
+        "inputs": { "type": "object", "additionalProperties": true, "description": "Оролтын нэр → утга (rows бол мөрийн жагсаалт)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4980" },
+        "expect": { "type": "object", "additionalProperties": true, "description": "Гаралтын нэр → хүлээгдэх утга", "x-source": "cgi/src/solution/SolutionDeploy.cpp:5027" }
+      }
+    }
+  }
+}

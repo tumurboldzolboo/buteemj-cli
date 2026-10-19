@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/jobs",
+  "title": "jobs.yaml",
+  "type": "object",
+  "properties": {
+    "jobs": {
+      "type": "array",
+      "description": "Хуваарьт ажлууд (ST1915; worker)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2410",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "action"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Ажлын нэр (давтагдашгүй)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2411"
+          },
+          "every": {
+            "type": "string",
+            "description": "Давтамж (анхдагч daily)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2417",
+            "enum": [
+              "daily",
+              "weekly",
+              "monthly"
+            ]
+          },
+          "at": {
+            "type": "integer",
+            "description": "Цаг (0..23)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2419",
+            "minimum": 0,
+            "maximum": 23
+          },
+          "weekday": {
+            "type": "integer",
+            "description": "Гараг 1..7 (weekly)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2420",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "day": {
+            "type": "integer",
+            "description": "Сарын өдөр 1..28 (monthly)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2421",
+            "minimum": 1,
+            "maximum": 28
+          },
+          "action": {
+            "type": "string",
+            "description": "closePeriod(<Ledger>[: today|yesterday|last_month_end|last_week_end]) | rebuildLedger(<Ledger>) | transition(<Хүснэгт>: <Шилжилт>) | generate(<Генератор>) | checkMetrics([огноо])",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2422",
+            "pattern": "^(closePeriod\\(\\s*[^:,)]+?\\s*(?:[:,]\\s*(today|yesterday|last_month_end|last_week_end)\\s*)?\\)|rebuildLedger\\(\\s*[^:,)]+?\\s*\\)|transition\\(\\s*[^:,]+?\\s*[:,]\\s*.+?\\s*\\)|generate\\(\\s*.+?\\s*\\)|checkMetrics\\(\\s*(today|yesterday|last_month_end|last_week_end|month_end|last_year_end)?\\s*\\))$"
+          },
+          "filter": {
+            "type": "string",
+            "description": "transition-ийн бичлэгийн нөхцөл (X0)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4641",
+            "x-expr": "x0"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "transition: нэг удаад хамгийн их бичлэг (анхдагч 500)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4640",
+            "minimum": 1
+          },
+          "params": {
+            "type": "object",
+            "description": "generate: генераторын параметр",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4660",
+            "additionalProperties": true
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Идэвхтэй эсэх (анхдагч true)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4671"
+          }
+        }
+      }
+    }
+  }
+}

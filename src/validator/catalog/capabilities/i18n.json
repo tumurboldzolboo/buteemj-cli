@@ -1,0 +1,7 @@
+[
+  {
+    "name": "Олон хэлний орчуулга",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:3819",
+    "description": "i18n/<хэл>.yaml: хүснэгт, багана, төлөв, шилжилт, ангиллын нэрийн орчуулга (ST1991)"
+  }
+]

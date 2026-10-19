@@ -12,7 +12,6 @@ export function createProjectFiles(name, key, withExample = true) {
     `version: "0.1.0"`,
     `description: "${name} системийн BRD+PRD багц"`,
     `orgScoped: true`,
-    `language: "mn"`,
     `files:`,
     `  requirements: "requirements.md"`,
     `  erd: "erd.dbml"`,
@@ -52,17 +51,18 @@ stateDiagram-v2
   const screens = withExample
     ? `version: 0.1
 screens:
-  - id: request_list
+  - id: request-list
+    type: list
     title: "Хүсэлтийн жагсаалт"
     table: "Хүсэлт"
-    fields:
+    columns:
       - "Гарчиг"
       - "Төлөв"
 `
     : `version: 0.1\nscreens: []\n`;
 
   const roles = `Үүрэг,Хүснэгт,Харах,Үүсгэх,Өөрчлөх,Устгах,Мөрийн шүүлт,Нуух талбар,Зөвхөн унших талбар
-Админ,Хүснэгт,Тийм,Тийм,Тийм,Тийм,,,
+Админ,Хүсэлт,1,1,1,1,,,
 `;
 
   const files = {

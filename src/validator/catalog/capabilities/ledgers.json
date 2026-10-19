@@ -1,0 +1,57 @@
+[
+  {
+    "name": "ledger",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2276",
+    "description": "Үлдэгдлийн бүртгэл: хэмжээс × хэмжигдэхүүн, эх баримтаас огноотой хөдөлгөөн"
+  },
+  {
+    "name": "ledger.extends",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2281",
+    "description": "Өөр аппын бүртгэлд эх баримт нэмэх"
+  },
+  {
+    "name": "ledger.dimension.ref",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4363",
+    "description": "Лавлах хүснэгттэй хэмжээс (шатлал, '11*|12*' загвар)"
+  },
+  {
+    "name": "ledger.nonNegative",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4410",
+    "description": "Хэмжигдэхүүн сөрөг болохыг хориглох"
+  },
+  {
+    "name": "ledger.limitBy",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4411",
+    "description": "Өөр бүртгэлийн үлдэгдлээр хязгаарлах"
+  },
+  {
+    "name": "ledger.balanced",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4416",
+    "description": "Баримт бүрээр тэнцэх хэмжигдэхүүн (давхар бичилт)"
+  },
+  {
+    "name": "ledger.source.legs",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4566",
+    "description": "Нэг эх баримтаас нөхцөлт олон хөл (sign, when)"
+  },
+  {
+    "name": "ledger.source.when",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4555",
+    "description": "Эх баримт бичигдэх нөхцөл (X0)"
+  },
+  {
+    "name": "ledger.map.asof",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2350",
+    "description": "map утгад asof(…) — огноогоор хүчинтэй утга"
+  },
+  {
+    "name": "ledger.map.ledger",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2349",
+    "description": "map утгад ledger(<Ledger>, <Хэмжигдэхүүн>)"
+  },
+  {
+    "name": "ledger.cost",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2385",
+    "description": "Өртгийн арга average | fifo (зөвхөн plan шалгалт)"
+  }
+]

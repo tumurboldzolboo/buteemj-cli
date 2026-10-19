@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Байгууллагын хүрээтэй өгөгдөл",
+    "source": "cgi/src/solution/Package.cpp:435",
+    "description": "orgScoped: бүх хүснэгт байгууллагаар тусгаарлагдана (олон байгууллага нэг суулгалтад)"
+  },
+  {
+    "name": "Багцын хамаарал",
+    "source": "cgi/src/solution/SolutionAdmin.cpp:631",
+    "description": "requires: суулгахаас өмнө шаардлагатай багц/схемийн багц байгаа эсэхийг шалгана"
+  },
+  {
+    "name": "Багцын хувилбар",
+    "source": "cgi/src/solution/SolutionAdmin.cpp:702",
+    "description": "version: bundle ба manifest хувилбарын тохирлыг шалгана"
+  }
+]

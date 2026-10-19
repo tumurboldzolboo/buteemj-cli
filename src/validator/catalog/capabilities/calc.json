@@ -1,0 +1,62 @@
+[
+  {
+    "name": "calc.graph",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4798",
+    "description": "Тооцооны граф (ST1611–1613): оролт → зангилаа → гаралт, хувилбартай (Draft → Active)"
+  },
+  {
+    "name": "calc.input.rows",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4815",
+    "description": "Хүү мөрүүдийн оролт (source + via FK)"
+  },
+  {
+    "name": "calc.input.scalar",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4875",
+    "description": "Скаляр оролт бичлэгийн баганаас (source: <Хүснэгт>.<Багана>)"
+  },
+  {
+    "name": "calc.input.ref",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4846",
+    "description": "Мөрийн лавлагаа оролт (<нэр>.<Багана> — далд мөр хайлт)"
+  },
+  {
+    "name": "calc.node.expr",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4968",
+    "description": "Илэрхийлэл зангилаа"
+  },
+  {
+    "name": "calc.node.forEach",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4935",
+    "description": "Мөр бүрээр илэрхийлэл"
+  },
+  {
+    "name": "calc.node.aggregate",
+    "source": "cgi/src/calc/Calc.cpp:19",
+    "description": "Нэгтгэл: sum, count, avg, min, max (field, filter)"
+  },
+  {
+    "name": "calc.node.lookup",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4952",
+    "description": "Хүснэгтээс мөр хайх (filter, sort, limit, required)"
+  },
+  {
+    "name": "calc.node.decision",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4970",
+    "description": "Шийдвэрийн хүснэгт (DMN) дуудах"
+  },
+  {
+    "name": "calc.rounding",
+    "source": "cgi/src/calc/Decimal.cpp:107",
+    "description": "Аравтын нарийвчлал ба дугуйлалт: half-up, half-even, floor, ceil, down, up"
+  },
+  {
+    "name": "calc.tests",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4978",
+    "description": "Жишээ тест (inputs → expect) суулгахад хадгалагдана"
+  },
+  {
+    "name": "calc.validate",
+    "source": "cgi/src/calc/Calc.cpp:17",
+    "description": "Графын шалгалт — алдаатай бол Draft хэвээр"
+  }
+]

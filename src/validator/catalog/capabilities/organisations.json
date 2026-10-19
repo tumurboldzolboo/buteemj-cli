@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Тест байгууллага, хэрэглэгч",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:3878",
+    "description": "seed organisations/users: байгууллага, хэрэглэгч, үүрэг үүсгэнэ (production-д алгасна)"
+  },
+  {
+    "name": "Удирдлагын бүтэц",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:3929",
+    "description": "managerOf: удирдлагын албан тушаалаар мэдэгдэл удирдлагад очно"
+  },
+  {
+    "name": "Анхны өгөгдөл ачаалах",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:3992",
+    "description": "Хүснэгтийн мөрүүдийг FK-ийн дарааллаар, нэрээр давхардуулахгүй оруулна"
+  },
+  {
+    "name": "Нийлмэл түлхүүрээр FK шийдэх",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4012",
+    "description": "FK утгыг {Багана: утга} объектоор лавлах мөрийг олно"
+  },
+  {
+    "name": "Харьцангуй огноо",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:4056",
+    "description": "today/now ± N өдөр токеноор огнооны утга"
+  }
+]

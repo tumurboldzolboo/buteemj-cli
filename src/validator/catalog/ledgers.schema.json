@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/ledgers",
+  "title": "ledgers.yaml — үлдэгдлийн бүртгэл (ST1990/1994/1998)",
+  "description": "Хэмжээс × хэмжигдэхүүн бүхий бүртгэл; эх баримт бүр огноотой, тэмдэгтэй хөдөлгөөн үүсгэнэ (PLAN8 C6, PLAN11 B1).",
+  "type": "object",
+  "properties": {
+    "ledgers": { "type": "array", "items": { "$ref": "#/$defs/ledger" }, "description": "Бүртгэлүүд", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2280" }
+  },
+  "$defs": {
+    "mapValue": {
+      "type": ["string", "number"],
+      "description": "Багана/FK зам, тоо, '<текст>', ledger(<Ledger>, <Хэмжигдэхүүн>), asof(...), арифметик ( + - * / )",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2340"
+    },
+    "ledger": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Бүртгэлийн нэр (extends-гүй үед заавал)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2282" },
+        "extends": { "type": "string", "x-ref": "ledger", "description": "Өөр аппын бүртгэлд эх нэмэх (тэр бүртгэлийн нэр)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2281" },
+        "dimensions": {
+          "type": "array",
+          "description": "Хэмжээсүүд — нэр эсвэл {name, ref, key}",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2288",
+          "items": {
+            "anyOf": [
+              { "type": "string", "description": "Хэмжээсийн нэр" },
+              {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "description": "Хэмжээсийн нэр", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2289" },
+                  "ref": { "type": "string", "x-ref": "table", "description": "Лавлах хүснэгт (утга нь түүний мөр)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2292" },
+                  "key": { "type": "string", "description": "Лавлах хүснэгтийн түлхүүр багана (анхдагч — харуулах багана)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2295" }
+                }
+              }
+            ],
+            "description": "Хэмжээс — нэр эсвэл {name, ref, key}"
+          }
+        },
+        "measures": { "type": "array", "minItems": 1, "items": { "type": "string" }, "description": "Хэмжигдэхүүнүүд (тоон)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2299" },
+        "nonNegative": { "type": "array", "items": { "type": "string" }, "description": "Сөрөг болохыг хориглох хэмжигдэхүүнүүд", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2308" },
+        "balanced": { "type": "string", "description": "Баримт бүрээр нийлбэр 0 байх хэмжигдэхүүн (давхар бичилт)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2309" },
+        "limitBy": {
+          "type": "object",
+          "required": ["ledger"],
+          "description": "Өөр бүртгэлийн үлдэгдлээр хязгаарлах",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2310",
+          "properties": {
+            "ledger": { "type": "string", "x-ref": "ledger", "description": "Хязгаар өгөх бүртгэл", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2312" },
+            "measure": { "type": "string", "description": "Тэр бүртгэлийн хэмжигдэхүүн (анхдагч — эхний)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4413" },
+            "own": { "type": "string", "description": "Энэ бүртгэлийн харьцуулах хэмжигдэхүүн", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4414" }
+          }
+        },
+        "sources": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/source" }, "description": "Эх баримтууд", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2305" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["table", "date"],
+      "properties": {
+        "table": { "type": "string", "x-ref": "table", "description": "Эх хүснэгт (нэг бүртгэлд нэг удаа)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2324" },
+        "date": { "type": "string", "description": "Хөдөлгөөний огнооны багана / FK зам", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2336" },
+        "when": { "type": "string", "x-expr": "x0", "description": "Бичигдэх нөхцөл", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4555" },
+        "sign": { "type": "integer", "enum": [1, -1], "description": "Тэмдэг (1 | -1)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2337" },
+        "map": { "type": "object", "additionalProperties": { "$ref": "#/$defs/mapValue" }, "description": "Хэмжээс/хэмжигдэхүүн → утга", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2338" },
+        "legs": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Нөхцөлт хөлүүд — map-ийн давхарга",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2365",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sign": { "type": "integer", "enum": [1, -1], "description": "Хөлийн тэмдэг", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2372" },
+              "when": { "type": "string", "x-expr": "x0", "description": "Хөлийн нөхцөл", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4569" }
+            },
+            "additionalProperties": { "$ref": "#/$defs/mapValue" }
+          }
+        },
+        "cost": { "type": "string", "enum": ["average", "fifo"], "description": "Өртгийн арга", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2385" },
+        "quantity": { "type": "string", "description": "cost: тоо хэмжээний хэмжигдэхүүн", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2388" },
+        "amount": { "type": "string", "description": "cost: дүнгийн хэмжигдэхүүн", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2388" }
+      }
+    }
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/reference-data",
+  "title": "seed/reference-data.yaml",
+  "type": "object",
+  "description": "seed/*.yaml: organisations, groups, бусад түлхүүр = хүснэгтийн мөрүүд",
+  "x-source": "cgi/src/solution/Package.cpp:540",
+  "properties": {
+    "organisations": {
+      "type": "array",
+      "description": "Тест байгууллагууд (production-д хэрэгжихгүй)",
+      "x-source": "cgi/src/solution/Package.cpp:540",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Байгууллагын нэр",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2514"
+          },
+          "users": {
+            "type": "array",
+            "description": "Хэрэглэгчид",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2517",
+            "items": {
+              "type": "object",
+              "required": [
+                "login"
+              ],
+              "properties": {
+                "login": {
+                  "type": "string",
+                  "description": "Нэвтрэх нэр",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:2518"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Хүний нэр",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:3895"
+                },
+                "password": {
+                  "type": "string",
+                  "description": "Нууц үг (зөвхөн e2e)",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:3898"
+                },
+                "roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "x-ref": "role"
+                  },
+                  "description": "Үүрэг (бүлэг)",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:3910"
+                },
+                "groups": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "x-ref": "role"
+                  },
+                  "description": "Бүлэг",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:3910"
+                },
+                "managerOf": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Удирдах хэрэглэгчид (login) — «Удирдлага» албан тушаал",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:3929"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "description": "Бүлгүүд",
+      "x-source": "cgi/src/solution/Package.cpp:540",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Бүлгийн нэр",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2093"
+          },
+          "description": {
+            "type": "string",
+            "description": "Бүлгийн тайлбар",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3259"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": {
+    "type": "array",
+    "description": "Хүснэгтийн мөрүүд (түлхүүр = хүснэгтийн нэр)",
+    "x-source": "cgi/src/solution/Package.cpp:541",
+    "items": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Мөр: багана → утга (FK = харуулах утга эсвэл {Багана: утга}; {org}; today±N)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:4000"
+    }
+  }
+}

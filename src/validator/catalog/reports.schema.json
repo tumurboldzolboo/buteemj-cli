@@ -1,0 +1,809 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/reports",
+  "title": "reports.yaml",
+  "type": "object",
+  "properties": {
+    "reports": {
+      "type": "array",
+      "description": "Тайлангууд (ST1911)",
+      "x-source": "cgi/src/solution/Package.cpp:498",
+      "items": {
+        "$ref": "#/$defs/report"
+      }
+    },
+    "schedules": {
+      "type": "array",
+      "description": "Тайлангийн товлосон илгээлт (ST1914)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2644",
+      "items": {
+        "$ref": "#/$defs/schedule"
+      }
+    },
+    "notifications": {
+      "type": "array",
+      "description": "Үйл явдлын мэдэгдэл (ST1931)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2649",
+      "items": {
+        "$ref": "#/$defs/notification"
+      }
+    }
+  },
+  "$defs": {
+    "report": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Тайлангийн нэр (давтагдашгүй)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2615"
+        },
+        "source": {
+          "type": "string",
+          "description": "Эх хүснэгт (balance/layout-д заавал биш)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2616",
+          "x-ref": "table"
+        },
+        "join": {
+          "type": "array",
+          "description": "Холбох хүснэгтүүд: filter/groupBy/columns/measures-д «Хүснэгт.Багана». Эх хүснэгтээс FK гинжээр (≤ 3 алхам) — эцэг/лавлах; эх рүү FK-тай хүүхэд хүснэгтийн талбарыг measures (sum|min|max|count) эсвэл sum(Хүүхэд.Талбар)-аар нэгтгэнэ (мөр үржихгүй)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5213",
+          "items": {
+            "type": "string",
+            "x-ref": "table"
+          }
+        },
+        "filter": {
+          "type": "string",
+          "description": "Мөрийн шүүлт (A op B and/or …, param.<нэр>, user.code)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5145",
+          "x-expr": "filter"
+        },
+        "params": {
+          "type": "array",
+          "description": "Ажиллуулах үеийн параметрүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5101",
+          "items": {
+            "$ref": "#/$defs/param"
+          }
+        },
+        "columns": {
+          "type": "array",
+          "description": "Баганууд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122",
+          "items": {
+            "$ref": "#/$defs/column"
+          }
+        },
+        "groupBy": {
+          "type": "array",
+          "description": "Бүлэглэх талбарууд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5120",
+          "items": {
+            "type": "string",
+            "x-ref": "column"
+          }
+        },
+        "measures": {
+          "type": "array",
+          "description": "Нэгтгэлүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5121",
+          "items": {
+            "$ref": "#/$defs/measure"
+          }
+        },
+        "sort": {
+          "type": "array",
+          "description": "Эрэмбэ (баганын гарчгаар)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5210",
+          "items": {
+            "type": "object",
+            "required": [
+              "field"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Баганын гарчиг/талбар",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:5210"
+              },
+              "dir": {
+                "type": "string",
+                "description": "Чиглэл",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:5210",
+                "enum": [
+                  "asc",
+                  "desc"
+                ]
+              }
+            }
+          }
+        },
+        "chart": {
+          "type": "string",
+          "description": "График (x = эхний багана, y = нэгтгэлүүд); дүрслэл web/src/components/ReportView/ReportView.tsx",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5255",
+          "enum": [
+            "bar",
+            "line",
+            "pie",
+            "none"
+          ]
+        },
+        "roles": {
+          "type": "array",
+          "description": "Ажиллуулах эрхтэй үүрэг (аль нэг)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5232",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "union": {
+          "type": "array",
+          "description": "Нэмэлт эх (UNION ALL)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5243",
+          "items": {
+            "$ref": "#/$defs/unionPart"
+          }
+        },
+        "balance": {
+          "type": "object",
+          "description": "Үлдэгдлийн тайлан (ledger)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2617",
+          "$ref": "#/$defs/balance"
+        },
+        "layout": {
+          "type": "object",
+          "description": "Бүтэцтэй тайлан (мөр × багана, томъёо)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2623",
+          "$ref": "#/$defs/layout"
+        }
+      }
+    },
+    "param": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Параметрийн нэр (шүүлтэд param.<нэр>)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5102"
+        },
+        "type": {
+          "type": "string",
+          "description": "Төрөл: text | number | date | boolean | ref (ref — `table`-ийн бичлэг сонгогч, утга = ID)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5104",
+          "enum": [
+            "text",
+            "number",
+            "date",
+            "boolean",
+            "ref"
+          ],
+          "x-enum-source": "cgi/src/report/Report.cpp:33"
+        },
+        "default": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ],
+          "description": "Анхдагч утга эсвэл огнооны токен (today, month_start(today), year_start(today), today + N)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5105"
+        },
+        "table": {
+          "type": "string",
+          "description": "type: ref үед — сонгох бичлэгийн хүснэгт",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5289",
+          "x-ref": "table"
+        }
+      }
+    },
+    "measure": {
+      "type": "object",
+      "properties": {
+        "fn": {
+          "type": "string",
+          "description": "Нэгтгэх функц (анхдагч sum)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5121",
+          "enum": [
+            "sum",
+            "count",
+            "avg",
+            "min",
+            "max",
+            "count_distinct"
+          ],
+          "x-enum-source": "cgi/src/report/Report.cpp:31"
+        },
+        "field": {
+          "type": "string",
+          "description": "Нэгтгэх талбар (FK замаар ч); count-д заавал биш",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5121",
+          "x-ref": "column"
+        },
+        "label": {
+          "type": "string",
+          "description": "Баганын гарчиг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5121"
+        }
+      }
+    },
+    "column": {
+      "description": "Багана: талбарын зам («Хэлтэс.Нэр»), {expr, label} эсвэл {field, label, agg}",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122",
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Талбарын нэр/FK зам",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122",
+          "x-ref": "column"
+        },
+        {
+          "type": "object",
+          "required": [
+            "expr"
+          ],
+          "properties": {
+            "expr": {
+              "type": "string",
+              "description": "Илэрхийлэлт багана: days(A - B), sum/max/min/count/avg(<Хүүхэд>.<Талбар>), арифметик, today",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122"
+            },
+            "label": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5126"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "field"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "description": "Талбарын зам",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5127",
+              "x-ref": "column"
+            },
+            "label": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5127"
+            },
+            "agg": {
+              "type": "string",
+              "description": "Нэгтгэл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5127",
+              "enum": [
+                "sum",
+                "count",
+                "avg",
+                "min",
+                "max",
+                "count_distinct"
+              ],
+              "x-enum-source": "cgi/src/report/Report.cpp:31"
+            }
+          }
+        }
+      ]
+    },
+    "unionPart": {
+      "type": "object",
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Нэмэлт эх хүснэгт",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5246",
+          "x-ref": "table"
+        },
+        "columns": {
+          "type": "array",
+          "description": "Баганууд (тоо нь үндсэнтэй ижил)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122",
+          "items": {
+            "$ref": "#/$defs/column"
+          }
+        },
+        "groupBy": {
+          "type": "array",
+          "description": "Бүлэглэх талбарууд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5120",
+          "items": {
+            "type": "string",
+            "x-ref": "column"
+          }
+        },
+        "measures": {
+          "type": "array",
+          "description": "Нэгтгэлүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5121",
+          "items": {
+            "$ref": "#/$defs/measure"
+          }
+        },
+        "filter": {
+          "type": "string",
+          "description": "Шүүлт",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5145",
+          "x-expr": "filter"
+        }
+      }
+    },
+    "balance": {
+      "type": "object",
+      "required": [
+        "ledger"
+      ],
+      "properties": {
+        "ledger": {
+          "type": "string",
+          "description": "Ledger-ийн нэр (ledgers.yaml)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5219",
+          "x-ref": "ledger"
+        },
+        "kind": {
+          "type": "string",
+          "description": "Тайлангийн төрөл (анхдагч balance)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5219",
+          "enum": [
+            "balance",
+            "openItems",
+            "available"
+          ],
+          "x-enum-source": "cgi/src/report/Report.cpp:315"
+        },
+        "measure": {
+          "type": "string",
+          "description": "Хэмжигдэхүүн (анхдагч — эхнийх)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5220"
+        },
+        "by": {
+          "type": "array",
+          "description": "Бүлэглэх хэмжээсүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5219",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reserve": {
+          "type": "string",
+          "description": "Нөөцийн ledger (kind: available-д заавал)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5221",
+          "x-ref": "ledger"
+        },
+        "rollup": {
+          "type": "string",
+          "description": "Лавлах хэмжээсийн модоор нэгтгэх (by-д нэг хэмжээс)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5221",
+          "enum": [
+            "tree"
+          ],
+          "x-enum-source": "cgi/src/report/Report.cpp:361"
+        },
+        "scope": {
+          "type": "string",
+          "description": "Байгууллагын хүрээ (анхдагч subtree)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5221",
+          "enum": [
+            "exact",
+            "subtree",
+            "root"
+          ],
+          "x-enum-source": "cgi/src/report/Report.cpp:357"
+        },
+        "from": {
+          "type": "string",
+          "description": "Эхлэх огноо (today | yesterday | month_start(today) | year_start(today) | next_month_start(today) ± N, param.<нэр> эсвэл YYYY-MM-DD)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5222"
+        },
+        "to": {
+          "type": "string",
+          "description": "Дуусах огноо (today | yesterday | month_start(today) | year_start(today) | next_month_start(today) ± N, param.<нэр> эсвэл YYYY-MM-DD)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5222"
+        },
+        "asof": {
+          "type": "string",
+          "description": "Огнооны байдлаар (openItems) (today | yesterday | month_start(today) | year_start(today) | next_month_start(today) ± N, param.<нэр> эсвэл YYYY-MM-DD)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5222"
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "Байгууллагын хүрээ (анхдагч subtree)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:490",
+          "enum": [
+            "exact",
+            "root",
+            "subtree"
+          ]
+        },
+        "hideZero": {
+          "type": "boolean",
+          "description": "Тэг мөрийг нуух (анхдагч)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:579"
+        },
+        "columns": {
+          "type": "array",
+          "description": "Баганууд",
+          "x-source": "cgi/src/solution/DeployCalc.inc:500",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/layoutColumn"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "description": "Мөрүүд",
+          "x-source": "cgi/src/solution/DeployCalc.inc:500",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/layoutRow"
+          }
+        }
+      }
+    },
+    "layoutColumn": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Баганын нэр",
+          "x-source": "cgi/src/solution/DeployCalc.inc:505"
+        },
+        "formula": {
+          "type": "string",
+          "description": "Баганын томъёо (бусад баганын нэрээр)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:507",
+          "x-expr": "calc"
+        },
+        "from": {
+          "type": "string",
+          "description": "Баганын хугацааны эхлэл (илэрхийлэл)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:509",
+          "x-expr": "calc"
+        },
+        "to": {
+          "type": "string",
+          "description": "Баганын хугацааны төгсгөл (илэрхийлэл)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:509",
+          "x-expr": "calc"
+        }
+      }
+    },
+    "layoutRow": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Мөрийн код (бусад мөрийн томъёонд нэрээр)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:518"
+        },
+        "label": {
+          "type": "string",
+          "description": "Мөрийн гарчиг (each-д — мөр бүрийн илэрхийлэл)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:570"
+        },
+        "value": {
+          "type": "string",
+          "description": "Бүх баганын нүдний илэрхийлэл",
+          "x-source": "cgi/src/solution/DeployCalc.inc:540",
+          "x-expr": "calc"
+        },
+        "values": {
+          "type": "object",
+          "description": "Баганын нэр → нүдний илэрхийлэл",
+          "x-source": "cgi/src/solution/DeployCalc.inc:540",
+          "additionalProperties": {
+            "type": "string",
+            "x-expr": "calc"
+          }
+        },
+        "each": {
+          "type": "string",
+          "description": "Хүснэгтийн мөр бүрээр дэлгэх",
+          "x-source": "cgi/src/solution/DeployCalc.inc:563",
+          "x-ref": "table"
+        },
+        "filter": {
+          "type": "string",
+          "description": "each-ийн шүүлт",
+          "x-source": "cgi/src/solution/DeployCalc.inc:573",
+          "x-expr": "calc"
+        },
+        "order": {
+          "type": "array",
+          "description": "each-ийн эрэмбэ («<илэрхийлэл> desc»)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:575",
+          "x-scalar-or-list": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "indent": {
+          "type": "integer",
+          "description": "Догол (түвшин)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:560",
+          "minimum": 0
+        },
+        "hideZero": {
+          "type": "boolean",
+          "description": "Тэг мөрийг нуух (each)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:579"
+        }
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "required": [
+        "report"
+      ],
+      "properties": {
+        "report": {
+          "type": "string",
+          "description": "Тайлангийн нэр",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2645",
+          "x-ref": "report"
+        },
+        "every": {
+          "type": "string",
+          "description": "Давтамж (анхдагч day)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5269",
+          "enum": [
+            "day",
+            "daily",
+            "week",
+            "weekly",
+            "month",
+            "monthly"
+          ]
+        },
+        "at": {
+          "type": "string",
+          "description": "Цаг HH:MM (цаг л ашиглагдана)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5271",
+          "pattern": "^[0-2][0-9](:[0-5][0-9])?$"
+        },
+        "to": {
+          "type": "array",
+          "description": "Хүлээн авагч: role:<Үүрэг> | group:<Бүлэг> | user:<нэр>",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5273",
+          "items": {
+            "type": "string"
+          }
+        },
+        "channel": {
+          "type": "string",
+          "description": "Суваг: bell (=inapp) | inapp | endpoint:<Нэр>[:/зам]",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5274",
+          "pattern": "^(bell|inapp|endpoint:[A-Za-z_][A-Za-z0-9_]{0,99}(:/\\S*)?)$"
+        }
+      }
+    },
+    "notification": {
+      "description": "Үйл явдлын мэдэгдэл",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2649",
+      "x-discriminator": "event",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "event"
+          ],
+          "properties": {
+            "event": {
+              "type": "string",
+              "description": "Үйл явдал",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:2650",
+              "const": "task_created"
+            },
+            "recipients": {
+              "type": "array",
+              "description": "Хүлээн авагч: assignee, candidates, owner, manager, role:<Үүрэг>, group:…, user:…",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5289",
+              "items": {
+                "type": "string"
+              }
+            },
+            "template": {
+              "type": "string",
+              "description": "Мэдэгдлийн текст ({{record.<Талбар>}}, {{task}})",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5290",
+              "x-expr": "template"
+            },
+            "table": {
+              "type": "string",
+              "description": "Хүснэгт (state_*/due_soon)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5369",
+              "x-ref": "table"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "event"
+          ],
+          "properties": {
+            "event": {
+              "type": "string",
+              "description": "Үйл явдал",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:2650",
+              "const": "state_changed"
+            },
+            "recipients": {
+              "type": "array",
+              "description": "Хүлээн авагч: assignee, candidates, owner, manager, role:<Үүрэг>, group:…, user:…",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5289",
+              "items": {
+                "type": "string"
+              }
+            },
+            "template": {
+              "type": "string",
+              "description": "Мэдэгдлийн текст ({{record.<Талбар>}}, {{task}})",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5290",
+              "x-expr": "template"
+            },
+            "table": {
+              "type": "string",
+              "description": "Хүснэгт (state_*/due_soon)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5369",
+              "x-ref": "table"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "event"
+          ],
+          "properties": {
+            "event": {
+              "type": "string",
+              "description": "Үйл явдал",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:2650",
+              "const": "state_overdue"
+            },
+            "recipients": {
+              "type": "array",
+              "description": "Хүлээн авагч: assignee, candidates, owner, manager, role:<Үүрэг>, group:…, user:…",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5289",
+              "items": {
+                "type": "string"
+              }
+            },
+            "template": {
+              "type": "string",
+              "description": "Мэдэгдлийн текст ({{record.<Талбар>}}, {{task}})",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5290",
+              "x-expr": "template"
+            },
+            "table": {
+              "type": "string",
+              "description": "Хүснэгт (state_*/due_soon)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5369",
+              "x-ref": "table"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "event"
+          ],
+          "properties": {
+            "event": {
+              "type": "string",
+              "description": "Үйл явдал",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:2650",
+              "const": "task_overdue"
+            },
+            "recipients": {
+              "type": "array",
+              "description": "Хүлээн авагч: assignee, candidates, owner, manager, role:<Үүрэг>, group:…, user:…",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5289",
+              "items": {
+                "type": "string"
+              }
+            },
+            "template": {
+              "type": "string",
+              "description": "Мэдэгдлийн текст ({{record.<Талбар>}}, {{task}})",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5290",
+              "x-expr": "template"
+            },
+            "table": {
+              "type": "string",
+              "description": "Хүснэгт (state_*/due_soon)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5369",
+              "x-ref": "table"
+            },
+            "after": {
+              "type": "string",
+              "description": "ISO 8601 хугацаа (P2D, PT4H) эсвэл «<N>d»",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5349"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "event",
+            "table",
+            "field"
+          ],
+          "properties": {
+            "event": {
+              "type": "string",
+              "description": "Үйл явдал",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:2650",
+              "const": "due_soon"
+            },
+            "recipients": {
+              "type": "array",
+              "description": "Хүлээн авагч: assignee, candidates, owner, manager, role:<Үүрэг>, group:…, user:…",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5289",
+              "items": {
+                "type": "string"
+              }
+            },
+            "template": {
+              "type": "string",
+              "description": "Мэдэгдлийн текст ({{record.<Талбар>}}, {{task}})",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5290",
+              "x-expr": "template"
+            },
+            "table": {
+              "type": "string",
+              "description": "Хүснэгт (state_*/due_soon)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5369",
+              "x-ref": "table"
+            },
+            "field": {
+              "type": "string",
+              "description": "Огнооны талбар",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5293",
+              "x-ref": "column"
+            },
+            "before": {
+              "type": "string",
+              "description": "Хэдий хугацааны өмнө (ISO P3D эсвэл «<N>d»; анхдагч P3D)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5295"
+            },
+            "filter": {
+              "type": "string",
+              "description": "Бичлэгийн нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:5300",
+              "x-expr": "x0"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

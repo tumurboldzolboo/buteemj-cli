@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Орох webhook",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2239",
+    "description": "inbound: /api/hook/<key> — token|hmac, payload-оос мөр үүсгэх (map), процесс эхлүүлэх, BPMN message"
+  },
+  {
+    "name": "Гарах дуудлага",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:3496",
+    "description": "outbound + call(<нэр>): body/response mapping, retry (outbox)"
+  },
+  {
+    "name": "Шаардлагатай endpoint",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2268",
+    "description": "endpoints: ST1801-д бүртгэлтэй байх ёстой гадаад систем"
+  }
+]

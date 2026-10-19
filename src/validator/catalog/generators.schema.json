@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/generators",
+  "title": "generators.yaml — баримт/мөр үүсгэх, шинэчлэх (ST1920 generator)",
+  "description": "Генератор: target-д баримт (header + lines | rows), on-ий баримтад мөр, эсвэл update. Илэрхийлэл exprsql-ээр SQL болно (PLAN11 B2/B7).",
+  "type": "object",
+  "properties": {
+    "generators": { "type": "array", "items": { "$ref": "#/$defs/generator" }, "description": "Генераторууд", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2466" }
+  },
+  "$defs": {
+    "expr": { "type": ["string", "number", "boolean", "null"], "x-expr": "x0", "description": "Утга: илэрхийлэл, тоо, bool, null", "x-source": "cgi/src/solution/DeployCalc.inc:67" },
+    "colMap": { "type": "object", "additionalProperties": { "$ref": "#/$defs/expr" }, "description": "<Багана>: <илэрхийлэл>", "x-source": "cgi/src/solution/DeployCalc.inc:60" },
+    "strList": { "type": "array", "items": { "type": "string" }, "x-scalar-or-list": true },
+    "generator": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "description": "Генераторын нэр (давхардахгүй; states.mmd generate(), jobs.yaml)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2467" },
+        "on": { "type": "string", "x-ref": "table", "description": "Эх баримтын хүснэгт (doc.* — шилжиж буй баримт)", "x-source": "cgi/src/solution/DeployCalc.inc:287" },
+        "target": { "type": "string", "x-ref": "table", "description": "Үүсгэх баримтын хүснэгт", "x-source": "cgi/src/solution/DeployCalc.inc:295" },
+        "params": {
+          "type": "array",
+          "description": "Гараас өгөх параметрүүд (param.<нэр>)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:278",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "description": "Параметрийн нэр", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
+              "type": { "type": "string", "enum": ["date", "number", "text"], "description": "Төрөл (анхдагч text)", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
+              "default": { "type": ["string", "number", "boolean"], "description": "Анхдагч утга (today, last_month_end …)", "x-source": "cgi/src/solution/DeployCalc.inc:283" }
+            }
+          }
+        },
+        "key": { "$ref": "#/$defs/strList", "description": "Давхардлын түлхүүр баганууд (target / мөр)", "x-source": "cgi/src/solution/DeployCalc.inc:314" },
+        "keyExcept": { "$ref": "#/$defs/strList", "description": "Давхардалд тооцохгүй төлөвүүд (key-тэй хамт)", "x-source": "cgi/src/solution/DeployCalc.inc:317" },
+        "header": { "$ref": "#/$defs/colMap", "description": "Target баримтын толгойн утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:359" },
+        "lines": {
+          "anyOf": [ { "$ref": "#/$defs/lineGroup" }, { "type": "array", "items": { "$ref": "#/$defs/lineGroup" } } ],
+          "description": "Мөрийн бүлэг(үүд)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:329"
+        },
+        "rows": { "$ref": "#/$defs/rowsGroup", "description": "Эх мөр бүрээр нэг target баримт", "x-source": "cgi/src/solution/DeployCalc.inc:323" },
+        "update": { "type": "array", "items": { "$ref": "#/$defs/updateGroup" }, "description": "Байгаа мөрүүдийг шинэчлэх", "x-source": "cgi/src/solution/DeployCalc.inc:362" },
+        "then": { "type": "string", "description": "Үүссэн баримтад хийх шилжилт", "x-source": "cgi/src/solution/DeployCalc.inc:309" }
+      }
+    },
+    "groupCommon": {
+      "filter": { "type": "string", "x-expr": "x0", "description": "Эх мөрийн шүүлт", "x-source": "cgi/src/solution/DeployCalc.inc:251" },
+      "order": { "$ref": "#/$defs/strList", "description": "Эрэмбэ (<илэрхийлэл>[ asc|desc])", "x-source": "cgi/src/solution/DeployCalc.inc:258" },
+      "partition": { "$ref": "#/$defs/strList", "description": "Цонхны бүлэглэл (rownum() г.м.)", "x-source": "cgi/src/solution/DeployCalc.inc:259" },
+      "nonzero": { "$ref": "#/$defs/strList", "description": "Бүгд 0 бол мөрийг алгасах баганууд", "x-source": "cgi/src/solution/DeployCalc.inc:268" }
+    },
+    "lineGroup": {
+      "type": "object",
+      "properties": {
+        "table": { "type": "string", "x-ref": "table", "description": "Мөрийн хүснэгт (анхдагч — толгой-мөр холбоос)", "x-source": "cgi/src/solution/DeployCalc.inc:334" },
+        "from": { "$ref": "#/$defs/from" },
+        "filter": { "$ref": "#/$defs/groupCommon/filter" },
+        "order": { "$ref": "#/$defs/groupCommon/order" },
+        "partition": { "$ref": "#/$defs/groupCommon/partition" },
+        "nonzero": { "$ref": "#/$defs/groupCommon/nonzero" },
+        "key": { "$ref": "#/$defs/strList", "description": "on + lines: баримт дахь мөрийн түлхүүр", "x-source": "cgi/src/solution/DeployCalc.inc:349" },
+        "map": { "$ref": "#/$defs/colMap", "description": "Мөрийн баганын утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:263" }
+      }
+    },
+    "rowsGroup": {
+      "type": "object",
+      "required": ["from"],
+      "properties": {
+        "from": { "$ref": "#/$defs/from" },
+        "filter": { "$ref": "#/$defs/groupCommon/filter" },
+        "order": { "$ref": "#/$defs/groupCommon/order" },
+        "partition": { "$ref": "#/$defs/groupCommon/partition" },
+        "nonzero": { "$ref": "#/$defs/groupCommon/nonzero" },
+        "map": { "$ref": "#/$defs/colMap", "description": "Target баганын утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:263" }
+      }
+    },
+    "updateGroup": {
+      "type": "object",
+      "required": ["table"],
+      "properties": {
+        "table": { "type": "string", "x-ref": "table", "description": "Шинэчлэх хүснэгт", "x-source": "cgi/src/solution/DeployCalc.inc:363" },
+        "filter": { "$ref": "#/$defs/groupCommon/filter" },
+        "order": { "$ref": "#/$defs/groupCommon/order" },
+        "partition": { "$ref": "#/$defs/groupCommon/partition" },
+        "nonzero": { "$ref": "#/$defs/groupCommon/nonzero" },
+        "set": { "$ref": "#/$defs/colMap", "description": "Шинэ утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:263" }
+      }
+    },
+    "from": {
+      "anyOf": [
+        { "$ref": "#/$defs/ledgerFrom" },
+        { "$ref": "#/$defs/explodeFrom" },
+        { "type": "string", "x-ref": "table", "description": "Эх хүснэгт" }
+      ],
+      "description": "Мөрийн эх: хүснэгт | {ledger: …} | {explode: …}",
+      "x-source": "cgi/src/solution/DeployCalc.inc:246"
+    },
+    "ledgerFrom": {
+      "type": "object",
+      "required": ["ledger"],
+      "properties": {
+        "ledger": { "type": "string", "x-ref": "ledger", "description": "Бүртгэлийн нэр", "x-source": "cgi/src/solution/DeployCalc.inc:143" },
+        "by": { "$ref": "#/$defs/strList", "description": "Бүлэглэх хэмжээсүүд (анхдагч — бүгд)", "x-source": "cgi/src/solution/DeployCalc.inc:148" },
+        "scope": { "type": "string", "enum": ["exact", "root", "subtree"], "description": "Байгууллагын хүрээ (анхдагч exact)", "x-source": "cgi/src/solution/DeployCalc.inc:151" },
+        "from": { "type": ["string", "number"], "x-expr": "x0", "description": "Эхлэх огноо", "x-source": "cgi/src/solution/DeployCalc.inc:154" },
+        "to": { "type": ["string", "number"], "x-expr": "x0", "description": "Дуусах огноо", "x-source": "cgi/src/solution/DeployCalc.inc:154" },
+        "where": { "type": "object", "additionalProperties": { "type": "string" }, "description": "<хэмжээс>: '<загвар>' ('11*|12*', '!…')", "x-source": "cgi/src/solution/DeployCalc.inc:164" }
+      }
+    },
+    "explodeFrom": {
+      "type": "object",
+      "required": ["explode", "parent", "child", "qty", "roots"],
+      "properties": {
+        "explode": { "type": "string", "x-ref": "table", "description": "Ирмэгийн хүснэгт (BOM: эцэг → хүү × тоо)", "x-source": "cgi/src/solution/DeployCalc.inc:196" },
+        "parent": { "type": "string", "description": "Эцгийн багана", "x-source": "cgi/src/solution/DeployCalc.inc:198" },
+        "child": { "type": "string", "description": "Хүүгийн багана", "x-source": "cgi/src/solution/DeployCalc.inc:198" },
+        "qty": { "type": "string", "description": "Тоо хэмжээний багана", "x-source": "cgi/src/solution/DeployCalc.inc:198" },
+        "roots": { "type": "string", "x-ref": "table", "description": "Үндэс мөрийн хүснэгт", "x-source": "cgi/src/solution/DeployCalc.inc:201" },
+        "item": { "type": "string", "x-expr": "x0", "description": "Үндэс мөрөөс бараа (анхдагч id)", "x-source": "cgi/src/solution/DeployCalc.inc:207" },
+        "quantity": { "type": ["string", "number"], "x-expr": "x0", "description": "Үндэс тоо (анхдагч 1)", "x-source": "cgi/src/solution/DeployCalc.inc:209" },
+        "filter": { "type": "string", "x-expr": "x0", "description": "Үндэс мөрийн шүүлт", "x-source": "cgi/src/solution/DeployCalc.inc:213" },
+        "leaves": { "type": "boolean", "description": "Зөвхөн навч (анхдагч true)", "x-source": "cgi/src/solution/DeployCalc.inc:216" },
+        "group": { "type": "boolean", "description": "Бараагаар нэгтгэх (анхдагч false)", "x-source": "cgi/src/solution/DeployCalc.inc:216" }
+      }
+    }
+  }
+}

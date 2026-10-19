@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/manifest",
+  "title": "manifest.yaml",
+  "type": "object",
+  "required": [
+    "key"
+  ],
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Аппликейшны тогтвортой латин түлхүүр",
+      "x-source": "cgi/src/solution/Package.cpp:428",
+      "pattern": "^[a-z][a-z0-9-]{1,49}$",
+      "x-pattern-hint": "[a-z][a-z0-9-] 2..50"
+    },
+    "name": {
+      "type": "string",
+      "description": "Аппликейшны нэр (анхдагч = key)",
+      "x-source": "cgi/src/solution/Package.cpp:432"
+    },
+    "version": {
+      "type": "string",
+      "description": "Хувилбар (bundle.version-тэй тэнцүү байх ёстой)",
+      "x-source": "cgi/src/solution/Package.cpp:433"
+    },
+    "description": {
+      "type": "string",
+      "description": "Тайлбар",
+      "x-source": "cgi/src/solution/Package.cpp:434"
+    },
+    "orgScoped": {
+      "type": "boolean",
+      "description": "Хүснэгтүүд байгууллагын хүрээтэй эсэх (анхдагч true)",
+      "x-source": "cgi/src/solution/Package.cpp:435"
+    },
+    "requires": {
+      "type": "array",
+      "description": "Шаардлагатай багц/схемийн багц («hrm >= 1.0» эсвэл {key})",
+      "x-source": "cgi/src/solution/SolutionAdmin.cpp:635",
+      "items": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "Багцын түлхүүр",
+                "x-source": "cgi/src/solution/SolutionAdmin.cpp:636"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          }
+        ]
+      }
+    },
+    "acceptance": {
+      "type": "string",
+      "description": "Хүлээн авах сценарийн файл (анхдагч acceptance.md)",
+      "x-source": "cgi/src/solution/Package.cpp:453"
+    },
+    "files": {
+      "type": "object",
+      "description": "Файлын үүрэг → зам (байхгүй бол өргөтгөлөөр хайна)",
+      "x-source": "cgi/src/solution/Package.cpp:437",
+      "properties": {
+        "requirements": {
+          "description": "Шаардлагын Markdown",
+          "x-source": "cgi/src/solution/Package.cpp:449",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "roles": {
+          "description": "Эрхийн CSV",
+          "x-source": "cgi/src/solution/Package.cpp:460",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "erd": {
+          "description": "DBML ERD",
+          "x-source": "cgi/src/solution/Package.cpp:465",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "states": {
+          "description": "Mermaid төлөвийн машин",
+          "x-source": "cgi/src/solution/Package.cpp:473",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dmn": {
+          "description": "DMN шийдвэрийн хүснэгтүүд",
+          "x-source": "cgi/src/solution/Package.cpp:481",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "screens": {
+          "description": "Дэлгэцүүд",
+          "x-source": "cgi/src/solution/Package.cpp:497",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reports": {
+          "description": "Тайлан, мэдэгдэл",
+          "x-source": "cgi/src/solution/Package.cpp:498",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "numbering": {
+          "description": "Дугаарлалт",
+          "x-source": "cgi/src/solution/Package.cpp:499",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "integrations": {
+          "description": "Интеграц (webhook, endpoint)",
+          "x-source": "cgi/src/solution/Package.cpp:500",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "jobs": {
+          "description": "Хуваарьт ажил",
+          "x-source": "cgi/src/solution/Package.cpp:501",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "generators": {
+          "description": "Генератор",
+          "x-source": "cgi/src/solution/Package.cpp:502",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metrics": {
+          "description": "Үзүүлэлт (KPI)",
+          "x-source": "cgi/src/solution/Package.cpp:503",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "context": {
+          "description": "Сессийн контекст",
+          "x-source": "cgi/src/solution/Package.cpp:504",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ledgers": {
+          "description": "Үлдэгдлийн бүртгэл",
+          "x-source": "cgi/src/solution/Package.cpp:505",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "calc": {
+          "description": "Тооцооны YAML-ууд",
+          "x-source": "cgi/src/solution/Package.cpp:507",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "seed": {
+          "description": "Тест өгөгдөл (organisations, мөрүүд)",
+          "x-source": "cgi/src/solution/Package.cpp:532",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reference": {
+          "description": "Системийн глобал лавлах (CSV/YAML)",
+          "x-source": "cgi/src/solution/Package.cpp:578",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "defaults": {
+          "description": "Байгууллага бүрт хуулагдах анхны мөр",
+          "x-source": "cgi/src/solution/Package.cpp:579",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "documents": {
+          "description": "HTML баримтын загвар",
+          "x-source": "cgi/src/solution/Package.cpp:582",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bpmn": {
+          "description": "BPMN процесс",
+          "x-source": "cgi/src/solution/Package.cpp:585",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

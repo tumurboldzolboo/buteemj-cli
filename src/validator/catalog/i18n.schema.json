@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/i18n",
+  "title": "i18n/<хэл>.yaml",
+  "type": "object",
+  "x-source": "cgi/src/solution/Package.cpp:519",
+  "properties": {
+    "tables": {
+      "type": "object",
+      "description": "Хүснэгтийн нэр → орчуулга",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:3835",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "columns": {
+      "type": "object",
+      "description": "«Хүснэгт.Багана» → орчуулга",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:3835",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "states": {
+      "type": "object",
+      "description": "«Хүснэгт.Төлөв» → орчуулга",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:3835",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "transitions": {
+      "type": "object",
+      "description": "«Хүснэгт.Шилжилт» → орчуулга",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:3835",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "categories": {
+      "type": "object",
+      "description": "Цэсний ангилал → орчуулга",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:3835",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}

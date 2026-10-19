@@ -1,0 +1,9 @@
+[
+  { "name": "orgScoped", "source": "cgi/src/auth/DataPolicy.cpp:535", "description": "Хүснэгтийн мөрийг байгууллагын хүрээнд тусгаарлах (manifest.orgScoped)" },
+  { "name": "нэвтрэлт", "source": "cgi/src/main.cpp:87", "description": "Нэвтрэх нэр/нууц үгээр нэвтрэх, JWT токен" },
+  { "name": "шилжилтийн түүх", "source": "cgi/src/main.cpp:298", "description": "Мөрийн төлөвийн шилжилтийн түүх (/api/data/{table}/{id}/history)" },
+  { "name": "аудит", "source": "cgi/src/main.cpp:374", "description": "Мөрийн өөрчлөлтийн аудит (/api/data/{table}/{id}/audit, schema/postgresql/54-record-audit.sql)" },
+  { "name": "талбарын аудит", "source": "schema/postgresql/54-record-audit.sql", "description": "Талбар тус бүрийн хуучин/шинэ утгын бүртгэл" },
+  { "name": "архив", "source": "cgi/src/doc/DocTemplate.cpp:582", "description": "Үүсгэсэн баримтыг архивлах, архиваас унших" },
+  { "name": "health", "source": "cgi/src/main.cpp:607", "description": "Үйлчилгээний төлөв шалгах (/api/health)" }
+]

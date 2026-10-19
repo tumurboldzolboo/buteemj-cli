@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/metrics",
+  "title": "metrics.yaml",
+  "type": "object",
+  "properties": {
+    "metrics": {
+      "type": "array",
+      "description": "Үзүүлэлтүүд / KPI (ST1920 metric)",
+      "x-source": "cgi/src/solution/Package.cpp:503",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "value"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Үзүүлэлтийн нэр (бусад үзүүлэлтийн томъёонд нэрээр)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2467"
+          },
+          "value": {
+            "type": "string",
+            "description": "Томъёо: balance/change(<Ledger>, …), sumof/countof/avgof(<Хүснэгт>, …), бусад үзүүлэлт, param.from/to",
+            "x-source": "cgi/src/solution/DeployCalc.inc:434",
+            "x-expr": "calc"
+          },
+          "format": {
+            "type": "string",
+            "description": "Харуулах хэлбэр (анхдагч number)",
+            "x-source": "cgi/src/solution/DeployCalc.inc:457",
+            "enum": [
+              "number",
+              "money",
+              "percent"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "description": "Нэгж (₮, %, хоног …)",
+            "x-source": "cgi/src/solution/DeployCalc.inc:458"
+          },
+          "target": {
+            "type": "number",
+            "description": "Зорилт (босго)",
+            "x-source": "cgi/src/solution/DeployCalc.inc:459"
+          },
+          "warning": {
+            "type": "number",
+            "description": "Анхааруулах босго",
+            "x-source": "cgi/src/solution/DeployCalc.inc:460"
+          },
+          "better": {
+            "type": "string",
+            "description": "Аль чиглэл сайн (анхдагч higher)",
+            "x-source": "cgi/src/solution/DeployCalc.inc:457",
+            "enum": [
+              "higher",
+              "lower"
+            ],
+            "x-enum-source": "cgi/src/state/BatchJobs.cpp:15"
+          },
+          "description": {
+            "type": "string",
+            "description": "Тайлбар",
+            "x-source": "cgi/src/solution/DeployCalc.inc:458"
+          },
+          "scope": {
+            "type": "string",
+            "description": "Байгууллагын хүрээ (анхдагч subtree)",
+            "x-source": "cgi/src/solution/DeployCalc.inc:418",
+            "enum": [
+              "exact",
+              "root",
+              "subtree"
+            ]
+          },
+          "notify": {
+            "description": "Босго давахад мэдэгдэх: «<хүлээн авагч>» эсвэл {to, when} (target заавал; jobs.yaml checkMetrics)",
+            "x-source": "cgi/src/solution/DeployCalc.inc:462",
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Хүлээн авагч (group:<Бүлэг> …)"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "to"
+                ],
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "description": "Хүлээн авагч",
+                    "x-source": "cgi/src/solution/DeployCalc.inc:464"
+                  },
+                  "when": {
+                    "type": "string",
+                    "description": "Хэзээ (анхдагч bad)",
+                    "x-source": "cgi/src/solution/DeployCalc.inc:465",
+                    "enum": [
+                      "bad",
+                      "warning"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

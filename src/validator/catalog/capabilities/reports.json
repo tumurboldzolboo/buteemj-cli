@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Жагсаалт/нэгтгэлийн тайлан",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:5122",
+    "description": "source + columns/groupBy/measures/filter/sort/params — FK замаар багана, нэгтгэл (sum|count|avg|min|max|count_distinct)"
+  },
+  {
+    "name": "Тайлангийн параметр",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:5101",
+    "description": "params: text|number|date|boolean, огнооны токентой анхдагч"
+  },
+  {
+    "name": "Тайлангийн график",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:5255",
+    "description": "chart: bar | line | pie"
+  },
+  {
+    "name": "Олон эхтэй тайлан",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:5243",
+    "description": "union: UNION ALL — нэмэлт эх хүснэгт"
+  },
+  {
+    "name": "Үлдэгдлийн тайлан",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:5216",
+    "description": "balance: ledger-ийн үлдэгдэл/хөдөлгөөн, нээлттэй зүйл (openItems), боломжит үлдэгдэл (available), модоор нэгтгэх (rollup: tree)"
+  },
+  {
+    "name": "Бүтэцтэй тайлан",
+    "source": "cgi/src/solution/DeployCalc.inc:483",
+    "description": "layout: мөр × багана, мөрийн код, томъёо, мөр бүрээр дэлгэх (each) — санхүүгийн тайлан"
+  },
+  {
+    "name": "Тайлангийн эрх",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:5232",
+    "description": "roles: зөвхөн заасан үүрэг ажиллуулна"
+  },
+  {
+    "name": "Товлосон тайлан илгээлт",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:5265",
+    "description": "schedules: өдөр/долоо хоног/сар бүр тайлан хүлээн авагчдад (bell эсвэл endpoint)"
+  },
+  {
+    "name": "Үйл явдлын мэдэгдэл",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:5284",
+    "description": "notifications: task_created, task_overdue, state_changed, state_overdue, due_soon"
+  },
+  {
+    "name": "Хугацаа дөхсөн мэдэгдэл",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:5292",
+    "description": "due_soon: огнооны талбар дөхөхөд (before, filter)"
+  }
+]

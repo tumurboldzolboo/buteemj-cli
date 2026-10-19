@@ -1,0 +1,1554 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj/screens.schema.json",
+  "title": "screens.yaml",
+  "description": "Дэлгэц, хуудас, цэс — сервер (SolutionDeploy.cpp translate*Screen) уншдаг түлхүүрүүд л",
+  "type": "object",
+  "required": [
+    "screens"
+  ],
+  "properties": {
+    "version": {
+      "type": [
+        "number",
+        "string"
+      ],
+      "description": "Баримтын хувилбар",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:5640"
+    },
+    "screens": {
+      "type": "array",
+      "description": "Дэлгэцүүд",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2661",
+      "items": {
+        "$ref": "#/$defs/screen"
+      }
+    },
+    "menu": {
+      "type": "array",
+      "description": "Цэс: ангилал × зүйлс",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2722",
+      "items": {
+        "type": "object",
+        "required": [
+          "category"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Цэсний ангилал",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2724"
+          },
+          "items": {
+            "type": "array",
+            "description": "Дэлгэцийн id эсвэл {table}",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3789",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "x-ref": "screen"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "table"
+                  ],
+                  "properties": {
+                    "table": {
+                      "type": "string",
+                      "description": "Хүснэгт",
+                      "x-source": "cgi/src/solution/SolutionDeploy.cpp:3789",
+                      "x-ref": "table"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "screen": {
+      "description": "Дэлгэц",
+      "x-discriminator": "type",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/form"
+        },
+        {
+          "$ref": "#/$defs/list"
+        },
+        {
+          "$ref": "#/$defs/task"
+        },
+        {
+          "$ref": "#/$defs/page"
+        }
+      ]
+    },
+    "form": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "table"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Дэлгэцийн id (латин жижиг, тоо, -)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2662",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "type": {
+          "type": "string",
+          "description": "Дэлгэцийн төрөл",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2662",
+          "const": "form"
+        },
+        "title": {
+          "type": "string",
+          "description": "Гарчиг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2663"
+        },
+        "table": {
+          "type": "string",
+          "description": "Үндсэн хүснэгт",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1364",
+          "x-ref": "table"
+        },
+        "layout": {
+          "type": "object",
+          "description": "Маягтын бүтэц: tabs эсвэл sections",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1394",
+          "properties": {
+            "tabs": {
+              "type": "array",
+              "description": "Табууд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1395",
+              "items": {
+                "$ref": "#/$defs/tab"
+              }
+            },
+            "sections": {
+              "type": "array",
+              "description": "Табгүй хэсгүүд (дараалсан)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1395",
+              "items": {
+                "$ref": "#/$defs/section"
+              }
+            }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "description": "Товчнууд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1479",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "description": "Төлөв/үүргийн хувилбар",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1517",
+          "items": {
+            "$ref": "#/$defs/variant"
+          }
+        },
+        "roles": {
+          "type": "array",
+          "description": "Хувилбар формын үүргүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1551",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "variant": {
+          "type": "boolean",
+          "description": "Хувилбар форм (анхдагч биш)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2690"
+        },
+        "offline": {
+          "description": "Офлайн: true (= create) эсвэл {create, update, cache}",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1553",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Офлайн үүсгэх",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1560"
+                },
+                "update": {
+                  "type": "boolean",
+                  "description": "Офлайн засах",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1561"
+                },
+                "cache": {
+                  "type": "array",
+                  "description": "Кэшлэх лавлах хүснэгтүүд",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1562",
+                  "items": {
+                    "type": "string",
+                    "x-ref": "table"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "list": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "table"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Дэлгэцийн id (латин жижиг, тоо, -)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2662",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "type": {
+          "type": "string",
+          "description": "Дэлгэцийн төрөл",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2662",
+          "const": "list"
+        },
+        "title": {
+          "type": "string",
+          "description": "Гарчиг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2663"
+        },
+        "table": {
+          "type": "string",
+          "description": "Хүснэгт",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1599",
+          "x-ref": "table"
+        },
+        "columns": {
+          "type": "array",
+          "description": "Баганууд — нэр эсвэл {label, expr}",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1606",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "x-ref": "column"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "expr"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Шошго",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1611"
+                  },
+                  "expr": {
+                    "type": "string",
+                    "description": "Тооцоолсон багана",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1607",
+                    "x-expr": "x0"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "sort": {
+          "type": "array",
+          "description": "Эрэмбэ",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1617",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Эрэмбийн багана",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:1617",
+                "x-ref": "column"
+              },
+              "dir": {
+                "type": "string",
+                "description": "Чиглэл (анхдагч asc)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:1617",
+                "enum": [
+                  "asc",
+                  "desc"
+                ]
+              }
+            },
+            "required": [
+              "field"
+            ]
+          }
+        },
+        "stateColumn": {
+          "type": "string",
+          "description": "Төлөвийн багана",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1618",
+          "x-ref": "column"
+        },
+        "views": {
+          "type": "array",
+          "description": "Харагдацууд (шүүлт)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1621",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Нэр",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:1629"
+              },
+              "filter": {
+                "type": "string",
+                "description": "Мөрийн шүүлт",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:1622",
+                "x-expr": "filter"
+              },
+              "default": {
+                "type": "boolean",
+                "description": "Анхдагч",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:1630"
+              },
+              "roles": {
+                "type": "array",
+                "description": "Харагдах үүргүүд (нэрээр)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:1631",
+                "items": {
+                  "type": "string",
+                  "x-ref": "role"
+                }
+              }
+            }
+          }
+        },
+        "rowActions": {
+          "type": "array",
+          "description": "Мөрийн үйлдлүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1605",
+          "items": {
+            "type": "string"
+          }
+        },
+        "kanban": {
+          "type": "object",
+          "description": "Канбан харагдац",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1634",
+          "required": [
+            "by"
+          ],
+          "properties": {
+            "by": {
+              "type": "string",
+              "description": "Бүлэглэх багана",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1635",
+              "x-ref": "column"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Харагдах үүргүүд (нэрээр)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1637",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "title": {
+              "type": "string",
+              "description": "Картын гарчгийн багана (PLAN13 S4)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1730",
+              "x-ref": "column"
+            },
+            "subtitle": {
+              "type": "string",
+              "description": "Картын дэд мөрийн багана (PLAN13 S4)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1730",
+              "x-ref": "column"
+            }
+          }
+        },
+        "calendar": {
+          "type": "object",
+          "description": "Хуанли харагдац",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1640",
+          "required": [
+            "start"
+          ],
+          "properties": {
+            "start": {
+              "type": "string",
+              "description": "Эхлэх",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1642",
+              "x-ref": "column"
+            },
+            "end": {
+              "type": "string",
+              "description": "Дуусах",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1646",
+              "x-ref": "column"
+            },
+            "title": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1646",
+              "x-ref": "column"
+            },
+            "group": {
+              "type": "string",
+              "description": "Бүлэг/нөөц",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1646",
+              "x-ref": "column"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Харагдах үүргүүд (нэрээр)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1651",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            }
+          }
+        },
+        "roles": {
+          "type": "array",
+          "description": "Дэлгэцийг харах үүргүүд — цэс ба /api/screens/list (PLAN13 S2)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1737",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "process",
+        "tasks"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Дэлгэцийн id (латин жижиг, тоо, -)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2662",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "type": {
+          "type": "string",
+          "description": "Дэлгэцийн төрөл",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2662",
+          "const": "task"
+        },
+        "title": {
+          "type": "string",
+          "description": "Гарчиг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2663"
+        },
+        "process": {
+          "type": "string",
+          "description": "BPMN процесс (нэр/id)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1664",
+          "x-ref": "process"
+        },
+        "tasks": {
+          "type": "array",
+          "description": "Даалгаврууд (нэр/id)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1667",
+          "items": {
+            "type": "string",
+            "x-ref": "task"
+          }
+        },
+        "layout": {
+          "type": "object",
+          "description": "Маягтын бүтэц: tabs эсвэл sections",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1394",
+          "properties": {
+            "tabs": {
+              "type": "array",
+              "description": "Табууд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1395",
+              "items": {
+                "$ref": "#/$defs/tab"
+              }
+            },
+            "sections": {
+              "type": "array",
+              "description": "Табгүй хэсгүүд (дараалсан)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1395",
+              "items": {
+                "$ref": "#/$defs/section"
+              }
+            }
+          }
+        },
+        "roles": {
+          "type": "array",
+          "description": "Харагдах үүргүүд (нэрээр)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1551",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "offline": {
+          "description": "Офлайн: true (= create) эсвэл {create, update, cache}",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1553",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Офлайн үүсгэх",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1560"
+                },
+                "update": {
+                  "type": "boolean",
+                  "description": "Офлайн засах",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1561"
+                },
+                "cache": {
+                  "type": "array",
+                  "description": "Кэшлэх лавлах хүснэгтүүд",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1562",
+                  "items": {
+                    "type": "string",
+                    "x-ref": "table"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Дэлгэцийн id (латин жижиг, тоо, -)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2662",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "type": {
+          "type": "string",
+          "description": "Дэлгэцийн төрөл",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2662",
+          "const": "page"
+        },
+        "title": {
+          "type": "string",
+          "description": "Гарчиг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2663"
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL slug /p/<slug> (анхдагч id)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2667",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,59}$"
+        },
+        "blocks": {
+          "type": "array",
+          "description": "Блокууд (30 хүртэл)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1698",
+          "items": {
+            "$ref": "#/$defs/block"
+          }
+        },
+        "roles": {
+          "type": "array",
+          "description": "Хуудсыг харах үүргүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1750",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "description": "Маягтын талбар",
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Хүснэгтийн багана (нэрээр)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1456",
+          "x-ref": "column"
+        },
+        "expr": {
+          "type": "string",
+          "description": "Тооцоолсон талбар (field-гүй үед; хадгалагдахгүй)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1447",
+          "x-expr": "x0"
+        },
+        "label": {
+          "type": "string",
+          "description": "Шошго (тооцоолсон талбарт ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1461"
+        },
+        "widget": {
+          "type": "string",
+          "description": "Харагдах хэлбэр",
+          "x-source": "cgi/src/meta/PropertyRegistry.inc:20",
+          "enum": [
+            "longtext",
+            "badge",
+            "boolean",
+            "rating",
+            "gps"
+          ]
+        },
+        "span": {
+          "type": "integer",
+          "description": "12 баганын grid-ийн өргөн (1–12)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1460",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "readOnly": {
+          "type": "boolean",
+          "description": "Зөвхөн унших",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1462"
+        },
+        "emphasis": {
+          "type": "boolean",
+          "description": "Онцлох",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1462"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Талбарыг харах үүргүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1463",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "visibleWhen": {
+          "type": "string",
+          "description": "Харагдах нөхцөл",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1464",
+          "x-expr": "x0"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Заавал (form → хүснэгтийн requiredWhen; task → процессын хувьсагч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1469"
+        },
+        "requiredWhen": {
+          "type": "string",
+          "description": "Заавал болох нөхцөл",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1470",
+          "x-expr": "x0"
+        },
+        "lookup": {
+          "type": "object",
+          "description": "FK сонгогч (PLAN13 S1): харуулах багана, шүүлт — сервер /api/screens/lookup-д хүчилнэ",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1518",
+          "properties": {
+            "display": {
+              "type": "string",
+              "description": "Лавлах хүснэгтийн харуулах багана",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1525",
+              "x-ref": "column"
+            },
+            "filter": {
+              "type": "string",
+              "description": "Лавлах мөрийн шүүлт (X0): нэр = лавлах хүснэгтийн багана, record.<Нэр> = формын талбар, user.code",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1528",
+              "x-expr": "x0"
+            }
+          }
+        }
+      }
+    },
+    "childGrid": {
+      "type": "object",
+      "description": "Хүү хүснэгтийн grid (FK-ээр холбогдсон)",
+      "required": [
+        "table"
+      ],
+      "properties": {
+        "table": {
+          "type": "string",
+          "description": "Хүү хүснэгт",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1403",
+          "x-ref": "table"
+        },
+        "editable": {
+          "type": "boolean",
+          "description": "Засах боломжтой",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1409"
+        },
+        "columns": {
+          "type": "array",
+          "description": "Харуулах баганууд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1410",
+          "items": {
+            "type": "string",
+            "x-ref": "column"
+          }
+        },
+        "readOnlyColumns": {
+          "type": "array",
+          "description": "Зөвхөн унших баганууд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1411",
+          "items": {
+            "type": "string",
+            "x-ref": "column"
+          }
+        },
+        "footer": {
+          "type": "object",
+          "description": "Хөлийн нийлбэр: багана → функц",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1412",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "sum",
+              "avg",
+              "count",
+              "min",
+              "max"
+            ],
+            "x-source": "cgi/src/screen/Screen.cpp:44"
+          }
+        },
+        "prefillFrom": {
+          "type": "object",
+          "description": "Толгойн FK-ээр өөр хүснэгтийн мөрөөс урьдчилан бөглөх",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1414",
+          "required": [
+            "table",
+            "via"
+          ],
+          "properties": {
+            "table": {
+              "type": "string",
+              "description": "Эх хүснэгт",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1416",
+              "x-ref": "table"
+            },
+            "via": {
+              "type": "string",
+              "description": "Толгойн FK багана",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1416",
+              "x-ref": "column"
+            },
+            "map": {
+              "type": "object",
+              "description": "Хүү багана → эх багана (эсвэл id)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1419",
+              "additionalProperties": {
+                "type": "string",
+                "x-ref": "column"
+              }
+            }
+          }
+        }
+      }
+    },
+    "section": {
+      "type": "object",
+      "description": "Хэсэг: талбарууд эсвэл хүү grid",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Гарчиг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1474"
+        },
+        "columns": {
+          "type": "integer",
+          "description": "Баганын тоо (1–4)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1474",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "fields": {
+          "type": "array",
+          "description": "Талбарууд — нэр эсвэл объект",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1445",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/field"
+              },
+              {
+                "type": "string",
+                "x-ref": "column"
+              }
+            ],
+            "description": "талбарын нэр эсвэл {field, …}"
+          }
+        },
+        "childGrid": {
+          "$ref": "#/$defs/childGrid",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1443"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Хэсгийг харах үүргүүд (PLAN13 S3)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1548",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        }
+      }
+    },
+    "tab": {
+      "type": "object",
+      "description": "Таб: sections, childGrid, block-ийн яг нэг нь",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Табын гарчиг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1437"
+        },
+        "sections": {
+          "type": "array",
+          "description": "Хэсгүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1442",
+          "items": {
+            "$ref": "#/$defs/section"
+          }
+        },
+        "childGrid": {
+          "$ref": "#/$defs/childGrid",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1438"
+        },
+        "block": {
+          "type": "string",
+          "description": "Платформын блок",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1439",
+          "enum": [
+            "history",
+            "attachments",
+            "documents",
+            "report"
+          ]
+        },
+        "report": {
+          "type": "string",
+          "description": "block: report — бичлэгээр шүүсэн тайлан (PLAN13 S6; энэ хүснэгт рүү заасан ref параметр = бичлэгийн түлхүүр)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1473",
+          "x-ref": "report"
+        },
+        "params": {
+          "type": "object",
+          "description": "block: report — {<параметр>: id | <талбар>} (анхдагч: ref параметр = бичлэг)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1479",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "action": {
+      "description": "Товч",
+      "x-discriminator": "type",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "transition"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "transition": {
+              "type": "string",
+              "description": "Шилжилтийн нэр (анхдагч label)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1486",
+              "x-ref": "transition"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "document"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "document"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "document": {
+              "type": "string",
+              "description": "Баримтын загвар",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1491",
+              "x-ref": "document"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "table"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "create"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "table": {
+              "type": "string",
+              "description": "Үүсгэх хүснэгт",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1493",
+              "x-ref": "table"
+            },
+            "prefill": {
+              "type": "object",
+              "description": "Шинэ мөрийн багана → энэ мөрийн багана (эсвэл id)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1496",
+              "additionalProperties": {
+                "type": "string",
+                "x-ref": "column"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "process"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "process"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "process": {
+              "type": "string",
+              "description": "BPMN процесс (нэр/id)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1504",
+              "x-ref": "process"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "report"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "report"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "report": {
+              "type": "string",
+              "description": "Нээх тайлан",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1508",
+              "x-ref": "report"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "page"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "page"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "page": {
+              "type": "string",
+              "description": "Шилжих дэлгэц (PLAN13 S5): page дэлгэцийн slug/id → /p/<slug>; form дэлгэцийн id → тэр формоор (энэ бичлэг эсвэл FK-аар холбогдсон бичлэг)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1588",
+              "x-ref": "screen"
+            }
+          }
+        }
+      ]
+    },
+    "variant": {
+      "type": "object",
+      "description": "Төлөв/үүргээр нуух, зөвхөн унших",
+      "properties": {
+        "state": {
+          "type": "string",
+          "description": "Төлөв",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1518",
+          "x-ref": "state"
+        },
+        "role": {
+          "type": "string",
+          "description": "Үүрэг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1519",
+          "x-ref": "role"
+        },
+        "readOnly": {
+          "anyOf": [
+            {
+              "const": "all"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ],
+          "description": "all эсвэл талбар/табын нэрс",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1529"
+        },
+        "hidden": {
+          "anyOf": [
+            {
+              "const": "all"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ],
+          "description": "all эсвэл талбарын нэрс",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1529"
+        }
+      }
+    },
+    "block": {
+      "description": "Хуудасны блок",
+      "x-discriminator": "type",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "source"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Блокийн төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1699",
+              "const": "kpi"
+            },
+            "title": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1701"
+            },
+            "span": {
+              "type": "integer",
+              "description": "Өргөн (1–12)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1700",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "roles": {
+              "type": "array",
+              "description": "Блокийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1740",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "source": {
+              "type": "object",
+              "description": "Эх өгөгдөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1703",
+              "required": [
+                "table"
+              ],
+              "properties": {
+                "table": {
+                  "type": "string",
+                  "description": "Хүснэгт",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1704",
+                  "x-ref": "table"
+                },
+                "fn": {
+                  "type": "string",
+                  "description": "Нэгтгэх функц (анхдагч count)",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1707",
+                  "enum": [
+                    "count",
+                    "sum",
+                    "avg",
+                    "min",
+                    "max"
+                  ]
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Багана",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1708",
+                  "x-ref": "column"
+                },
+                "filter": {
+                  "type": "string",
+                  "description": "Шүүлт",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:1709",
+                  "x-expr": "filter"
+                }
+              }
+            },
+            "color": {
+              "type": "string",
+              "description": "Өнгө",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1716"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Блокийн төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1699",
+              "const": "tasks"
+            },
+            "title": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1701"
+            },
+            "span": {
+              "type": "integer",
+              "description": "Өргөн (1–12)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1700",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "roles": {
+              "type": "array",
+              "description": "Блокийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1740",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "table"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Блокийн төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1699",
+              "const": "grid"
+            },
+            "title": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1701"
+            },
+            "span": {
+              "type": "integer",
+              "description": "Өргөн (1–12)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1700",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "roles": {
+              "type": "array",
+              "description": "Блокийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1740",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "table": {
+              "type": "string",
+              "description": "Хүснэгт",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1719",
+              "x-ref": "table"
+            },
+            "columns": {
+              "type": "array",
+              "description": "Баганууд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1723",
+              "items": {
+                "type": "string",
+                "x-ref": "column"
+              }
+            },
+            "sort": {
+              "type": "array",
+              "description": "Эрэмбэ (эхнийх)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1725",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "description": "Эрэмбийн багана",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1725",
+                    "x-ref": "column"
+                  },
+                  "dir": {
+                    "type": "string",
+                    "description": "Чиглэл (анхдагч asc)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1725",
+                    "enum": [
+                      "asc",
+                      "desc"
+                    ]
+                  }
+                },
+                "required": [
+                  "field"
+                ]
+              }
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Мөрийн тоо (1–100)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1726",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "report"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Блокийн төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1699",
+              "const": "report"
+            },
+            "title": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1701"
+            },
+            "span": {
+              "type": "integer",
+              "description": "Өргөн (1–12)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1700",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "roles": {
+              "type": "array",
+              "description": "Блокийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1740",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "report": {
+              "type": "string",
+              "description": "Тайлан",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1728",
+              "x-ref": "report"
+            },
+            "chart": {
+              "description": "График: төрөл эсвэл {type}",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1731",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "bar",
+                    "line",
+                    "pie"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "bar",
+                        "line",
+                        "pie"
+                      ],
+                      "description": "График төрөл",
+                      "x-source": "web/src/api/reports.ts:7"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "process"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Блокийн төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1699",
+              "const": "process"
+            },
+            "title": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1701"
+            },
+            "span": {
+              "type": "integer",
+              "description": "Өргөн (1–12)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1700",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "roles": {
+              "type": "array",
+              "description": "Блокийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1740",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "process": {
+              "type": "string",
+              "description": "Эхлүүлэх процесс",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1735",
+              "x-ref": "process"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1738"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

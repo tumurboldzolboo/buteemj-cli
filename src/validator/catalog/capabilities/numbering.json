@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Автомат дугаарлалт",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:3640",
+    "description": "Загвараар (огноо + тоолуур) баримтын дугаар олгоно"
+  },
+  {
+    "name": "Байгууллага тус бүрийн тоолуур",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2221",
+    "description": "perOrg: байгууллага бүрт тусдаа дугаарын дараалал"
+  },
+  {
+    "name": "Дугаарын тоолуур шинэчлэх үе",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:3645",
+    "description": "resetEvery: жил/сар бүр эсвэл хэзээ ч"
+  },
+  {
+    "name": "Төлөвт орохад дугаар олгох",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:3646",
+    "description": "when: state:<төлөв> — жишээ нь батлагдах үед л дугаар авна"
+  },
+  {
+    "name": "Хуваалцсан тоолуур",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2226",
+    "description": "sequence: хэд хэдэн хүснэгт нэг дугаарын дараалал хэрэглэнэ"
+  }
+]

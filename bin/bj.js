@@ -128,7 +128,7 @@ async function main() {
 
     for (const f of res.findings) {
       const icon = f.severity === 'error' ? '✗' : '!';
-      console.log(`${icon} ${f.severity.padEnd(7)} [${f.file}:${f.line}] ${f.message}`);
+      console.log(`${icon} ${f.severity.padEnd(7)} [${[f.stage, f.code].filter(Boolean).join(" ")} ${f.file}${f.line ? `:${f.line}` : ""}] ${f.message}`);
     }
 
     if (res.ok) {

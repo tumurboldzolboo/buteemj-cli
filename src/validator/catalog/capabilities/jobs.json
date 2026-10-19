@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Хугацаа хаах ажил",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2426",
+    "description": "closePeriod(<Ledger>[: огноо]) — ledger-ийн хугацааг хуваарьт хаана"
+  },
+  {
+    "name": "Ledger дахин бодох",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2426",
+    "description": "rebuildLedger(<Ledger>)"
+  },
+  {
+    "name": "Хуваарьт төлвийн шилжилт",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2431",
+    "description": "transition(<Хүснэгт>: <Шилжилт>) + filter — нөхцөл хангасан бичлэгийг шилжүүлнэ"
+  },
+  {
+    "name": "Хуваарьт генератор",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2433",
+    "description": "generate(<Генератор>) — байгууллага бүрээр баримт/мөр үүсгэнэ"
+  },
+  {
+    "name": "KPI босгын шалгалт",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2438",
+    "description": "checkMetrics([огноо]) — metrics.yaml notify-ийн дагуу мэдэгдэнэ"
+  },
+  {
+    "name": "Ажлын хуваарь",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:2417",
+    "description": "every: daily|weekly|monthly, at (цаг), weekday, day"
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Үзүүлэлт (KPI)",
+    "source": "cgi/src/solution/DeployCalc.inc:399",
+    "description": "metrics.yaml: ledger/хүснэгтийн нэгтгэл, бусад үзүүлэлтээр томъёо — самбарын хугацаа, байгууллагын модоор нэгтгэнэ"
+  },
+  {
+    "name": "KPI зорилт ба босго",
+    "source": "cgi/src/solution/DeployCalc.inc:459",
+    "description": "target, warning, better — good/warning/bad төлөв"
+  },
+  {
+    "name": "KPI босгын мэдэгдэл",
+    "source": "cgi/src/solution/DeployCalc.inc:462",
+    "description": "notify: босго давахад бүлэгт мэдэгдэнэ (jobs.yaml checkMetrics)"
+  }
+]

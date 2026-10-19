@@ -1,0 +1,103 @@
+[
+  {
+    "name": "iff",
+    "source": "cgi/src/calc/CalcExpr.cpp:222"
+  },
+  {
+    "name": "coalesce",
+    "source": "cgi/src/calc/CalcExpr.cpp:225"
+  },
+  {
+    "name": "len",
+    "source": "cgi/src/calc/CalcExpr.cpp:232"
+  },
+  {
+    "name": "empty",
+    "source": "cgi/src/calc/CalcExpr.cpp:239"
+  },
+  {
+    "name": "between",
+    "source": "cgi/src/calc/CalcExpr.cpp:247"
+  },
+  {
+    "name": "abs",
+    "source": "cgi/src/calc/CalcExpr.cpp:252"
+  },
+  {
+    "name": "power",
+    "source": "cgi/src/calc/CalcExpr.cpp:257"
+  },
+  {
+    "name": "year",
+    "source": "cgi/src/calc/CalcExpr.cpp:271"
+  },
+  {
+    "name": "month",
+    "source": "cgi/src/calc/CalcExpr.cpp:271"
+  },
+  {
+    "name": "day",
+    "source": "cgi/src/calc/CalcExpr.cpp:271"
+  },
+  {
+    "name": "quarter",
+    "source": "cgi/src/calc/CalcExpr.cpp:271"
+  },
+  {
+    "name": "number",
+    "source": "cgi/src/calc/CalcExpr.cpp:281"
+  },
+  {
+    "name": "text",
+    "source": "cgi/src/calc/CalcExpr.cpp:285"
+  },
+  {
+    "name": "concat",
+    "source": "cgi/src/calc/CalcExpr.cpp:286"
+  },
+  {
+    "name": "min",
+    "source": "cgi/src/calc/CalcExpr.cpp:291"
+  },
+  {
+    "name": "max",
+    "source": "cgi/src/calc/CalcExpr.cpp:291"
+  },
+  {
+    "name": "round",
+    "source": "cgi/src/calc/CalcExpr.cpp:306"
+  },
+  {
+    "name": "floor",
+    "source": "cgi/src/calc/CalcExpr.cpp:306"
+  },
+  {
+    "name": "ceil",
+    "source": "cgi/src/calc/CalcExpr.cpp:306"
+  },
+  {
+    "name": "trunc",
+    "source": "cgi/src/calc/CalcExpr.cpp:306"
+  },
+  {
+    "name": "sum",
+    "source": "cgi/src/calc/CalcExpr.cpp:321"
+  },
+  {
+    "name": "count",
+    "source": "cgi/src/calc/CalcExpr.cpp:321"
+  },
+  {
+    "name": "avg",
+    "source": "cgi/src/calc/CalcExpr.cpp:321"
+  },
+  {
+    "name": "workdays",
+    "source": "cgi/src/calc/CalcExpr.cpp:338"
+  },
+  {
+    "name": "nvl",
+    "source": "cgi/src/expr/Expr.cpp:493",
+    "description": "coalesce-ийн өөр нэр (parse үед)"
+  }
+]

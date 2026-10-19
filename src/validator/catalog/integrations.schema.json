@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/integrations",
+  "title": "integrations.yaml",
+  "type": "object",
+  "properties": {
+    "inbound": {
+      "type": "array",
+      "description": "Орох webhook (ST1802)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2239",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Webhook-ийн нэр",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2240"
+          },
+          "auth": {
+            "type": "string",
+            "description": "Баталгаажуулалт (анхдагч token)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2243",
+            "enum": [
+              "token",
+              "hmac"
+            ]
+          },
+          "secret": {
+            "type": "string",
+            "description": "hmac-ийн нууц: BUTEEMJ_SECRET_<НЭР> (орчны хувьсагч)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2245",
+            "pattern": "^BUTEEMJ_SECRET_"
+          },
+          "runAs": {
+            "type": "string",
+            "description": "Ажиллуулах хэрэглэгчийн нэвтрэх нэр (анхдагч apply хийгч)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4256"
+          },
+          "table": {
+            "type": "string",
+            "description": "Мөр үүсгэх хүснэгт",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2246",
+            "x-ref": "table"
+          },
+          "map": {
+            "type": "object",
+            "description": "Багана → утгын илэрхийлэл (payload.<түлхүүр>, 'тогтмол')",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4247",
+            "additionalProperties": {
+              "type": "string",
+              "x-expr": "x0"
+            }
+          },
+          "process": {
+            "type": "string",
+            "description": "Эхлүүлэх BPMN процесс (нэр эсвэл id)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2249",
+            "x-ref": "process"
+          },
+          "message": {
+            "type": "string",
+            "description": "Нийтлэх BPMN message-ийн нэр",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2255"
+          },
+          "correlation": {
+            "type": "string",
+            "description": "Хүлээж буй instance-ийг олох түлхүүрийн илэрхийлэл",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4274",
+            "x-expr": "x0"
+          },
+          "rateLimit": {
+            "type": "integer",
+            "description": "Минутад хамгийн их дуудлага (анхдагч 60)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4273",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "outbound": {
+      "type": "array",
+      "description": "Гарах дуудлагын тодорхойлолт (call(<нэр>) action)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2261",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "endpoint"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Нэр (call(<нэр>)-ээр дуудна)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2262"
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "Endpoint-ийн нэр (ST1801)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2263"
+          },
+          "method": {
+            "type": "string",
+            "description": "HTTP арга (анхдагч POST)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3516",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ],
+            "x-enum-source": "cgi/src/integration/Integration.cpp:69"
+          },
+          "path": {
+            "type": "string",
+            "description": "Зам (анхдагч /)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3514"
+          },
+          "body": {
+            "description": "Илгээх бие: түлхүүр → X0 илэрхийлэл (бичлэгийн талбар)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3517",
+            "additionalProperties": true
+          },
+          "response": {
+            "type": "object",
+            "description": "Хариу: багана → хариуны түлхүүр",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3508",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "retry": {
+            "type": "integer",
+            "description": "Дахин оролдох тоо 1..20 (анхдагч 5)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3517",
+            "minimum": 1,
+            "maximum": 20
+          }
+        }
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "description": "Шаардлагатай endpoint-ууд (ST1801-д байх ёстой)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2268",
+      "items": {
+        "anyOf": [
+          {
+            "type": "string",
+            "description": "Endpoint-ийн нэр"
+          },
+          {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Endpoint-ийн нэр",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:2269"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+[
+  {
+    "name": "generator",
+    "source": "cgi/src/solution/DeployCalc.inc:376",
+    "description": "Генератор (ST1920): баримт/мөр үүсгэх, шинэчлэх"
+  },
+  {
+    "name": "generator.header-lines",
+    "source": "cgi/src/solution/DeployCalc.inc:329",
+    "description": "target-д толгой + мөрийн бүлгүүдтэй баримт"
+  },
+  {
+    "name": "generator.rows",
+    "source": "cgi/src/solution/DeployCalc.inc:323",
+    "description": "Эх мөр бүрээр target баримт"
+  },
+  {
+    "name": "generator.intoDoc",
+    "source": "cgi/src/solution/DeployCalc.inc:293",
+    "description": "on + lines (target-гүй): тухайн баримтын өөрийн мөрийг бөглөх"
+  },
+  {
+    "name": "generator.update",
+    "source": "cgi/src/solution/DeployCalc.inc:362",
+    "description": "Байгаа мөрүүдийг шинэчлэх (set)"
+  },
+  {
+    "name": "generator.params",
+    "source": "cgi/src/solution/DeployCalc.inc:278",
+    "description": "Параметр (date | number | text, default)"
+  },
+  {
+    "name": "generator.key",
+    "source": "cgi/src/solution/DeployCalc.inc:314",
+    "description": "Давхардлын түлхүүр, keyExcept төлөвүүд"
+  },
+  {
+    "name": "generator.from.ledger",
+    "source": "cgi/src/solution/DeployCalc.inc:143",
+    "description": "Бүртгэлийн үлдэгдлээс мөр (by, scope, from, to, where)"
+  },
+  {
+    "name": "generator.from.explode",
+    "source": "cgi/src/solution/DeployCalc.inc:195",
+    "description": "Олон шатлалт задаргаа (BOM)"
+  },
+  {
+    "name": "generator.window",
+    "source": "cgi/src/solution/DeployCalc.inc:259",
+    "description": "order/partition, rownum() г.м. цонхны функц"
+  },
+  {
+    "name": "generator.total",
+    "source": "cgi/src/solution/DeployCalc.inc:301",
+    "description": "total(<мөрийн багана>) — толгойд мөрийн нийлбэр"
+  },
+  {
+    "name": "generator.nonzero",
+    "source": "cgi/src/solution/DeployCalc.inc:268",
+    "description": "Бүгд 0 мөрийг алгасах"
+  },
+  {
+    "name": "generator.then",
+    "source": "cgi/src/solution/DeployCalc.inc:309",
+    "description": "Үүссэн баримтад шилжилт хийх"
+  }
+]
