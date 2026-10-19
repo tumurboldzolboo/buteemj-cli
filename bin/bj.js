@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { initProject } from '../src/init.js';
 import { readPackageFiles, validatePackage } from '../src/validate.js';
 import { ButeemjClient } from '../src/api.js';
+import { serverCommand } from '../src/server.js';
 
 const VERSION = '0.1.0';
 
@@ -28,6 +29,8 @@ function showHelp() {
 КОМАНДУУД:
   init <нэр>              Шинэ BRD+PRD багцын загвар үүсгэх
   validate [хавтас]       Багцын загваруудыг локалд (сервергүй) шалгах
+  server start|stop|status|logs  Локал сервер (бэлэн Docker image): --port 8080, --project buteemj,
+                          --registry <R/>, stop --purge (өгөгдөл устгана), logs [сервис] --follow
   status                  Бүтээмжийн серверийн холболтын төлөвийг шалгах
   lint [хавтас]           Сервер дээр хуурай шалгалт (dry-run lint) хийх
   plan [хавтас]           Серверт ноорог илгээж migration plan тооцоолох
@@ -66,7 +69,7 @@ async function main() {
       const eq = a.indexOf('=');
       if (eq !== -1) {
         flags[a.slice(2, eq)] = a.slice(eq + 1);
-      } else if (['key', 'url', 'user', 'pass'].includes(a.slice(2))) {
+      } else if (['key', 'url', 'user', 'pass', 'port', 'project', 'registry', 'dir', 'service', 'tail', 'timeout', 'bind', 'org'].includes(a.slice(2))) {
         flags[a.slice(2)] = args[++i];
       } else {
         flags[a.slice(2)] = true;
@@ -94,6 +97,12 @@ async function main() {
       console.error(`✗ Алдаа: ${e.message}`);
       process.exit(1);
     }
+  }
+
+  // ARCH 4.2: локал сервер (бэлэн image + docker compose)
+  if (cmd === 'server') {
+    if (pos[2] && !flags.service) flags.service = pos[2];
+    process.exit(await serverCommand(targetArg, flags));
   }
 
   // 2. STATUS

@@ -1,0 +1,142 @@
+# ARCH 4.1 — түгээлтийн stack: БЭЛЭН image-ээс (C++/Node эх код хэрэггүй) postgres + pgbouncer + migrate + cgi + worker + web (+ backup).
+# `bj server start` (@buteemj/cli) энэ файлын хуулбарыг ~/.buteemj/server/compose.yml болгон бичиж ажиллуулна.
+# Гараар:  docker compose -p buteemj --env-file .env -f docker/compose.dist.yml up -d
+#
+# Image: ${BUTEEMJ_REGISTRY}buteemj-platform-{cgi,worker,web,migrate}:${BUTEEMJ_VERSION:-latest}
+#   BUTEEMJ_REGISTRY — хоосон (локал build) эсвэл "registry.example.mn/buteemj/" (СҮҮЛД нь "/" заавал). Build: sh scripts/build-dist-images.sh
+#
+# НУУЦ ҮГ: postgres, pgbouncer, migrate, cgi, worker, backup бүгд ЗӨВХӨН POSTGRES_PASSWORD-оос уншина (нэг эх сурвалж).
+#   postgres volume нь АНХ үүсэх үеийн нууц үгээ хадгалдаг — дараа .env-д өөрчилбөл postgres-д нөлөөлөхгүй, migrate «authentication
+#   failed»-аар зогсоно. Нууц үг солих бол ALTER USER ...-аар postgres дотор сольж .env-ийг шинэчилнэ, эсвэл `down -v`-ээр шинээр эхэлнэ.
+name: ${COMPOSE_PROJECT_NAME:-buteemj}
+x-db-env: &db-env
+  POSTGRES_DB: ${POSTGRES_DB:-buteemj}
+  POSTGRES_USER: ${POSTGRES_USER:-buteemj}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD (.env) заавал}
+x-dsn: &dsn postgresql://${POSTGRES_USER:-buteemj}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB:-buteemj}
+x-sysctls: &sysctls
+  net.ipv4.tcp_tw_reuse: 1
+  net.ipv4.ip_local_port_range: "1024 65000"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment: *db-env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  pgbouncer:
+    image: edoburu/pgbouncer:1.18.0
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-buteemj}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-buteemj}
+      POOL_MODE: transaction
+      AUTH_TYPE: plain   # docker-compose.yml-ийн тайлбарыг үз (edoburu нь SCRAM verifier бичдэггүй)
+      LISTEN_PORT: 6432
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Нэг удаагийн: цөмийн схем (schema/core.list) + анхны админ. Дахин асахад ачаалсан файлыг алгасна.
+  migrate:
+    image: ${BUTEEMJ_REGISTRY:-}buteemj-platform-migrate:${BUTEEMJ_VERSION:-latest}
+    restart: "no"
+    environment:
+      <<: *db-env
+      PGHOST: postgres
+      BJ_ORG: ${BJ_ORG:-Бүтээмж}
+      BJ_ADMIN_LOGIN: ${BJ_ADMIN_LOGIN:-admin}
+      BJ_ADMIN_PASSWORD: ${BJ_ADMIN_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  cgi:
+    image: ${BUTEEMJ_REGISTRY:-}buteemj-platform-cgi:${BUTEEMJ_VERSION:-latest}
+    restart: unless-stopped
+    sysctls: *sysctls
+    environment:
+      BUTEEMJ_DSN: *dsn
+      BUTEEMJ_JWT_SECRET: ${BUTEEMJ_JWT_SECRET:?BUTEEMJ_JWT_SECRET (.env) заавал}
+      BUTEEMJ_ENV: ${BJ_ENV:-production}
+      BUTEEMJ_INSTANCE_NAME: ${COMPOSE_PROJECT_NAME:-buteemj}
+      BUTEEMJ_PROMOTE_TOKEN: ${BUTEEMJ_PROMOTE_TOKEN:-}
+      BUTEEMJ_OIDC_SECRETS: ${BUTEEMJ_OIDC_SECRETS:-}
+      BUTEEMJ_PUBLIC_URL: ${BUTEEMJ_PUBLIC_URL:-}
+      BUTEEMJ_CGI_WORKERS: ${BUTEEMJ_CGI_WORKERS:-8}
+      BUTEEMJ_AI_PROVIDER: ${BUTEEMJ_AI_PROVIDER:-mock}
+      BUTEEMJ_AI_KEY: ${BUTEEMJ_AI_KEY:-}
+      BUTEEMJ_AI_MODEL: ${BUTEEMJ_AI_MODEL:-}
+    volumes:
+      - fcgiwrap_socket:/var/run/fcgiwrap
+      - uploads:/var/uploads
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    image: ${BUTEEMJ_REGISTRY:-}buteemj-platform-worker:${BUTEEMJ_VERSION:-latest}
+    restart: unless-stopped
+    sysctls: *sysctls
+    environment:
+      BUTEEMJ_DSN: *dsn
+      BUTEEMJ_AI_PROVIDER: ${BUTEEMJ_AI_PROVIDER:-mock}
+      BUTEEMJ_AI_KEY: ${BUTEEMJ_AI_KEY:-}
+      BUTEEMJ_AI_MODEL: ${BUTEEMJ_AI_MODEL:-}
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+
+  backup:
+    image: ${BUTEEMJ_REGISTRY:-}buteemj-platform-migrate:${BUTEEMJ_VERSION:-latest}
+    restart: unless-stopped
+    command: ["sh", "/backup-scripts/backup.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-buteemj}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-buteemj}
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      BACKUP_AT: ${BACKUP_AT:-02:00}
+    volumes:
+      - backups:/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    image: ${BUTEEMJ_REGISTRY:-}buteemj-platform-web:${BUTEEMJ_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "${BJ_BIND:-127.0.0.1}:${BJ_HTTP_PORT:-8080}:80"
+    volumes:
+      - fcgiwrap_socket:/var/run/fcgiwrap
+      - uploads:/usr/share/nginx/uploads:ro
+    depends_on:
+      - cgi
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  fcgiwrap_socket:
+  uploads:
+  backups:

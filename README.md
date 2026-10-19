@@ -86,6 +86,19 @@ bj pull
 
 ---
 
+### 9. Локал сервер (`server`) — C++ эх код хэрэггүй
+Бэлэн Docker image-ээс (`buteemj-platform-{cgi,worker,web,migrate}`) postgres + pgbouncer + cgi + worker + web-ийг асаана:
+```bash
+bj server start                 # анхдагч http://localhost:8080 (зөвхөн 127.0.0.1); --port 18090 --project buteemj
+bj server status                # сервисүүд + /api/health
+bj server logs migrate --follow # логи (--tail 200)
+bj server stop                  # зогсооно, өгөгдөл хадгална;  --purge = volume + .env устгана
+```
+* Тохиргоо `~/.buteemj/server/` (`--dir`, `BUTEEMJ_HOME`): `compose.yml` (= `platform/docker/compose.dist.yml`) ба `.env` (0600) — анхны асалтад санамсаргүй DB/JWT/админ нууц үг үүсгэнэ.
+* Анхны асалтад цөмийн схем автоматаар ачаалагдаж, админ `admin` үүснэ; нууц үгийг ганц удаа хэвлэнэ (дараа нь `.env` → `BJ_ADMIN_PASSWORD`), анхны нэвтрэлтэд солиулна.
+* Image: `BUTEEMJ_REGISTRY` / `--registry` заасан бол `docker compose pull`, үгүй бол локал image (`platform/scripts/build-dist-images.sh`).
+* **Нууц үгийн анхааруулга:** postgres volume анхны нууц үгээ хадгалдаг. `.env`-ийг устгаад хуучин `<project>_pgdata` үлдсэн бол `start` зогсооно — хуучин `.env`-ийг сэргээх эсвэл `bj server stop --purge` / `docker volume rm <project>_pgdata`.
+
 ## Тест ажиллуулах
 
 ```bash
