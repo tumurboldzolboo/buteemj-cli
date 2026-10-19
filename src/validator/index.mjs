@@ -145,6 +145,14 @@ export function validatePackage(files, opts = {}) {
     for (const m of text.matchAll(/\b(?:id|name)="([^"]+)"/g)) names.add(m[1]);
   }
 
+  // P12.5: seed/reference/defaults YAML — дээд түвшний утга мөрийн жагсаалт биш бол сервер алгасдаг (Package.cpp seed_shape)
+  const dataListed = new Set(['seed', 'reference', 'defaults'].flatMap((k) => asList(listed[k])));
+  for (const [f, v] of Object.entries(yaml)) {
+    if (!(dataListed.has(f) || /^(seed|reference|defaults)\//.test(f)) || !v || typeof v !== 'object' || Array.isArray(v)) continue;
+    for (const [k, x] of Object.entries(v)) if (!Array.isArray(x) && x !== null && !(f.startsWith('seed') && ['organisations', 'groups'].includes(k)))
+      add('parse', 'error', 'seed_shape', f, lineOf(v, k), `«${k}»: мөрүүдийн жагсаалт (\`- {…}\`) байх ёстой — сервер алгасна`);
+  }
+
   // ---- 3. schema: каталогийн хаалттай схем (P12.1)
   if (catalog.available) {
     for (const [f, v] of Object.entries(yaml)) {

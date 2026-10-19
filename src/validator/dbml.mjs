@@ -40,6 +40,9 @@ function lex(s) {
   return { tokens: out };
 }
 
+// P12.5: серверийн PackageGate.cpp knownNoteTag-тай ижил
+const NOTE_TAGS = new Set(['unique', 'validation', 'default', 'computed', 'state', 'numbering', 'parent', 'tree', 'sensitive', 'processonly', 'filter', 'requiredwhen', 'visiblewhen', 'nooverlap', 'enum', 'link', 'note']);
+
 export function mapType(raw, args) {
   const t = raw.toLowerCase();
   if (['text', 'varchar', 'string', 'char', 'character'].includes(t)) {
@@ -197,11 +200,21 @@ export function parseDbml(text) {
     for (const c of tb.columns) {
       c.type = mapType(c.rawType, c.args);
       if (c.type === 'enum') c.enumValues = c.args.split(',').map((s) => s.trim()).filter(Boolean);
+      // P12.5: серверийн Dbml.cpp-тэй ижил — төрөл танигдахгүй (ref-гүй) бол текст болгодог; decimal(p,s) хязгаар
+      if (!c.type && !c.ref && !c.pk && c.name.toLowerCase() !== 'id') add('error', 'dbml_type', c.line, `«${tb.name}.${c.name}»: төрөл «${c.rawType}» танигдахгүй — сервер текст болгоно`);
+      if (c.type === 'decimal' && c.args) {
+        const [p, s = '0'] = c.args.split(',').map((x) => x.trim());
+        const P = Number(p), S = Number(s);
+        if (!Number.isInteger(P) || !Number.isInteger(S) || P < 1 || P > 38 || S < 0 || S > 10 || S > P) add('error', 'dbml_decimal', c.line, `«${tb.name}.${c.name}»: decimal(${c.args}) — 1 ≤ p ≤ 38, 0 ≤ s ≤ min(p, 10); сервер 18,2 болгоно`);
+      }
       for (const part of (c.note ?? '').split(';')) {
         const s = part.trim();
         if (!s) continue;
         const i = s.indexOf(':');
-        c.tags.push({ tag: (i < 0 ? s : s.slice(0, i)).trim().toLowerCase(), value: i < 0 ? '' : s.slice(i + 1).trim() });
+        const tag = (i < 0 ? s : s.slice(0, i)).trim().toLowerCase();
+        c.tags.push({ tag, value: i < 0 ? '' : s.slice(i + 1).trim() });
+        // P12.5: латин нэг үгтэй тэмдэглэгээ платформд танигдахгүй бол алдаа (кирилл/олон үгтэй чөлөөт тайлбар хэвээр)
+        if (/^[a-z][a-z0-9]*$/.test(tag) && !NOTE_TAGS.has(tag)) add('error', 'dbml_note_tag', c.line, `«${tb.name}.${c.name}»: note тэмдэглэгээ «${tag}» танигдахгүй — платформ хэрэгжүүлэхгүй`);
       }
     }
   }
