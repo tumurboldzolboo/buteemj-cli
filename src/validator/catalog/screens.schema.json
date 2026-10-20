@@ -1229,8 +1229,7 @@
         {
           "type": "object",
           "required": [
-            "type",
-            "source"
+            "type"
           ],
           "properties": {
             "type": {
@@ -1304,8 +1303,36 @@
               "type": "string",
               "description": "Өнгө",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:1716"
+            },
+            "metric": {
+              "type": "string",
+              "description": "metrics.yaml үзүүлэлтийн нэр — утга, өмнөх үе, target/warning босго, format, better → төлөвийн өнгө (source-гүй)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1810",
+              "x-ref": "metric"
+            },
+            "grain": {
+              "type": "string",
+              "description": "metric-ийн үе: одоогийн үе (эхнээс өнөөдөр) ба өмнөх бүтэн үе (анхдагч month)",
+              "x-source": "cgi/src/report/Blocks.cpp:metricSnapshot",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "quarter",
+                "year"
+              ]
+            },
+            "compare": {
+              "type": "string",
+              "description": "Өмнөх үетэй харьцуулах (prev, анхдагч) эсвэл none",
+              "x-source": "cgi/src/page/Page.cpp:kpi",
+              "enum": [
+                "prev",
+                "none"
+              ]
             }
-          }
+          },
+          "description": "KPI блок: source (хүснэгтийн count|sum|avg|min|max) эсвэл metric (metrics.yaml үзүүлэлт) — аль нэг"
         },
         {
           "type": "object",

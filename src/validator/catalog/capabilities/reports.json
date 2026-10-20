@@ -22,7 +22,7 @@
   {
     "name": "Үлдэгдлийн тайлан",
     "source": "cgi/src/solution/SolutionDeploy.cpp:5216",
-    "description": "balance: ledger-ийн үлдэгдэл/хөдөлгөөн, нээлттэй зүйл (openItems), боломжит үлдэгдэл (available), модоор нэгтгэх (rollup: tree)"
+    "description": "balance: ledger-ийн үлдэгдэл/хөдөлгөөн, нээлттэй зүйл (openItems), боломжит үлдэгдэл (available), модоор нэгтгэх (rollup: tree), хэмжээсийн шинжээр бүлэглэх/шүүх (by/where: <хэмжээс>.<Багана>)"
   },
   {
     "name": "Бүтэцтэй тайлан",

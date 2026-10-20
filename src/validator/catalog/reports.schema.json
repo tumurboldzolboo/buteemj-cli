@@ -373,9 +373,17 @@
         },
         "by": {
           "type": "array",
-          "description": "Бүлэглэх хэмжээсүүд",
-          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5219",
+          "description": "Бүлэглэх хэмжээсүүд; «<лавлах хэмжээс>.<Багана>» — лавлагдсан мөрийн шинжээр (жишээ нь хэмжээсийн төрөл, ангилал)",
+          "x-source": "cgi/src/report/Report.cpp:355",
           "items": {
+            "type": "string"
+          }
+        },
+        "where": {
+          "type": "object",
+          "description": "Хэмжээс эсвэл «<лавлах хэмжээс>.<Багана>» → загвар ('a|b*' LIKE, '!…' эсрэг); kind: balance (rollup-гүй)",
+          "x-source": "cgi/src/report/Report.cpp:367",
+          "additionalProperties": {
             "type": "string"
           }
         },

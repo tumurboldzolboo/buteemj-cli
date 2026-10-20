@@ -40,6 +40,11 @@
     "description": "Хүснэгтээс мөр хайх (filter, sort, limit, required)"
   },
   {
+    "name": "calc.node.lookup.ledger",
+    "source": "cgi/src/calc/Calc.cpp:521",
+    "description": "Ledger-ийн үлдэгдэл/хөдөлгөөн унших: ledger, measure, dims (хэмжээс эсвэл <лавлах хэмжээс>.<Багана> → утга), asOf, from"
+  },
+  {
     "name": "calc.node.decision",
     "source": "cgi/src/solution/SolutionDeploy.cpp:4970",
     "description": "Шийдвэрийн хүснэгт (DMN) дуудах"

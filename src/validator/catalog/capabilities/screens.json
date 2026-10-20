@@ -24,6 +24,7 @@
   {"name": "даалгаврын маягт", "source": "cgi/src/solution/SolutionDeploy.cpp:1660", "description": "BPMN хэрэглэгчийн даалгаврын форм (type: task)"},
   {"name": "хуудас", "source": "cgi/src/solution/SolutionDeploy.cpp:1693", "description": "12 баганын grid-тэй самбар хуудас /p/<slug> (type: page)"},
   {"name": "KPI блок", "source": "cgi/src/solution/SolutionDeploy.cpp:1702", "description": "Хүснэгтийн count|sum|avg|min|max үзүүлэлт, шүүлттэй"},
+  {"name": "KPI блок → үзүүлэлт", "source": "cgi/src/page/Page.cpp:250", "description": "KPI блокийг metrics.yaml үзүүлэлттэй холбох (metric, grain, compare) — утга, өмнөх үе, зорилт/босго, формат, better → төлөвийн өнгө"},
   {"name": "миний даалгавар блок", "source": "cgi/src/solution/SolutionDeploy.cpp:1717", "description": "Хэрэглэгчийн нээлттэй BPMN даалгаврууд"},
   {"name": "grid блок", "source": "cgi/src/solution/SolutionDeploy.cpp:1718", "description": "Хуудсан дээрх хүснэгтийн богино жагсаалт (эрэмбэ, мөрийн тоо)"},
   {"name": "тайлан блок", "source": "cgi/src/solution/SolutionDeploy.cpp:1727", "description": "Тайланг хуудсанд график (bar|line|pie)-тай харуулах"},

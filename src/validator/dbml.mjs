@@ -41,7 +41,7 @@ function lex(s) {
 }
 
 // P12.5: серверийн PackageGate.cpp knownNoteTag-тай ижил
-const NOTE_TAGS = new Set(['unique', 'validation', 'default', 'computed', 'state', 'numbering', 'parent', 'tree', 'sensitive', 'processonly', 'filter', 'requiredwhen', 'visiblewhen', 'nooverlap', 'enum', 'link', 'note']);
+const NOTE_TAGS = new Set(['unique', 'validation', 'default', 'computed', 'state', 'numbering', 'parent', 'tree', 'sensitive', 'processonly', 'filter', 'requiredwhen', 'visiblewhen', 'nooverlap', 'enum', 'link', 'note', 'effective', 'tooltip', 'width']); // P9.6: tooltip (ST000009), width (ST0006 #25)
 
 export function mapType(raw, args) {
   const t = raw.toLowerCase();
@@ -214,6 +214,11 @@ export function parseDbml(text) {
         const tag = (i < 0 ? s : s.slice(0, i)).trim().toLowerCase();
         c.tags.push({ tag, value: i < 0 ? '' : s.slice(i + 1).trim() });
         // P12.5: латин нэг үгтэй тэмдэглэгээ платформд танигдахгүй бол алдаа (кирилл/олон үгтэй чөлөөт тайлбар хэвээр)
+        // PLAN11 B4: `effective` — хүчинтэй огнооны багана (asof анхдагч): date/datetime, хүснэгтэд нэг л
+        if (tag === 'effective') {
+          if (c.type !== 'date' && c.type !== 'datetime') add('error', 'dbml_effective', c.line, `«${tb.name}.${c.name}»: effective нь date/datetime баганад`);
+          if (tb.columns.some((o) => o !== c && (o.tags ?? []).some((t) => t.tag === 'effective'))) add('error', 'dbml_effective', c.line, `«${tb.name}»: effective багана нэгээс олон`);
+        }
         if (/^[a-z][a-z0-9]*$/.test(tag) && !NOTE_TAGS.has(tag)) add('error', 'dbml_note_tag', c.line, `«${tb.name}.${c.name}»: note тэмдэглэгээ «${tag}» танигдахгүй — платформ хэрэгжүүлэхгүй`);
       }
     }

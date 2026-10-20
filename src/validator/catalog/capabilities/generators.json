@@ -5,6 +5,11 @@
     "description": "Генератор (ST1920): баримт/мөр үүсгэх, шинэчлэх"
   },
   {
+    "name": "generator.reverse",
+    "source": "cgi/src/state/Generator.cpp:reverseRun",
+    "description": "Ажиллалтын бүртгэл (ST1927) ба буцаалт: үүсгэснийг устгах эсвэл undo шилжилтээр цуцлах, шинэчилснийг сэргээх; reversible: false"
+  },
+  {
     "name": "generator.header-lines",
     "source": "cgi/src/solution/DeployCalc.inc:329",
     "description": "target-д толгой + мөрийн бүлгүүдтэй баримт"

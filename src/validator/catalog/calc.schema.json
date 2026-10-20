@@ -87,10 +87,16 @@
     },
     "lookupNode": {
       "type": "object",
-      "required": ["name", "type", "table"],
+      "required": ["name", "type"],
+      "anyOf": [{ "required": ["table"] }, { "required": ["ledger", "measure"] }],
       "properties": {
-        "type": { "const": "lookup", "description": "Хүснэгтээс мөр хайх", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4952" },
+        "type": { "const": "lookup", "description": "Хүснэгтээс мөр хайх (table) эсвэл ledger-ийн үлдэгдэл унших (ledger)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4952" },
         "name": { "$ref": "#/$defs/common/name" },
+        "ledger": { "type": "string", "x-ref": "ledger", "description": "Ledger-ийн нэр — зангилааны утга = хэмжигдэхүүний нийлбэр (asOf хүртэлх үлдэгдэл; from өгвөл хөдөлгөөн)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:5130" },
+        "measure": { "type": "string", "description": "Хэмжигдэхүүн (ledger-д)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:5131" },
+        "dims": { "type": "object", "description": "Хэмжээс эсвэл «<лавлах хэмжээс>.<Багана>» → утгын илэрхийлэл (тэнцүүгээр шүүнэ)", "x-source": "cgi/src/calc/CalcRepository.cpp:176", "additionalProperties": { "type": "string", "x-expr": "calc" } },
+        "asOf": { "type": "string", "x-expr": "calc", "description": "Үлдэгдлийн огноо (анхдагч — тооцооны огноо)", "x-source": "cgi/src/calc/Calc.cpp:530" },
+        "from": { "type": "string", "x-expr": "calc", "description": "Хөдөлгөөний эхлэх огноо (өгөөгүй бол эхнээс)", "x-source": "cgi/src/calc/Calc.cpp:530" },
         "table": { "type": "string", "x-ref": "table", "description": "Хайх хүснэгт", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4953" },
         "filter": { "type": "string", "x-expr": "calc", "description": "Мөрийн шүүлт", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4955" },
         "sort": {

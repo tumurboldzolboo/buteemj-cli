@@ -42,7 +42,9 @@
         },
         "rows": { "$ref": "#/$defs/rowsGroup", "description": "Эх мөр бүрээр нэг target баримт", "x-source": "cgi/src/solution/DeployCalc.inc:323" },
         "update": { "type": "array", "items": { "$ref": "#/$defs/updateGroup" }, "description": "Байгаа мөрүүдийг шинэчлэх", "x-source": "cgi/src/solution/DeployCalc.inc:362" },
-        "then": { "type": "string", "description": "Үүссэн баримтад хийх шилжилт", "x-source": "cgi/src/solution/DeployCalc.inc:309" }
+        "then": { "type": "string", "description": "Үүссэн баримтад хийх шилжилт", "x-source": "cgi/src/solution/DeployCalc.inc:309" },
+        "undo": { "type": "string", "description": "Буцаалт: үүсгэсэн target баримтыг устгахын оронд энэ шилжилтээр цуцлах (мөрүүд хэвээр)", "x-source": "cgi/src/solution/DeployCalc.inc:327" },
+        "reversible": { "type": "boolean", "description": "false — ажиллалтыг буцаахыг хориглоно (анхдагч true)", "x-source": "cgi/src/solution/DeployCalc.inc:328" }
       }
     },
     "groupCommon": {
@@ -102,11 +104,11 @@
       "required": ["ledger"],
       "properties": {
         "ledger": { "type": "string", "x-ref": "ledger", "description": "Бүртгэлийн нэр", "x-source": "cgi/src/solution/DeployCalc.inc:143" },
-        "by": { "$ref": "#/$defs/strList", "description": "Бүлэглэх хэмжээсүүд (анхдагч — бүгд)", "x-source": "cgi/src/solution/DeployCalc.inc:148" },
+        "by": { "$ref": "#/$defs/strList", "description": "Бүлэглэх хэмжээсүүд (анхдагч — бүгд); «<лавлах хэмжээс>.<Багана>» — лавлагдсан мөрийн шинжээр бүлэглэнэ (map-д ижил нэрээр)", "x-source": "cgi/src/solution/DeployCalc.inc:150" },
         "scope": { "type": "string", "enum": ["exact", "root", "subtree"], "description": "Байгууллагын хүрээ (анхдагч exact)", "x-source": "cgi/src/solution/DeployCalc.inc:151" },
         "from": { "type": ["string", "number"], "x-expr": "x0", "description": "Эхлэх огноо", "x-source": "cgi/src/solution/DeployCalc.inc:154" },
         "to": { "type": ["string", "number"], "x-expr": "x0", "description": "Дуусах огноо", "x-source": "cgi/src/solution/DeployCalc.inc:154" },
-        "where": { "type": "object", "additionalProperties": { "type": "string" }, "description": "<хэмжээс>: '<загвар>' ('11*|12*', '!…')", "x-source": "cgi/src/solution/DeployCalc.inc:164" }
+        "where": { "type": "object", "additionalProperties": { "type": "string" }, "description": "<хэмжээс | лавлах хэмжээс.Багана>: '<загвар>' ('11*|12*', '!…') — шинжээр шүүхэд лавлах мөрийн баганаар", "x-source": "cgi/src/solution/DeployCalc.inc:172" }
       }
     },
     "explodeFrom": {
@@ -118,11 +120,11 @@
         "child": { "type": "string", "description": "Хүүгийн багана", "x-source": "cgi/src/solution/DeployCalc.inc:198" },
         "qty": { "type": "string", "description": "Тоо хэмжээний багана", "x-source": "cgi/src/solution/DeployCalc.inc:198" },
         "roots": { "type": "string", "x-ref": "table", "description": "Үндэс мөрийн хүснэгт", "x-source": "cgi/src/solution/DeployCalc.inc:201" },
-        "item": { "type": "string", "x-expr": "x0", "description": "Үндэс мөрөөс бараа (анхдагч id)", "x-source": "cgi/src/solution/DeployCalc.inc:207" },
+        "item": { "type": "string", "x-expr": "x0", "description": "Үндэс мөрөөс зүйл (анхдагч id)", "x-source": "cgi/src/solution/DeployCalc.inc:207" },
         "quantity": { "type": ["string", "number"], "x-expr": "x0", "description": "Үндэс тоо (анхдагч 1)", "x-source": "cgi/src/solution/DeployCalc.inc:209" },
         "filter": { "type": "string", "x-expr": "x0", "description": "Үндэс мөрийн шүүлт", "x-source": "cgi/src/solution/DeployCalc.inc:213" },
         "leaves": { "type": "boolean", "description": "Зөвхөн навч (анхдагч true)", "x-source": "cgi/src/solution/DeployCalc.inc:216" },
-        "group": { "type": "boolean", "description": "Бараагаар нэгтгэх (анхдагч false)", "x-source": "cgi/src/solution/DeployCalc.inc:216" }
+        "group": { "type": "boolean", "description": "Зүйлээр нэгтгэх (анхдагч false)", "x-source": "cgi/src/solution/DeployCalc.inc:216" }
       }
     }
   }

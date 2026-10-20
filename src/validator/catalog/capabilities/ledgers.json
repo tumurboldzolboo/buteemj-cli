@@ -45,9 +45,24 @@
     "description": "map утгад asof(…) — огноогоор хүчинтэй утга"
   },
   {
+    "name": "ledger.entry.source",
+    "source": "cgi/src/report/Blocks.cpp:ledgerEntries",
+    "description": "Хөдөлгөөн → эх баримт: /api/ledger-entries (ledger/хугацаа/хэмжээсээр эсвэл баримтаар), вэб «Хөдөлгөөн» эх баримт руу орно"
+  },
+  {
+    "name": "asof.effective",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:effectiveColumn",
+    "description": "erd.dbml note: 'effective' — хүснэгтийн хүчинтэй огнооны багана, asof()-ийн анхдагч (date/datetime, нэг л)"
+  },
+  {
     "name": "ledger.map.ledger",
     "source": "cgi/src/solution/SolutionDeploy.cpp:2349",
     "description": "map утгад ledger(<Ledger>, <Хэмжигдэхүүн>)"
+  },
+  {
+    "name": "ledger.dimension.attribute",
+    "source": "schema/postgresql/99c-ledger-dim-attributes.sql",
+    "description": "Лавлах хэмжээсийн шинжээр (<хэмжээс>.<Багана>) шүүх/бүлэглэх: balance()/change(), generators from: {ledger, by, where}, reports balance by/where, calc lookup"
   },
   {
     "name": "ledger.cost",
