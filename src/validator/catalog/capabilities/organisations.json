@@ -23,5 +23,10 @@
     "name": "Харьцангуй огноо",
     "source": "cgi/src/solution/SolutionDeploy.cpp:4056",
     "description": "today/now ± N өдөр токеноор огнооны утга"
+  },
+  {
+    "name": "байгууллагын мод",
+    "source": "schema/postgresql/99f-org-company-tree.sql:14",
+    "description": "Байгууллагын мод (ST0005.ST000503; seed `parent:`): толгой компани → охин компани (өөрийн лицензтэй) → хэлтэс. Толгойг сонгосон хэрэглэгч дэд модыг нэгтгэж харна (DataPolicy orgScopeSql), охин компанийн ажилтан зөвхөн өөрийн компанид нэвтэрнэ (bj_org_company); олон байгууллагад ажилтай хэрэглэгч байгууллага солино (/api/auth/select-organisation)"
   }
 ]

@@ -21,6 +21,12 @@
             "description": "Байгууллагын нэр",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:2514"
           },
+          "parent": {
+            "type": "string",
+            "x-ref": "organisation",
+            "description": "Эх байгууллага (байгууллагын мод: толгой → охин компани) — seed-ийн эсвэл байгаа байгууллагын нэр",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4161"
+          },
           "users": {
             "type": "array",
             "description": "Хэрэглэгчид",

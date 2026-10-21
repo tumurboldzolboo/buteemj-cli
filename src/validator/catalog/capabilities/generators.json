@@ -68,5 +68,25 @@
     "name": "generator.then",
     "source": "cgi/src/solution/DeployCalc.inc:309",
     "description": "Үүссэн баримтад шилжилт хийх"
+  },
+  {
+    "name": "generator.delete",
+    "source": "cgi/src/state/Generator.cpp:generate",
+    "description": "delete: [{table, filter}] — нөхцөлтэй мөрийг устгах (эрх, түгжээ, rollup); буцаалт мөрийн хуулбараар сэргээнэ"
+  },
+  {
+    "name": "generator.params.ref",
+    "source": "cgi/src/solution/DeployCalc.inc:compileGenerator",
+    "description": "type: ref, table — лавлах мөр параметр, param.<Нэр>.<Багана> FK зам; мөр хэрэглэгчид харагдах эсэхийг шалгана"
+  },
+  {
+    "name": "generator.run.doc",
+    "source": "cgi/src/report/Blocks.cpp:generators",
+    "description": "POST /api/generators/run {generator, doc, params} — дэлгэцийн `generate` товч: баримтаар (doc.*) ажиллуулах, баримт харагдах эрх шалгана"
+  },
+  {
+    "name": "generator.onDuplicate",
+    "source": "cgi/src/state/Generator.cpp:dupError",
+    "description": "onDuplicate: error — key-ээр давхардсан баримтад алгасахын оронд алдаа (давтан дуудахыг хориглох)"
   }
 ]

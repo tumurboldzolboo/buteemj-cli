@@ -48,5 +48,15 @@
     "name": "Хугацаа дөхсөн мэдэгдэл",
     "source": "cgi/src/solution/SolutionDeploy.cpp:5292",
     "description": "due_soon: огнооны талбар дөхөхөд (before, filter)"
+  },
+  {
+    "name": "Тайлангийн огноо/цагийн функц",
+    "source": "cgi/src/solution/SolutionDeploy.cpp:951",
+    "description": "илэрхийлэлт баганад hours(A - B) — цагийн зөрүү (бутархай), year(A) / quarter(A) / month(A) — огнооны хэсэг (PLAN13 N9; hours: Тоду «Орж гарах машин» + Клиник «Шинжилгээний хариу гаргах хугацаа»; quarter/year: Тоду «Авлагын задаргаа» + Үйлдвэр ERP «Төлөгдөөгүй нэхэмжлэх»)"
+  },
+  {
+    "name": "Үлдэгдлийн тайлангийн параметрт шүүлт",
+    "source": "cgi/src/report/Report.cpp:382",
+    "description": "balance.where: {<хэмжээс>: param.<нэр>} — ref параметрийн утгаар хэмжээсийг шүүнэ (дэлгэцийн таб бичлэгээр шүүнэ; PLAN13 N9; Тоду «Ээлжийн барааны үлдэгдэл» + Үйлдвэр ERP «Агуулахын байрны үлдэгдэл»)"
   }
 ]

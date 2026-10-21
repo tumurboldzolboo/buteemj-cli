@@ -27,13 +27,16 @@
             "required": ["name"],
             "properties": {
               "name": { "type": "string", "description": "Параметрийн нэр", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
-              "type": { "type": "string", "enum": ["date", "number", "text"], "description": "Төрөл (анхдагч text)", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
+              "type": { "type": "string", "enum": ["date", "number", "text", "ref"], "description": "Төрөл (анхдагч text); ref — лавлах хүснэгтийн мөр (param.<Нэр>.<Багана> FK замаар), UI сонгогч", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
+              "table": { "type": "string", "x-ref": "table", "description": "type: ref — лавлах хүснэгт (мөр хэрэглэгчид харагдах ёстой)", "x-source": "cgi/src/solution/DeployCalc.inc:283" },
+              "required": { "type": "boolean", "description": "false — хоосон байж болно (анхдагч true)", "x-source": "cgi/src/state/Generator.cpp:62" },
               "default": { "type": ["string", "number", "boolean"], "description": "Анхдагч утга (today, last_month_end …)", "x-source": "cgi/src/solution/DeployCalc.inc:283" }
             }
           }
         },
         "key": { "$ref": "#/$defs/strList", "description": "Давхардлын түлхүүр баганууд (target / мөр)", "x-source": "cgi/src/solution/DeployCalc.inc:314" },
         "keyExcept": { "$ref": "#/$defs/strList", "description": "Давхардалд тооцохгүй төлөвүүд (key-тэй хамт)", "x-source": "cgi/src/solution/DeployCalc.inc:317" },
+        "onDuplicate": { "enum": ["skip", "error"], "description": "key-ээр давхардсан баримт: skip (анхдагч — алгасна) эсвэл error (409, шилжилт буцна; key-тэй хамт)", "x-source": "cgi/src/solution/DeployCalc.inc:onDuplicate" },
         "header": { "$ref": "#/$defs/colMap", "description": "Target баримтын толгойн утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:359" },
         "lines": {
           "anyOf": [ { "$ref": "#/$defs/lineGroup" }, { "type": "array", "items": { "$ref": "#/$defs/lineGroup" } } ],
@@ -42,6 +45,7 @@
         },
         "rows": { "$ref": "#/$defs/rowsGroup", "description": "Эх мөр бүрээр нэг target баримт", "x-source": "cgi/src/solution/DeployCalc.inc:323" },
         "update": { "type": "array", "items": { "$ref": "#/$defs/updateGroup" }, "description": "Байгаа мөрүүдийг шинэчлэх", "x-source": "cgi/src/solution/DeployCalc.inc:362" },
+        "delete": { "type": "array", "items": { "$ref": "#/$defs/deleteGroup" }, "description": "Нөхцөлтэй мөрүүдийг устгах (сагс хоослох, түр бүртгэл цэвэрлэх) — эрх, түгжээ, rollup хэвээр; буцаалтад сэргээнэ", "x-source": "cgi/src/solution/DeployCalc.inc:448" },
         "then": { "type": "string", "description": "Үүссэн баримтад хийх шилжилт", "x-source": "cgi/src/solution/DeployCalc.inc:309" },
         "undo": { "type": "string", "description": "Буцаалт: үүсгэсэн target баримтыг устгахын оронд энэ шилжилтээр цуцлах (мөрүүд хэвээр)", "x-source": "cgi/src/solution/DeployCalc.inc:327" },
         "reversible": { "type": "boolean", "description": "false — ажиллалтыг буцаахыг хориглоно (анхдагч true)", "x-source": "cgi/src/solution/DeployCalc.inc:328" }
@@ -64,6 +68,14 @@
         "nonzero": { "$ref": "#/$defs/groupCommon/nonzero" },
         "key": { "$ref": "#/$defs/strList", "description": "on + lines: баримт дахь мөрийн түлхүүр", "x-source": "cgi/src/solution/DeployCalc.inc:349" },
         "map": { "$ref": "#/$defs/colMap", "description": "Мөрийн баганын утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:263" }
+      }
+    },
+    "deleteGroup": {
+      "type": "object",
+      "required": ["table", "filter"],
+      "properties": {
+        "table": { "type": "string", "x-ref": "table", "description": "Устгах мөрийн хүснэгт", "x-source": "cgi/src/solution/DeployCalc.inc:450" },
+        "filter": { "type": "string", "x-expr": "x0", "description": "Устгах мөрийн нөхцөл (заавал; doc.*, param.*)", "x-source": "cgi/src/solution/DeployCalc.inc:452" }
       }
     },
     "rowsGroup": {

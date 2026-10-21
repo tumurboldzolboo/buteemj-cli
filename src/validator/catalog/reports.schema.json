@@ -253,7 +253,7 @@
           "properties": {
             "expr": {
               "type": "string",
-              "description": "Илэрхийлэлт багана: days(A - B), sum/max/min/count/avg(<Хүүхэд>.<Талбар>), арифметик, today",
+              "description": "Илэрхийлэлт багана: days(A - B), hours(A - B), year/quarter/month(A), sum/max/min/count/avg(<Хүүхэд>.<Талбар>), арифметик, today, calc <Тооцоо>.<гаралт>",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122"
             },
             "label": {
@@ -381,7 +381,7 @@
         },
         "where": {
           "type": "object",
-          "description": "Хэмжээс эсвэл «<лавлах хэмжээс>.<Багана>» → загвар ('a|b*' LIKE, '!…' эсрэг); kind: balance (rollup-гүй)",
+          "description": "Хэмжээс эсвэл «<лавлах хэмжээс>.<Багана>» → загвар ('a|b*' LIKE, '!…' эсрэг) эсвэл хэмжээс → param.<нэр> (параметрийн утгаар тэнцүү, хоосон бол шүүхгүй); kind: balance (rollup-гүй)",
           "x-source": "cgi/src/report/Report.cpp:367",
           "additionalProperties": {
             "type": "string"

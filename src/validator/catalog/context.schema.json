@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/context",
+  "title": "context.yaml — сессийн контекст (PLAN8 C5.3)",
+  "description": "Хэрэглэгчийн сессийн контекст (ээлж, касс, агуулах, улирал …): X0-д user.<Нэр>. Хэрэглэгч толгой хэсгээс сонгоно; сонгоогүй бол `default` нөхцөлийн эхний мөр (PLAN13 Ү6).",
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "array",
+      "description": "Контекстууд",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2683",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "description": "Нэр — X0-д user.<Нэр> (давхардахгүй)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2687" },
+          "table": { "type": "string", "x-ref": "table", "description": "Сонголтын хүснэгт (мөрийн PK = утга); хоосон бол чөлөөт текст", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2690" },
+          "required": { "type": "boolean", "description": "Сонгоогүй бол UI анхааруулна", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4985" },
+          "default": { "type": "string", "x-expr": "x0", "description": "Сонгоогүй үеийн анхдагч: хүснэгтийн мөрийн нөхцөл (user.code, now, today, FK зам) — тохирох эхний мөр (жишээ нь `Ажилтан == user.code and Эхлэх цаг <= now and Дуусах цаг >= now`)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4960" }
+        }
+      }
+    }
+  }
+}

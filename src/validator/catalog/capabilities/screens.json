@@ -9,6 +9,7 @@
   {"name": "шилжилтийн товч", "source": "cgi/src/solution/SolutionDeploy.cpp:1485", "description": "Төлөвийн машины шилжилтийг маягтаас ажиллуулах товч"},
   {"name": "баримт хэвлэх товч", "source": "cgi/src/solution/SolutionDeploy.cpp:1491", "description": "Баримтын загвараар хэвлэмэл үүсгэх товч"},
   {"name": "холбоотой бичлэг үүсгэх", "source": "cgi/src/solution/SolutionDeploy.cpp:1492", "description": "Өөр хүснэгтэд энэ мөрийн утгаар урьдчилан бөглөсөн шинэ бичлэг нээх товч"},
+  {"name": "генератор ажиллуулах товч", "source": "cgi/src/solution/SolutionDeploy.cpp:1640", "description": "Маягтаас энэ бичлэгээр (doc.*) генератор ажиллуулах товч (type: generate) — параметрийг асууж, үүссэн баримтыг нээнэ (сагснаас захиалга, захиалгаас нэхэмжлэх)"},
   {"name": "процесс эхлүүлэх товч", "source": "cgi/src/solution/SolutionDeploy.cpp:1502", "description": "BPMN процессыг маягт эсвэл хуудаснаас эхлүүлэх"},
   {"name": "тайлан нээх товч", "source": "cgi/src/solution/SolutionDeploy.cpp:1507", "description": "Маягтаас тайлан (/analytics) нээх товч"},
   {"name": "төлөвийн хувилбар", "source": "cgi/src/solution/SolutionDeploy.cpp:1517", "description": "Төлөв эсвэл үүргээр талбар/табыг зөвхөн унших эсвэл нуух"},

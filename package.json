@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "sync-validator": "node scripts/sync-validator.mjs"
+    "sync-validator": "node scripts/sync-validator.mjs",
+    "prepublishOnly": "npm test"
   },
   "keywords": [
     "buteemj",
@@ -18,5 +19,15 @@
     "cli"
   ],
   "author": "Buteemj Team",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "files": [
+    "bin",
+    "src",
+    "assets",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
 }

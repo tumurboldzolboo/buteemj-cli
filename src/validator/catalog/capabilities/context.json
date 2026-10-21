@@ -1,0 +1,12 @@
+[
+  {
+    "name": "сессийн контекст",
+    "source": "cgi/src/crud/SessionContext.cpp:routeContext",
+    "description": "context.yaml: хэрэглэгчийн сонголт (ээлж, касс …) — X0-д user.<Нэр> (мөрийн шүүлт, guard, анхны утга)"
+  },
+  {
+    "name": "контекстын анхдагч",
+    "source": "cgi/src/auth/Permission.cpp:loadUserContext",
+    "description": "context.yaml `default: <нөхцөл>` — хэрэглэгч сонгоогүй үед нөхцөлийн эхний мөр (одоогийн ээлж, нээлттэй касс, идэвхтэй улирал)"
+  }
+]

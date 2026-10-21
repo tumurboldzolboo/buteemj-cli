@@ -1083,6 +1083,52 @@
           "required": [
             "type",
             "label",
+            "generator"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "generate"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "generator": {
+              "type": "string",
+              "description": "Генератор (generators.yaml `on: <энэ хүснэгт>`) — энэ бичлэгээр (doc.*), параметрийг хэрэглэгчээс асууна",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1640"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
             "report"
           ],
           "properties": {

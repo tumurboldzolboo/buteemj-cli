@@ -138,6 +138,15 @@ export function validatePackage(files, opts = {}) {
   }
   // баримтын загвар, тооцоо г.м. файлын нэр (documents/Кассын баримт.html)
   for (const f of Object.keys(files)) names.add(f.split('/').pop().replace(/\.[^.]+$/, ''));
+  // Шаардлагын холбоос багцын файлыг бүхлээр нь заах (`roles.csv`, `documents/Баримт.html`) эсвэл мэдэгдлийн үйл явдал (`state_overdue`) байж болно
+  for (const f of Object.keys(files)) { names.add(f); names.add(f.split('/').pop()); }
+  for (const v of Object.values(yaml)) for (const n of Array.isArray(v?.notifications) ? v.notifications : []) if (typeof n?.event === 'string') names.add(n.event);
+  // Баримтын загварын нэр — HTML-ийн эхний `<!-- name: Кассын баримт -->` (generateDocument, screens `document`-ийн нэр)
+  for (const [f, text] of Object.entries(files)) {
+    if (!/\.html?$/i.test(f)) continue;
+    const m = /<!--\s*name:\s*([^\n]+?)\s*-->/.exec(text);
+    if (m) names.add(m[1]);
+  }
   // BPMN/DMN-ийн id ба name
   for (const [f, text] of Object.entries(files)) {
     if (!/\.(bpmn|dmn)$/i.test(f)) continue;
@@ -151,6 +160,12 @@ export function validatePackage(files, opts = {}) {
     if (!(dataListed.has(f) || /^(seed|reference|defaults)\//.test(f)) || !v || typeof v !== 'object' || Array.isArray(v)) continue;
     for (const [k, x] of Object.entries(v)) if (!Array.isArray(x) && x !== null && !(f.startsWith('seed') && ['organisations', 'groups'].includes(k)))
       add('parse', 'error', 'seed_shape', f, lineOf(v, k), `«${k}»: мөрүүдийн жагсаалт (\`- {…}\`) байх ёстой — сервер алгасна`);
+    // PLAN8 C1.7: байгууллагын мод — `parent:` нь seed-ийн өөр байгууллага (сервер байгаа ST0005-ийн нэрийг ч хүлээнэ — анхааруулга)
+    if (f.startsWith('seed') && Array.isArray(v.organisations)) {
+      const orgNames = new Set(v.organisations.map((o) => o?.name).filter(Boolean));
+      for (const o of v.organisations) if (o && typeof o.parent === 'string' && o.parent && (o.parent === o.name || !orgNames.has(o.parent)))
+        add('ref', o.parent === o.name ? 'error' : 'warning', 'seed_parent', f, lineOf(o, 'parent'), `байгууллага «${o.name}»-ийн эх «${o.parent}» seed-д алга${o.parent === o.name ? ' (өөрөө өөрийнхөө эх)' : ' — байгаа байгууллагын нэр байх ёстой'}`);
+    }
   }
 
   // ---- 3. schema: каталогийн хаалттай схем (P12.1)
