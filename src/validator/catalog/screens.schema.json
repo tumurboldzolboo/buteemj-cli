@@ -322,7 +322,7 @@
               },
               "filter": {
                 "type": "string",
-                "description": "Мөрийн шүүлт",
+                "description": "Мөрийн шүүлт (X0; огнооны токен — README «Огнооны токен», тайлантай ижил жагсаалт)",
                 "x-source": "cgi/src/solution/SolutionDeploy.cpp:1622",
                 "x-expr": "filter"
               },
@@ -874,6 +874,15 @@
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1479",
           "additionalProperties": {
             "type": "string"
+          }
+        },
+        "roles": {
+          "type": "array",
+          "description": "Табыг харах үүргүүд (аль нэг) — бусад үүрэгт таб бүхэлдээ (хэсэг, хүү grid, блок) харагдахгүй; сервер хүчилнэ (PLAN14 A3.9)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1582",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
           }
         }
       }

@@ -58,7 +58,7 @@
         },
         "filter": {
           "type": "string",
-          "description": "Мөрийн шүүлт (A op B and/or …, param.<нэр>, user.code)",
+          "description": "Мөрийн шүүлт (A op B and/or …, param.<нэр>, user.code, огнооны токен — README «Огнооны токен»)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5145",
           "x-expr": "filter"
         },
@@ -194,7 +194,7 @@
             "number",
             "boolean"
           ],
-          "description": "Анхдагч утга эсвэл огнооны токен (today, month_start(today), year_start(today), today + N)",
+          "description": "Анхдагч утга эсвэл огнооны токен (README «Огнооны токен»: today, yesterday, now, month_start, month_end, next_month_start, year_start, year_end — `<токен>(today)` хэлбэрээр ч; ± N хоног)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5105"
         },
         "table": {
@@ -415,17 +415,17 @@
         },
         "from": {
           "type": "string",
-          "description": "Эхлэх огноо (today | yesterday | month_start(today) | year_start(today) | next_month_start(today) ± N, param.<нэр> эсвэл YYYY-MM-DD)",
+          "description": "Эхлэх огноо (огнооны токен — README «Огнооны токен»: today | yesterday | month_start | month_end | next_month_start | year_start | year_end, `(today)` хэлбэрээр ч, ± N; param.<нэр> эсвэл YYYY-MM-DD)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5222"
         },
         "to": {
           "type": "string",
-          "description": "Дуусах огноо (today | yesterday | month_start(today) | year_start(today) | next_month_start(today) ± N, param.<нэр> эсвэл YYYY-MM-DD)",
+          "description": "Дуусах огноо (огнооны токен — README «Огнооны токен»: today | yesterday | month_start | month_end | next_month_start | year_start | year_end, `(today)` хэлбэрээр ч, ± N; param.<нэр> эсвэл YYYY-MM-DD)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5222"
         },
         "asof": {
           "type": "string",
-          "description": "Огнооны байдлаар (openItems) (today | yesterday | month_start(today) | year_start(today) | next_month_start(today) ± N, param.<нэр> эсвэл YYYY-MM-DD)",
+          "description": "Огнооны байдлаар (openItems) (огнооны токен — README «Огнооны токен»: today | yesterday | month_start | month_end | next_month_start | year_start | year_end, `(today)` хэлбэрээр ч, ± N; param.<нэр> эсвэл YYYY-MM-DD)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5222"
         }
       }

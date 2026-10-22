@@ -10,6 +10,7 @@ import { parseDbml } from './dbml.mjs';
 import { parseRequirements, parseAcceptance, parseRoles, parseStates } from './parsers.mjs';
 import { validateSchema } from './schema.mjs';
 import { balance } from './expr.mjs';
+import { crossCheck } from './crossref.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // платформ дотор: docs/brd-standard/catalog; CLI-ийн хуулбарт (cli/src/validator/catalog) sync-validator хамт хуулна
@@ -76,12 +77,13 @@ export function validatePackage(files, opts = {}) {
 
   // ---- 2. parse: DBML, states, roles, requirements, acceptance
   const tables = new Map(); // нэр → Set(багана)
+  const erdTables = new Map(); // нэр → {orgScoped, columns} (crossref)
   const erdFile = fileOf('erd', 'erd.dbml');
   if (erdFile) {
     const d = parseDbml(files[erdFile]);
     if (d.error) add('parse', 'error', 'dbml_syntax', erdFile, d.errorLine, d.error);
     for (const i of d.issues) add('parse', i.severity, i.code, erdFile, i.line, i.message);
-    for (const t of d.tables) tables.set(t.name, new Set(t.columns.map((c) => c.name)));
+    for (const t of d.tables) { tables.set(t.name, new Set(t.columns.map((c) => c.name))); erdTables.set(t.name, t); }
   } else add('file', 'warning', 'erd_missing', manifestFile, 0, 'erd.dbml алга — хүснэгтийн лавлагаа шалгагдахгүй');
   // `requires`-ийн багцуудын хүснэгт (нэр шийдэлд)
   const required = asList(manifest.requires).map((r) => (typeof r === 'string' ? r.split(/[@\s]/)[0] : r?.key)).filter(Boolean);
@@ -100,8 +102,10 @@ export function validatePackage(files, opts = {}) {
   for (const [t, cols] of tables) for (const c of cols) names.add(`${t}.${c}`);
 
   const statesFile = fileOf('states', 'states.mmd');
+  const machines = [];
   if (statesFile) {
     const s = parseStates(files[statesFile]);
+    machines.push(...s.machines);
     for (const i of s.issues) add('parse', i.severity, i.code, statesFile, i.line, i.message);
     for (const m of s.machines) {
       names.add(m.name);
@@ -167,6 +171,9 @@ export function validatePackage(files, opts = {}) {
         add('ref', o.parent === o.name ? 'error' : 'warning', 'seed_parent', f, lineOf(o, 'parent'), `байгууллага «${o.name}»-ийн эх «${o.parent}» seed-д алга${o.parent === o.name ? ' (өөрөө өөрийнхөө эх)' : ' — байгаа байгууллагын нэр байх ёстой'}`);
     }
   }
+
+  // ---- 2b. хоорондын шалгалт (PLAN14 A5): серверийн plan-ийн DB-ээс үл хамаарах шалгалтууд — crossref.mjs
+  crossCheck({ files, yaml, fileOf, listed, tables: erdTables, hasTable, strict, machines, required, add });
 
   // ---- 3. schema: каталогийн хаалттай схем (P12.1)
   if (catalog.available) {

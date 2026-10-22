@@ -48,7 +48,8 @@
         "delete": { "type": "array", "items": { "$ref": "#/$defs/deleteGroup" }, "description": "Нөхцөлтэй мөрүүдийг устгах (сагс хоослох, түр бүртгэл цэвэрлэх) — эрх, түгжээ, rollup хэвээр; буцаалтад сэргээнэ", "x-source": "cgi/src/solution/DeployCalc.inc:448" },
         "then": { "type": "string", "description": "Үүссэн баримтад хийх шилжилт", "x-source": "cgi/src/solution/DeployCalc.inc:309" },
         "undo": { "type": "string", "description": "Буцаалт: үүсгэсэн target баримтыг устгахын оронд энэ шилжилтээр цуцлах (мөрүүд хэвээр)", "x-source": "cgi/src/solution/DeployCalc.inc:327" },
-        "reversible": { "type": "boolean", "description": "false — ажиллалтыг буцаахыг хориглоно (анхдагч true)", "x-source": "cgi/src/solution/DeployCalc.inc:328" }
+        "reversible": { "type": "boolean", "description": "false — ажиллалтыг буцаахыг хориглоно (анхдагч true)", "x-source": "cgi/src/solution/DeployCalc.inc:328" },
+        "runAs": { "enum": ["system"], "description": "system — дуудагч хэрэглэгчийн хүснэгтийн эрх ба мөрийн шүүлтээр хязгаарлагдахгүй бичнэ (байгууллагын хүрээ, төлвийн түгжээ хэвээр; PLAN14 A3.14)", "x-source": "cgi/src/state/Generator.cpp:84" }
       }
     },
     "groupCommon": {
