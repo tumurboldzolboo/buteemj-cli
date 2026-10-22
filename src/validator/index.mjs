@@ -88,15 +88,20 @@ export function validatePackage(files, opts = {}) {
   // `requires`-ийн багцуудын хүснэгт (нэр шийдэлд)
   const required = asList(manifest.requires).map((r) => (typeof r === 'string' ? r.split(/[@\s]/)[0] : r?.key)).filter(Boolean);
   const foreign = new Map();
+  const foreignTables = new Map(), foreignLedgers = [], foreignContexts = []; // T3b WP-J: requires-ийн хүснэгт (багана, FK) ба ledgers.yaml — хөрвүүлэлтийн шалгалтад
+  let resolved = 0;
   for (const key of required) {
     const dep = opts.packages?.get(key);
     if (!dep) { add('ref', 'warning', 'requires_unknown', manifestFile, lineOf(manifest, 'requires'), `requires «${key}» төслөөс олдсонгүй — түүний нэрс шалгагдахгүй`); continue; }
+    resolved++;
     const f = Object.keys(dep.files).find((k) => k.endsWith('.dbml'));
-    if (f) for (const t of parseDbml(dep.files[f]).tables) foreign.set(t.name, new Set(t.columns.map((c) => c.name)));
+    if (f) for (const t of parseDbml(dep.files[f]).tables) { foreign.set(t.name, new Set(t.columns.map((c) => c.name))); if (!foreignTables.has(t.name) || foreignTables.get(t.name).columns.length < t.columns.length) foreignTables.set(t.name, t); }
+    for (const [lf, txt] of Object.entries(dep.files)) if (/(^|\/)ledgers\.ya?ml$/i.test(lf)) { const r = loadYaml(txt); if (!r.error) foreignLedgers.push(r.value); }
+    for (const [lf, txt] of Object.entries(dep.files)) if (/(^|\/)context\.ya?ml$/i.test(lf)) { const r = loadYaml(txt); if (!r.error) foreignContexts.push(r.value); } // T3b WP-L: user.<контекст>
   }
   const hasTable = (n) => tables.has(n) || foreign.has(n);
   const colsOf = (n) => tables.get(n) ?? foreign.get(n);
-  const strict = tables.size > 0 && required.length === foreign.size;
+  const strict = (tables.size > 0 || resolved > 0) && required.length === resolved; // T3b WP-J: ERD-гүй (зөвхөн дэлгэц) багц requires-ээр
 
   const names = new Set([...tables.keys()]);
   for (const [t, cols] of tables) for (const c of cols) names.add(`${t}.${c}`);
@@ -193,7 +198,7 @@ export function validatePackage(files, opts = {}) {
   }
 
   // ---- 2b. хоорондын шалгалт (PLAN14 A5): серверийн plan-ийн DB-ээс үл хамаарах шалгалтууд — crossref.mjs
-  crossCheck({ files, yaml, fileOf, listed, tables: erdTables, hasTable, strict, machines, required, add });
+  crossCheck({ files, yaml, fileOf, listed, tables: erdTables, foreignTables, foreignLedgers, foreignContexts, hasTable, strict, machines, required, add });
 
   // ---- 3. schema: каталогийн хаалттай схем (P12.1)
   if (catalog.available) {

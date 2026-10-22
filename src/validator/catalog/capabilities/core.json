@@ -5,5 +5,6 @@
   { "name": "аудит", "source": "cgi/src/main.cpp:374", "description": "Мөрийн өөрчлөлтийн аудит (/api/data/{table}/{id}/audit, schema/postgresql/54-record-audit.sql)" },
   { "name": "талбарын аудит", "source": "schema/postgresql/54-record-audit.sql", "description": "Талбар тус бүрийн хуучин/шинэ утгын бүртгэл" },
   { "name": "архив", "source": "cgi/src/doc/DocTemplate.cpp:582", "description": "Үүсгэсэн баримтыг архивлах, архиваас унших" },
-  { "name": "health", "source": "cgi/src/main.cpp:607", "description": "Үйлчилгээний төлөв шалгах (/api/health)" }
+  { "name": "health", "source": "cgi/src/main.cpp:607", "description": "Үйлчилгээний төлөв шалгах (/api/health)" },
+  { "name": "модны предикат", "source": "cgi/src/solution/ExprSql.cpp:488", "description": "under(x, зангилаа), root(x), depth(x) — өөр рүүгээ FK-тэй хүснэгт: тооцооны хэл, мөрийн шүүлт (DataPolicy.cpp:501), тайлан, серверийн X0; 99s-tree.sql (T3b WP-K)" }
 ]

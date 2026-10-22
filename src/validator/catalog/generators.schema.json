@@ -27,10 +27,10 @@
             "required": ["name"],
             "properties": {
               "name": { "type": "string", "description": "Параметрийн нэр", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
-              "type": { "type": "string", "enum": ["date", "number", "text", "ref", "refs"], "description": "Төрөл (анхдагч text); ref — лавлах хүснэгтийн мөр (param.<Нэр>.<Багана> FK замаар), UI сонгогч; refs — сонгосон олон мөр (жагсаалтын сонголт; `lines.from`/`rows.from: param.<Нэр>`, T3 WP-D)", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
+              "type": { "type": "string", "enum": ["date", "datetime", "number", "text", "ref", "refs"], "description": "Төрөл (анхдагч text); datetime — огноо + цаг (UI огноо-цаг, токен now; T3b WP-L); ref — лавлах хүснэгтийн мөр (param.<Нэр>.<Багана> FK замаар), UI сонгогч; refs — сонгосон олон мөр (жагсаалтын сонголт; `lines.from`/`rows.from: param.<Нэр>`, T3 WP-D)", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
               "table": { "type": "string", "x-ref": "table", "description": "type: ref, refs — лавлах/сонгох мөрийн хүснэгт (мөр бүр хэрэглэгчид харагдах ёстой)", "x-source": "cgi/src/solution/DeployCalc.inc:283" },
               "required": { "type": "boolean", "description": "false — хоосон байж болно (анхдагч true)", "x-source": "cgi/src/state/Generator.cpp:62" },
-              "default": { "type": ["string", "number", "boolean"], "description": "Анхдагч утга (today, last_month_end …)", "x-source": "cgi/src/solution/DeployCalc.inc:283" }
+              "default": { "type": ["string", "number", "boolean"], "description": "Анхдагч утга (today, last_month_end …); `user.<Нэр>` — ажиллуулсан хэрэглэгчийн code/name/role/org эсвэл сессийн контекст (context.yaml; T3b WP-L)", "x-source": "cgi/src/solution/DeployCalc.inc:defaultUser" }
             }
           }
         },
@@ -49,7 +49,24 @@
         "then": { "type": "string", "description": "Үүссэн баримтад хийх шилжилт", "x-source": "cgi/src/solution/DeployCalc.inc:309" },
         "undo": { "type": "string", "description": "Буцаалт: үүсгэсэн target баримтыг устгахын оронд энэ шилжилтээр цуцлах (мөрүүд хэвээр)", "x-source": "cgi/src/solution/DeployCalc.inc:327" },
         "reversible": { "type": "boolean", "description": "false — ажиллалтыг буцаахыг хориглоно (анхдагч true)", "x-source": "cgi/src/solution/DeployCalc.inc:328" },
-        "runAs": { "enum": ["system"], "description": "system — дуудагч хэрэглэгчийн хүснэгтийн эрх ба мөрийн шүүлтээр хязгаарлагдахгүй бичнэ (байгууллагын хүрээ, төлвийн түгжээ хэвээр; PLAN14 A3.14)", "x-source": "cgi/src/state/Generator.cpp:84" }
+        "runAs": { "enum": ["system"], "description": "system — дуудагч хэрэглэгчийн хүснэгтийн эрх ба мөрийн шүүлтээр хязгаарлагдахгүй бичнэ (байгууллагын хүрээ, төлвийн түгжээ хэвээр; PLAN14 A3.14)", "x-source": "cgi/src/state/Generator.cpp:84" },
+        "trigger": {
+          "type": "object",
+          "required": ["table", "on"],
+          "additionalProperties": false,
+          "description": "T3b WP-M (N-14): хүснэгтийн үйл явдлын генератор — мөр үүсэх/засагдах/устах/шилжих бүрт бичилттэй НЭГ transaction-д (алдаа эсвэл `require` худал → бичилт буцна). doc.* = мөр (delete — устгагдах мөр, DELETE-ээс өмнө), old.<Багана> = өмнөх утга, trigger.event, changed(<Багана>). Доод багцын (requires) хүснэгт/машинд дээд багц өлгөж болно. Дараалал: эзэмшигч багцын action → бичилт → өлгөгдсөн генераторууд багц суусан дарааллаар, дараа нь нэрээр; гүн ≤ 3. Унтраалга: BUTEEMJ_TRIGGERS=off|only:<нэр>,…, импорт `triggers=off` (админ). plan-д info `generator_trigger`, «Нөлөө»-д харагдана",
+          "x-source": "cgi/src/solution/DeployCalc.inc:trigger",
+          "properties": {
+            "table": { "type": "string", "x-ref": "table", "description": "Үйл явдлын хүснэгт (нэг баганат PK)", "x-source": "cgi/src/solution/DeployCalc.inc:trigger" },
+            "on": { "$ref": "#/$defs/strList", "description": "insert | update | delete | transition (жагсаалт байж болно)", "x-source": "cgi/src/solution/DeployCalc.inc:trigger" },
+            "transitions": { "$ref": "#/$defs/strList", "description": "on: transition — зөвхөн эдгээр шилжилт (товчны нэр эсвэл код); хоосон бол бүх шилжилт", "x-source": "cgi/src/state/TriggerMatch.h:matches" },
+            "when": { "type": "string", "description": "Нөхцөл (тооцооны хэл: doc., old., trigger.event, changed(<Багана>)) — худал бол алгасна", "x-source": "cgi/src/solution/DeployCalc.inc:trigger" },
+            "replay": { "type": "boolean", "description": "false — /api/sync офлайн дахин тоглуулалтад ажиллахгүй (анхдагч true)", "x-source": "cgi/src/state/Triggers.cpp:fireNow" }
+          }
+        },
+        "when": { "type": "string", "description": "T3b WP-M (N-09): нөхцөл (тооцооны хэл) — худал бол генератор юу ч хийхгүй; төгсгөлд «мессеж» — анхааруулга", "x-source": "cgi/src/state/Generator.cpp:when" },
+        "require": { "type": ["string", "array", "object"], "description": "T3b WP-M (N-09): шаардлага '<X0> «мессеж»' (жагсаалт эсвэл {if, message}) — худал бол алдаа, дуудагчийн бичилт/шилжилт бүхэлдээ буцна (хаагдсан өдөр/үеийн хориг, guard); require-тэй генератор биегүй байж болно", "x-source": "cgi/src/state/Generator.cpp:require" },
+        "skipEmpty": { "type": ["boolean", "array", "string"], "items": { "type": "string" }, "description": "T3b WP-M (N-09): true — мөргүй бол толгой үүсгэхгүй (чимээгүй); [<толгойн багана>] — тэдгээр бүгд 0/хоосон бол ч (нийлбэр 0)", "x-source": "cgi/src/state/Generator.cpp:skipEmpty" }
       }
     },
     "groupCommon": {

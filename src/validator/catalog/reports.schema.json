@@ -100,7 +100,7 @@
         },
         "filter": {
           "type": "string",
-          "description": "Мөрийн шүүлт (A op B and/or …, param.<нэр>, user.code, огнооны токен — README «Огнооны токен»)",
+          "description": "Мөрийн шүүлт (A op B and/or …, param.<нэр>, user.code, огнооны токен — README «Огнооны токен»; member(…), under(<Багана|FK зам>, param.<ref>) — сонгосон зангилааны дэд мод, T3b WP-K)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5145",
           "x-expr": "filter"
         },
@@ -219,12 +219,13 @@
         },
         "type": {
           "type": "string",
-          "description": "Төрөл: text | number | date | boolean | ref (ref — `table`-ийн бичлэг сонгогч, утга = ID)",
+          "description": "Төрөл: text | number | date | datetime | boolean | ref (ref — `table`-ийн бичлэг сонгогч, утга = ID; datetime — огноо + цаг, T3b WP-L)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5104",
           "enum": [
             "text",
             "number",
             "date",
+            "datetime",
             "boolean",
             "ref"
           ],

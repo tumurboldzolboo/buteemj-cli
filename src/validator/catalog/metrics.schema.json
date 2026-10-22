@@ -22,7 +22,7 @@
           },
           "value": {
             "type": "string",
-            "description": "Томъёо: balance/change(<Ledger>, …), sumof/countof/avgof(<Хүснэгт>, …), бусад үзүүлэлт, param.from/to",
+            "description": "Томъёо: balance/change(<Ledger>, …), sumof/countof/avgof(<Хүснэгт>, …), бусад үзүүлэлт, param.from/to; мод — under(x, зангилаа), root(x), depth(x) (T3b WP-K)",
             "x-source": "cgi/src/solution/DeployCalc.inc:434",
             "x-expr": "calc"
           },

@@ -1,7 +1,12 @@
 // PLAN14 A5 (PLAN13 P12.2) — серверийн plan-ийн (SolutionDeploy.cpp planSolution) өгөгдлийн сангаас үл хамаарах хоорондын шалгалтууд.
 // Код ба мессеж нь серверийнхтэй ижил (scripts/validate-parity.mjs харьцуулна). Хүснэгтийн нэрийн шалгалт зөвхөн `strict` үед
 // (бүх `requires` уншигдсан) — эс бөгөөс суусан/цөмийн хүснэгт рүү заах боломжтой тул шалгахгүй.
-//   ctx: {files, yaml, fileOf, listed, tables: Map<нэр, {orgScoped, columns}>, hasTable, strict, machines, foreignPackages, add}
+//   ctx: {files, yaml, fileOf, listed, tables: Map<нэр, {orgScoped, columns}>, foreignTables, foreignLedgers, foreignContexts, hasTable, strict, machines, required, add}
+
+import { makeSchema, ledgerInfos, generatorError, metricErrors, layoutError } from './compile.mjs';
+import { ledgerErrors, screenErrors, reportErrors, endpointErrors } from './blocks.mjs';
+import { parseRoles } from './parsers.mjs';
+import { x0Parses } from './x0.mjs';
 
 const asList = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
 const str = (v) => (typeof v === 'string' ? v.trim() : v === null || v === undefined ? '' : String(v));
@@ -58,6 +63,10 @@ export function crossCheck(ctx) {
       if (seen.has(d.table)) continue;
       seen.add(d.table);
       if (strict && !hasTable(d.table)) { add('ref', 'error', `${dir}_table`, d.file, d.line, `${dir}: хүснэгт «${d.table}» ERD-д алга`); continue; }
+      // T3b WP-J: байгууллагын хүрээтэй хүснэгтийн seed мөр — seed-д байгууллага (organisations) алга бол сервер алгасна (seed_skip)
+      const tAny = tables.get(d.table) ?? ctx.foreignTables?.get(d.table);
+      if (dir === 'seed' && tAny?.orgScoped && !Object.entries(yaml).some(([f, v]) => f.startsWith('seed') && Array.isArray(v?.organisations) && v.organisations.length))
+        add('ref', 'error', 'seed_skip', d.file, d.line, `seed: «${d.table}» байгууллагын хүрээтэй боловч seed-д байгууллага алга`);
       const t = tables.get(d.table);
       if (!t) continue; // requires/цөмийн хүснэгтийн хүрээ сервер дээр л мэдэгдэнэ
       if (dir === 'reference' && t.orgScoped) add('ref', 'warning', 'reference_org', d.file, d.line, `reference: «${d.table}» байгууллагын хүрээтэй — системийн лавлах нь глобал (\`Note: 'orgScoped: false'\`) хүснэгтэд; байгууллага бүрийн анхны өгөгдлийг defaults/-д`);
@@ -118,6 +127,7 @@ export function crossCheck(ctx) {
 
   // ---- reports.yaml эх (report_table, report_ledger, report_layout)
   const repFile = fileOf('reports', 'reports.yaml');
+  const reportSrc = new Map();
   const ledFile = fileOf('ledgers', 'ledgers.yaml');
   const ledgerSrc = (ln) => asList(yaml[ledFile]?.ledgers).find((l) => str(l?.name) === ln && asList(l?.sources).length)?.sources[0]?.table ?? '';
   for (const r of asList(yaml[repFile]?.reports)) {
@@ -140,6 +150,7 @@ export function crossCheck(ctx) {
       if (!src && !unresolvedLedger) add('ref', 'error', 'report_layout', repFile, 0, `reports.yaml: «${name}» layout — эх тодорхойгүй (\`source:\` заана уу)`);
     }
     if (unresolvedLedger) continue;
+    if (src && hasTable(src)) reportSrc.set(r, src); // T3b WP-J: layout хөрвүүлэлт (серверт r.table шийдэгдсэн тайланд л)
     if (!src ? true : strict && !hasTable(src)) add('ref', 'error', 'report_table', repFile, 0, `reports.yaml: «${name}» эх хүснэгт «${src}» ERD-д алга`);
     // T3 WP-D G-T3-20: `join: [{table, on: "<Багана> == <Хүснэгт|as>.<Багана>", type, as}]` (серверийн report_join)
     for (const part of [r, ...asList(r.union).filter((u) => u && typeof u === 'object')]) for (const jn of asList(part.join)) {
@@ -196,7 +207,19 @@ export function crossCheck(ctx) {
         }
       }
       if (isReport && strict && !reports.has(str(a.report))) bad('api_report', `тайлан «${str(a.report)}» reports.yaml-д алга`);
+      // T3b WP-J: серверийн api_option (тайлангийн нөөц зөвхөн GET), api_filter (X0 задлалт; member()/in (…) серверт өргөтгөгддөг тул алгасна)
+      if (isReport && !isTable) for (const k of ['operations', 'transitions', 'lines', 'filter', 'sort']) if (a[k] !== undefined) bad('api_option', `тайлангийн нөөцөд \`${k}\` хамаарахгүй (зөвхөн GET)`);
+      const af = str(a.filter);
+      if (isTable && af && !/member\s*\(|\bin\s*\(/.test(af) && !x0Parses(af)) bad('api_filter', `filter (X0) задлагдсангүй: ${af}`);
     }
+  }
+
+  // ---- T3b WP-J (integration G-18): integrations.yaml outbound `success`/`error` — X0 задлалт (серверийн outbound_expr)
+  const igFile = fileOf('integrations', 'integrations.yaml');
+  for (const o of asList(yaml[igFile]?.outbound)) {
+    if (!o || typeof o !== 'object') continue;
+    for (const k of ['success', 'error']) if (typeof o[k] === 'string' && !x0Parses(o[k]))
+      add('ref', 'error', 'outbound_expr', igFile, 0, `integrations.yaml outbound «${str(o.name)}»: ${k} «${o[k]}» — X0 задлагдсангүй`);
   }
 
   // ---- T3 WP-D G-T3-19: generators.yaml `type: refs` (table заавал) ба `from: param.<Нэр>` (refs параметр) — серверийн generator_param
@@ -215,4 +238,83 @@ export function crossCheck(ctx) {
       if (from.startsWith('param.') && !refs.has(from.slice(6).trim())) add('ref', 'error', 'generator_param', genFile, 0, `generators.yaml «${name}»: from: ${from} — \`type: refs\` параметр алга (сонгосон мөрүүдийн эх)`);
     }
   }
+
+  // ---- T3b WP-J (N-01): plan-ийн generator_name/generator_table/generator_body, metric_value ба apply үеийн хөрвүүлэлт
+  //      (generator_compile, metric_compile, metric_notify, report_compile) — серверийн DeployCalc.inc-тэй ижил мессеж (compile.mjs)
+  const blockedGen = new Set(), seenGen = new Set();
+  for (const g of asList(yaml[genFile]?.generators)) {
+    if (!g || typeof g !== 'object') continue;
+    const name = str(g.name);
+    const bad = (code, msg) => { blockedGen.add(g); add('ref', 'error', code, genFile, 0, `generators.yaml «${name}»: ${msg}`); };
+    if (!name) { blockedGen.add(g); add('ref', 'error', 'generator_name', genFile, 0, 'generators.yaml: `name` заавал'); continue; }
+    if (seenGen.has(name)) bad('generator_name', 'нэр давхардсан');
+    seenGen.add(name);
+    for (const t of ['target', 'on']) if (g[t] !== undefined && strict && !hasTable(str(g[t]))) bad('generator_table', `${t}: хүснэгт «${str(g[t])}» ERD-д алга`);
+    if (g.lines === undefined && g.rows === undefined && g.update === undefined && g.delete === undefined && !(g.target !== undefined && g.header !== undefined) && g.require === undefined) bad('generator_body', 'lines, rows, update, delete, target + header эсвэл require заавал');
+    // T3b WP-M (N-14): үйл явдлын генератор — trigger.table ERD-д (requires-ийн дагуу доод багцынх ч); plan info generator_trigger (далд зан төлөв ил)
+    if (g.trigger !== undefined) {
+      const tt = str(g.trigger?.table);
+      if (!tt || (strict && !hasTable(tt))) bad('generator_table', `trigger.table: хүснэгт «${tt}» ERD-д алга`);
+      else add('ref', 'info', 'generator_trigger', genFile, 0, `generators.yaml «${name}»: «${tt}»-ийн үйл явдалд (${[].concat(g.trigger.on ?? []).join(', ')}${g.trigger.transitions ? ` (${[].concat(g.trigger.transitions).join(', ')})` : ''}) өлгөгдсөн — бичилттэй нэг transaction-д${g.require !== undefined ? ', шаардлага биелэхгүй бол бичилт буцна' : ''}`);
+    }
+    for (const p of asList(g.params)) if (p && typeof p === 'object' && p.type === 'refs' && (!str(p.table) || (strict && !hasTable(str(p.table))))) blockedGen.add(g);
+    for (const gr of [...asList(g.lines), ...(g.rows ? [g.rows] : [])]) if (typeof gr?.from === 'string' && gr.from.trim().startsWith('param.')) {
+      const pn = gr.from.trim().slice(6).trim();
+      if (!asList(g.params).some((p) => p?.type === 'refs' && str(p.name) === pn)) blockedGen.add(g);
+    }
+  }
+  const metFile = fileOf('metrics', 'metrics.yaml');
+  const seenMet = new Set(), okMetrics = [];
+  for (const m of asList(yaml[metFile]?.metrics)) {
+    if (!m || typeof m !== 'object') continue;
+    const name = str(m.name);
+    if (!name) { add('ref', 'error', 'metric_name', metFile, 0, 'metrics.yaml: `name` заавал'); continue; }
+    if (seenMet.has(name)) { add('ref', 'error', 'metric_name', metFile, 0, `metrics.yaml «${name}»: нэр давхардсан`); continue; }
+    seenMet.add(name);
+    if (!str(m.value)) { add('ref', 'error', 'metric_value', metFile, 0, `metrics.yaml «${name}»: \`value\` (илэрхийлэл) заавал`); continue; }
+    okMetrics.push(m);
+  }
+  if (!strict) return;
+  const all = new Map([...(ctx.foreignTables ?? new Map()), ...tables]);
+  const own = new Set(tables.keys());
+  // ledger-ийн plan алдаа эхэлж: хаагдсан ledger үүсэхгүй — түүнийг лавласан генератор/үзүүлэлт серверт «ledger алга» болно
+  const ledErrs = ledgerErrors(makeSchema(all, new Map()), yaml[ledFile], own, ledgerInfos(ctx.foreignLedgers ?? []));
+  const ownLedgers = ledgerInfos([yaml[ledFile]]);
+  for (const n of ledErrs.blocked) ownLedgers.delete(n);
+  const S = makeSchema(all, new Map([...ledgerInfos(ctx.foreignLedgers ?? []), ...ownLedgers]));
+  // T3b WP-L: context.yaml (энэ багц + requires) — генераторын user.<контекст>[.<Багана>], params default: user.<Нэр>
+  const contexts = new Map();
+  for (const d of [...(ctx.foreignContexts ?? []), yaml[fileOf('context', 'context.yaml')]]) for (const x of asList(d?.context)) {
+    const nm = str(x?.name);
+    if (nm && !contexts.has(nm)) contexts.set(nm, str(x?.table));
+  }
+  for (const g of asList(yaml[genFile]?.generators)) {
+    if (!g || typeof g !== 'object' || blockedGen.has(g)) continue;
+    const e = generatorError(S, g, all, contexts);
+    if (e) add('ref', 'error', 'generator_compile', genFile, 0, `generators.yaml «${str(g.name)}»: ${e}`);
+  }
+  for (const x of metricErrors(S, okMetrics)) add('ref', 'error', x.code, metFile, 0, x.message);
+  for (const r of asList(yaml[repFile]?.reports)) {
+    if (!r || typeof r !== 'object' || !r.layout || typeof r.layout !== 'object' || !reportSrc.has(r)) continue;
+    const e = layoutError(S, r);
+    if (e) add('ref', 'error', 'report_compile', repFile, 0, `reports.yaml «${str(r.name)}» layout: ${e}`);
+  }
+  // блокуудын баганын нэр (blocks.mjs): ledgers.yaml, screens.yaml, reports.yaml
+  for (const x of ledErrs) add('ref', 'error', x.code, ledFile, 0, x.message);
+  for (const x of endpointErrors(yaml[igFile])) add('ref', 'error', x.code, igFile, 0, x.message);
+  const scrFile = fileOf('screens', 'screens.yaml');
+  const scr = yaml[scrFile]?.screens;
+  const scrList = Array.isArray(scr) ? scr : scr && typeof scr === 'object' ? Object.entries(scr).map(([id, v]) => ({ id, ...v })) : [];
+  // бүлгүүд (SolutionDeploy.cpp §4): roles.csv үүрэг ∪ seed groups ∪ seed хэрэглэгчийн roles ∪ states `хэн` (үүсгэх шилжилтээс бусад)
+  const groups = new Set();
+  const addG = (n) => { const t = str(n).toLowerCase(); if (t && t !== 'процесс' && t !== 'process') groups.add(t); };
+  const rolesFile = fileOf('roles', 'roles.csv');
+  if (rolesFile) for (const r of parseRoles(files[rolesFile]).roles) addG(r.role);
+  for (const [f, v] of Object.entries(yaml)) if (f.startsWith('seed/') && v && typeof v === 'object') {
+    for (const g of asList(v.groups)) addG(g?.name);
+    for (const o of asList(v.organisations)) for (const u of asList(o?.users)) for (const x of asList(u?.roles)) addG(x);
+  }
+  for (const m of machines) for (const tr of m.transitions) if (!tr.create) for (const w of String(tr.who ?? '').split(',')) addG(w);
+  for (const x of screenErrors(S, scrList, groups)) add('ref', 'error', x.code, scrFile, 0, x.message);
+  for (const x of reportErrors(S, asList(yaml[repFile]?.reports))) add('ref', 'error', x.code, repFile, 0, x.message);
 }
