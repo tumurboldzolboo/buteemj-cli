@@ -27,8 +27,8 @@
             "required": ["name"],
             "properties": {
               "name": { "type": "string", "description": "Параметрийн нэр", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
-              "type": { "type": "string", "enum": ["date", "number", "text", "ref"], "description": "Төрөл (анхдагч text); ref — лавлах хүснэгтийн мөр (param.<Нэр>.<Багана> FK замаар), UI сонгогч", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
-              "table": { "type": "string", "x-ref": "table", "description": "type: ref — лавлах хүснэгт (мөр хэрэглэгчид харагдах ёстой)", "x-source": "cgi/src/solution/DeployCalc.inc:283" },
+              "type": { "type": "string", "enum": ["date", "number", "text", "ref", "refs"], "description": "Төрөл (анхдагч text); ref — лавлах хүснэгтийн мөр (param.<Нэр>.<Багана> FK замаар), UI сонгогч; refs — сонгосон олон мөр (жагсаалтын сонголт; `lines.from`/`rows.from: param.<Нэр>`, T3 WP-D)", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
+              "table": { "type": "string", "x-ref": "table", "description": "type: ref, refs — лавлах/сонгох мөрийн хүснэгт (мөр бүр хэрэглэгчид харагдах ёстой)", "x-source": "cgi/src/solution/DeployCalc.inc:283" },
               "required": { "type": "boolean", "description": "false — хоосон байж болно (анхдагч true)", "x-source": "cgi/src/state/Generator.cpp:62" },
               "default": { "type": ["string", "number", "boolean"], "description": "Анхдагч утга (today, last_month_end …)", "x-source": "cgi/src/solution/DeployCalc.inc:283" }
             }
@@ -107,9 +107,10 @@
       "anyOf": [
         { "$ref": "#/$defs/ledgerFrom" },
         { "$ref": "#/$defs/explodeFrom" },
+        { "type": "string", "pattern": "^param\\.", "description": "Сонгосон мөрүүд: param.<refs параметр> (T3 WP-D)", "x-source": "cgi/src/solution/DeployCalc.inc:refsParams" },
         { "type": "string", "x-ref": "table", "description": "Эх хүснэгт" }
       ],
-      "description": "Мөрийн эх: хүснэгт | {ledger: …} | {explode: …}",
+      "description": "Мөрийн эх: хүснэгт | param.<refs параметр> | {ledger: …} | {explode: …}",
       "x-source": "cgi/src/solution/DeployCalc.inc:246"
     },
     "ledgerFrom": {

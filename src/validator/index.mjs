@@ -125,8 +125,28 @@ export function validatePackage(files, opts = {}) {
   if (rolesFile) {
     const r = parseRoles(files[rolesFile]);
     for (const i of r.issues) add('parse', i.severity, i.code, rolesFile, i.line, i.message);
+    // T3 WP-A: «Объект» — дэлгэц/товч/хуудас screens.yaml-д, тайлан reports.yaml-д (SolutionDeploy.cpp role_object)
+    const trim = (s) => String(s ?? '').trim();
+    const scr = asList(yaml['screens.yaml']?.screens), reps = asList(yaml['reports.yaml']?.reports);
+    const scrOf = (id) => scr.find((x) => x && (x.id === id || (x.type === 'page' && x.slug === id)));
+    const objectError = (obj) => {
+      const m = /^([^:]+):\s*(.+)$/.exec(obj);
+      const kind = { 'дэлгэц': 'screen', screen: 'screen', 'товч': 'action', action: 'action', 'тайлан': 'report', report: 'report', 'хуудас': 'page', page: 'page', api: 'api' }[trim(m?.[1] ?? '').toLowerCase()];
+      if (!kind) return 'угтвар танигдсангүй (дэлгэц:, товч:, тайлан:, хуудас:, api:)';
+      const key = trim(m[2]);
+      if (kind === 'screen' && (!scrOf(key) || scrOf(key).type === 'page')) return `дэлгэц «${key}» screens.yaml-д алга`;
+      if (kind === 'page' && scrOf(key)?.type !== 'page') return `хуудас «${key}» screens.yaml-д алга`;
+      if (kind === 'report' && !reps.some((x) => trim(x?.name ?? '') === key)) return `тайлан «${key}» reports.yaml-д алга`;
+      if (kind === 'api' && !asList(yaml['api.yaml']?.apis).some((x) => trim(x?.name ?? '') === key) && strict && !hasTable(key)) return `API «${key}» api.yaml-д (эсвэл ийм хүснэгт) алга`; // T3 WP-E
+      if (kind === 'action') {
+        const sl = key.indexOf('/'), s = sl < 0 ? null : scrOf(key.slice(0, sl)), n = key.slice(sl + 1);
+        if (!asList(s?.actions).some((a) => a && ['label', 'transition', 'document', 'report', 'page', 'generate', 'process'].some((k) => trim(String(a[k] ?? '')) === n))) return `товч «${key}» (<дэлгэц>/<товчны нэр>) screens.yaml-д алга`;
+      }
+      return '';
+    };
     for (const row of r.roles) {
       names.add(row.role);
+      if (row.object) { const e = objectError(row.object); if (e) add('ref', 'error', 'role_object', rolesFile, row.line, `үүрэг «${row.role}» × «${row.object}» — ${e}`); continue; }
       if (strict && row.table !== '*' && !hasTable(row.table)) add('ref', 'error', 'ref_table', rolesFile, row.line, `үүрэг «${row.role}»: хүснэгт «${row.table}» алга`);
       if (strict && hasTable(row.table)) for (const c of [...row.hidden, ...row.readOnly]) if (!colsOf(row.table).has(c)) add('ref', 'error', 'ref_column', rolesFile, row.line, `үүрэг «${row.role}»: «${row.table}.${c}» багана алга`);
     }

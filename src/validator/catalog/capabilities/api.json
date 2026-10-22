@@ -1,0 +1,22 @@
+[
+  {
+    "name": "REST API нөөц",
+    "source": "cgi/src/api/ApiRouter.cpp",
+    "description": "api.yaml: /api/x/<багц>/<хувилбар>/<зам> — жагсаалт (хуудаслалт, шүүлт, эрэмбэ), id, үүсгэх (мөртэй нэг transaction), засах, устгах, шилжилт нэрээр, тайлан; эрхийн объект api:<нэр>"
+  },
+  {
+    "name": "OpenAPI баримт",
+    "source": "cgi/src/api/ApiRouter.cpp",
+    "description": "/api/x/openapi.json, /api/x/<багц>/<хувилбар>/openapi.json — OpenAPI 3.1, дуудагчид харагдах нөөц л"
+  },
+  {
+    "name": "OAuth2 сервер",
+    "source": "cgi/src/api/OAuth.cpp",
+    "description": "/api/oauth/token (client_credentials, authorization_code + PKCE S256, refresh_token эргэлт), /api/oauth/authorize (зөвшөөрөл), /api/oauth/revoke, /api/oauth/metadata; scope = api.yaml нөөц"
+  },
+  {
+    "name": "API клиент",
+    "source": "cgi/src/api/OAuth.cpp",
+    "description": "Байгууллагын админ: клиент бүртгэх (нууц нэг удаа, SHA-256), нууц солих, идэвхгүй болгох, хязгаар, аудит (ST1906–ST1908)"
+  }
+]

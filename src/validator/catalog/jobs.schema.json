@@ -22,17 +22,13 @@
           },
           "every": {
             "type": "string",
-            "description": "Давтамж (анхдагч daily)",
+            "description": "Давтамж (анхдагч daily): daily | weekly | monthly | hourly (цаг бүрийн 00 минутад) | <N>m — N минут тутам (N нь 60-ын хуваагч: 1 2 3 4 5 6 10 12 15 20 30; цагийн эхнээс тэгшилсэн; `at`/`weekday`/`day` хамаарахгүй; нэг ажил давхцаж ажиллахгүй — T3 G-T3-25)",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:2417",
-            "enum": [
-              "daily",
-              "weekly",
-              "monthly"
-            ]
+            "pattern": "^(daily|weekly|monthly|hourly|(1|2|3|4|5|6|10|12|15|20|30)m)$"
           },
           "at": {
             "type": "integer",
-            "description": "Цаг (0..23)",
+            "description": "Цаг (0..23; daily | weekly | monthly)",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:2419",
             "minimum": 0,
             "maximum": 23

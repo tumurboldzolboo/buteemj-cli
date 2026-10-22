@@ -6,7 +6,7 @@
   "properties": {
     "inbound": {
       "type": "array",
-      "description": "Орох webhook (ST1802)",
+      "description": "Орох webhook (ST1802) — /api/hook/<key>[/<path>]; WP-C: GET/query, XML/form, urlkey, гарын үсэг, lookup, давхардлын түлхүүр, хариуны загвар",
       "x-source": "cgi/src/solution/SolutionDeploy.cpp:2239",
       "items": {
         "type": "object",
@@ -21,12 +21,100 @@
           },
           "auth": {
             "type": "string",
-            "description": "Баталгаажуулалт (анхдагч token)",
+            "description": "Баталгаажуулалт (анхдагч token): token (X-Buteemj-Token) | hmac (X-Buteemj-Signature: sha256=<hex>, орчны нууц) | urlkey (URL-ийн ≥ 32 тэмдэгт түлхүүр л — толгой илгээдэггүй үйлчилгээ) | signature (signature: {...})",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:2243",
             "enum": [
               "token",
-              "hmac"
+              "hmac",
+              "urlkey",
+              "signature"
             ]
+          },
+          "method": {
+            "type": "string",
+            "description": "HTTP арга (анхдагч POST); өөр аргаар → 405",
+            "x-source": "cgi/src/integration/Webhook.cpp",
+            "enum": [
+              "POST",
+              "GET",
+              "any"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "description": "Хүсэлтийн формат → payload: json (анхдагч; method: GET бол query) | xml (элемент → объект, давтагдсан → массив, @attr; DTD/ENTITY хориотой) | form (application/x-www-form-urlencoded) | query (URL-ийн query параметр). query.* үргэлж бэлэн",
+            "x-source": "cgi/src/integration/Webhook.cpp",
+            "enum": [
+              "json",
+              "xml",
+              "form",
+              "query"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "description": "URL-ийн түлхүүрийн дараах замын загвар, жишээ нь /{invoice} → path.invoice (заавал; тохирохгүй бол 404)",
+            "x-source": "cgi/src/integration/Webhook.cpp",
+            "pattern": "^(/\\{[A-Za-z_][A-Za-z0-9_]*\\})+$"
+          },
+          "org": {
+            "type": "string",
+            "description": "Байгууллагын код (X0 — payload.*, query.*, path.*, headers.*): perOrg нууцыг сонгоно, мөр тэр байгууллагад үүснэ (runAs тэр байгууллагад хамаарах ёстой, эс бөгөөс 403)",
+            "x-source": "cgi/src/integration/Webhook.cpp",
+            "x-expr": "x0"
+          },
+          "signature": {
+            "type": "object",
+            "description": "auth: signature-ийн гарын үсэг: тооцсон утга = alg(message) (HMAC бол түлхүүр = secret), хүлээн авсан утгатай (value) тогтмол хугацаанд харьцуулна",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "required": [
+              "value",
+              "secret"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "alg": {
+                "type": "string",
+                "description": "Алгоритм (анхдагч hmac-sha256). sha*/md5 (давсгүй hash) бол message-д `secret` заавал",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                "enum": [
+                  "hmac-sha256",
+                  "hmac-sha512",
+                  "hmac-sha1",
+                  "sha256",
+                  "sha512",
+                  "sha1",
+                  "md5"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "description": "Гарын үсэг зурах текст (X0 — payload.*, query.*, path.*, headers.*, secret (зөвхөн энд), concat(...)); анхдагч — хүсэлтийн түүхий body",
+                "x-source": "cgi/src/integration/Webhook.cpp",
+                "x-expr": "x0"
+              },
+              "value": {
+                "type": "string",
+                "description": "Хүлээн авсан гарын үсэг (X0): payload.checksum, headers.x_signature (толгойн нэр жижиг үсгээр, - → _), query.sig; \"sha256=\" угтварыг хасна",
+                "x-source": "cgi/src/integration/Webhook.cpp",
+                "x-expr": "x0"
+              },
+              "encoding": {
+                "type": "string",
+                "description": "Гарын үсгийн кодчилол (анхдагч hex — том/жижиг үсэг хамаарахгүй)",
+                "x-source": "cgi/src/integration/Webhook.cpp",
+                "enum": [
+                  "hex",
+                  "base64"
+                ]
+              },
+              "secret": {
+                "type": "string",
+                "description": "Нууц: BUTEEMJ_SECRET_<НЭР> (орчин) эсвэл endpoint.<Endpoint>.<тохиргоо> (WP-B ST1806, шифрлэгдсэн; perOrg endpoint бол org-ийн нууц)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                "pattern": "^(BUTEEMJ_SECRET_[A-Z0-9_]+|endpoint\\.[A-Za-z_][A-Za-z0-9_]*\\.[A-Za-z_][A-Za-z0-9_]*)$"
+              }
+            }
           },
           "secret": {
             "type": "string",
@@ -76,6 +164,77 @@
             "description": "Минутад хамгийн их дуудлага (анхдагч 60)",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:4273",
             "minimum": 1
+          },
+          "lookup": {
+            "type": "object",
+            "description": "Бичлэг хайх (runAs-ийн Харах эрх, мөрийн шүүлт, байгууллагаар): олдвол lookup.<Багана> (map, key, response-д); олдохгүй бол 404 (required: false бол үргэлжилнэ). table/process-гүй hook = асуулгад хариулах",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "required": [
+              "table",
+              "where"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "table": {
+                "type": "string",
+                "description": "Хайх хүснэгт",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                "x-ref": "table"
+              },
+              "where": {
+                "type": "object",
+                "description": "Багана → утга (X0 — payload.*, query.*, path.*, headers.*); бүгд тэнцүү (AND), хамгийн сүүлийн мөр",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                "additionalProperties": {
+                  "type": "string",
+                  "x-expr": "x0"
+                }
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Олдохгүй бол 404 (анхдагч true)",
+                "x-source": "cgi/src/integration/Webhook.cpp"
+              }
+            }
+          },
+          "key": {
+            "type": "string",
+            "description": "Давхардлын түлхүүр (X0, жишээ нь гүйлгээний дугаар): ижил түлхүүрээр дахин ирвэл мөр үүсгэхгүй, анхны хариуг буцаана (ST1808)",
+            "x-source": "cgi/src/integration/Webhook.cpp",
+            "x-expr": "x0"
+          },
+          "response": {
+            "type": "object",
+            "description": "Хариуны загвар (байхгүй бол {success, id} JSON). Утга нь X0 (payload.*, query.*, path.*, record.<Багана>, lookup.<Багана>, id, status, error, now, text(x, '0.00')), тогтмол текст '\"…\"', тоо/boolean, үүрлэсэн объект/массив; түлхүүрийн дараалал хадгалагдана",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "additionalProperties": false,
+            "properties": {
+              "format": {
+                "type": "string",
+                "description": "json (анхдагч; format: xml hook-д xml) | xml (нэг түлхүүртэй объект = root элемент) | text",
+                "x-source": "cgi/src/integration/Webhook.cpp",
+                "enum": [
+                  "json",
+                  "xml",
+                  "text"
+                ]
+              },
+              "ok": {
+                "description": "Амжилттай үеийн хариу",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp"
+              },
+              "error": {
+                "description": "Алдааны хариу (error — мессеж, status — HTTP код); 400/401/403/404/405 зэрэгт",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp"
+              },
+              "errorStatus": {
+                "type": "integer",
+                "description": "Алдааны үеийн HTTP кодыг энэ утгаар (жишээ нь 200 — зарим банк зөвхөн биеийг уншина)",
+                "x-source": "cgi/src/integration/Webhook.cpp",
+                "minimum": 200,
+                "maximum": 599
+              }
+            }
           }
         }
       }
@@ -120,14 +279,58 @@
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:3514"
           },
           "body": {
-            "description": "Илгээх бие: түлхүүр → X0 илэрхийлэл (бичлэгийн талбар)",
+            "description": "Илгээх бие: түлхүүр → X0 (Багана, FK.Багана, endpoint.<нууц бус тохиргоо>, org.registerNo, text(x, '0.00')), тогтмол, үүрлэсэн объект/массив; мөрийн массив {each: <Хүү хүснэгт>, where: <X0>, groupBy: [<Багана>], map: {...}} — map-д Багана = мөр, parent.<Багана> = толгой, group.rows = бүлгийн мөрүүд (group.rows.sum(Дүн)); бүлгийн доторх ижил хүснэгтийн each = тэр бүлгийн мөрүүд",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:3517",
             "additionalProperties": true
           },
           "response": {
             "type": "object",
-            "description": "Хариу: багана → хариуны түлхүүр",
-            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3508",
+            "description": "Хариу: багана → хариуны зам (a.b.0.c; XML: Root.Child, Root.@attr); children — хариуны массивын элементийг хүү мөрт",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "properties": {
+              "children": {
+                "type": "array",
+                "description": "Хүү мөрт бичих: хариуны массив (path) × хүү хүснэгтийн мөр (match: <Багана> → элемент доторх зам, бүгд тэнцүү) → map",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "table",
+                    "path",
+                    "map"
+                  ],
+                  "properties": {
+                    "table": {
+                      "type": "string",
+                      "description": "Хүү хүснэгт (толгой руу FK-тэй)",
+                      "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                      "x-ref": "table"
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "Хариуны массивын зам (receipts эсвэл receipts[*])",
+                      "x-source": "cgi/src/solution/SolutionDeploy.cpp"
+                    },
+                    "match": {
+                      "type": "object",
+                      "description": "Тааруулах: <Багана> → элемент доторх зам (бүгд тэнцүү)",
+                      "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "map": {
+                      "type": "object",
+                      "description": "Бичих: <Багана> → элемент доторх зам",
+                      "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            },
             "additionalProperties": {
               "type": "string"
             }
@@ -138,6 +341,52 @@
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:3517",
             "minimum": 1,
             "maximum": 20
+          },
+          "mode": {
+            "type": "string",
+            "description": "Горим: outbox (анхдагч — COMMIT-ийн дараа worker, retry) | sync (шилжилтийн transaction ДОТОР; алдаа/timeout/success худал → шилжилт буцна)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "enum": [
+              "outbox",
+              "sync"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "description": "Биеийн формат: json (анхдагч) | xml (объект → элемент, массив → давтагдах элемент, @нэр → attribute) | form (application/x-www-form-urlencoded). Хариу: JSON эсвэл XML (Content-Type-аар)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "enum": [
+              "json",
+              "xml",
+              "form"
+            ]
+          },
+          "headers": {
+            "type": "object",
+            "description": "Нэмэлт HTTP толгой: нэр → загвар ({{endpoint.<тохиргоо>}} — илгээх үед орлуулна, нууц тохиргоо ч; бичлэгийн талбар биш)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "HTTP timeout мс 100..30000 (анхдагч ST1801.TimeoutMs)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "minimum": 100,
+            "maximum": 30000
+          },
+          "success": {
+            "type": "string",
+            "description": "Амжилтын нөхцөл X0 (response.*, status) — худал бол алдаа (sync: шилжилт буцна; outbox: дахин оролдоно). Анхдагч: HTTP 2xx",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "x-expr": "x0"
+          },
+          "error": {
+            "type": "string",
+            "description": "Алдааны мессеж X0 (response.*, status) — хэрэглэгчид харуулна",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "x-expr": "x0"
           }
         }
       }
@@ -162,6 +411,87 @@
                 "type": "string",
                 "description": "Endpoint-ийн нэр",
                 "x-source": "cgi/src/solution/SolutionDeploy.cpp:2269"
+              },
+              "auth": {
+                "type": "string",
+                "description": "Баталгаажуулалт (apply ST1801.AuthType-д бичнэ): none | bearer | basic | header | hmac | oauth2",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                "enum": [
+                  "none",
+                  "bearer",
+                  "basic",
+                  "header",
+                  "hmac",
+                  "oauth2"
+                ]
+              },
+              "token": {
+                "type": "object",
+                "description": "oauth2: токены зам ба grant (client id/secret, username/password — админы UI-аас, шифрлэгдэж хадгалагдана)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                "required": [
+                  "path"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Токены зам (BaseUrl дээр залгана)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                    "pattern": "^/"
+                  },
+                  "grant": {
+                    "type": "string",
+                    "description": "client_credentials (анхдагч) | password",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                    "enum": [
+                      "client_credentials",
+                      "password"
+                    ]
+                  },
+                  "clientAuth": {
+                    "type": "string",
+                    "description": "Клиентийн баталгаажуулалт: basic (анхдагч, Authorization: Basic) | body (form-д client_id/client_secret)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                    "enum": [
+                      "basic",
+                      "body"
+                    ]
+                  }
+                }
+              },
+              "perOrg": {
+                "type": "boolean",
+                "description": "Байгууллага (компани) бүр өөрийн url/нууц/тохиргоо — байгууллагын админ «Холбогч»-оос оруулна",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp"
+              },
+              "settings": {
+                "type": "array",
+                "description": "Зарласан тохиргоо (бие: endpoint.<нэр>; нууц бол зөвхөн headers загварт). Нөөц нэр: url, secret, clientId, clientSecret, username, password",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Тохиргооны нэр (латин identifier)",
+                      "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,59}$"
+                    },
+                    "secret": {
+                      "type": "boolean",
+                      "description": "Нууц — DB-д шифрлэгдэнэ, API буцаахгүй, биед орохгүй",
+                      "x-source": "cgi/src/solution/SolutionDeploy.cpp"
+                    },
+                    "caption": {
+                      "type": "string",
+                      "description": "UI-д харуулах нэр",
+                      "x-source": "cgi/src/solution/SolutionDeploy.cpp"
+                    }
+                  }
+                }
               }
             }
           }

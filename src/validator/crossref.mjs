@@ -141,5 +141,78 @@ export function crossCheck(ctx) {
     }
     if (unresolvedLedger) continue;
     if (!src ? true : strict && !hasTable(src)) add('ref', 'error', 'report_table', repFile, 0, `reports.yaml: «${name}» эх хүснэгт «${src}» ERD-д алга`);
+    // T3 WP-D G-T3-20: `join: [{table, on: "<Багана> == <Хүснэгт|as>.<Багана>", type, as}]` (серверийн report_join)
+    for (const part of [r, ...asList(r.union).filter((u) => u && typeof u === 'object')]) for (const jn of asList(part.join)) {
+      if (!jn || typeof jn !== 'object') continue;
+      const jt = str(jn.table), as = str(jn.as ?? jt), on = str(jn.on), ty = jn.type === undefined ? 'left' : str(jn.type);
+      let why = '';
+      if (strict && !hasTable(jt)) why = `хүснэгт «${jt}» ERD-д алга`;
+      else if (!['inner', 'left', 'full'].includes(ty)) why = 'type: inner | left | full';
+      else {
+        const eq = on.indexOf('==');
+        const rhs = eq < 0 ? '' : on.slice(eq + 2).trim();
+        if (eq < 0 || !on.slice(0, eq).trim() || !rhs.startsWith(`${as}.`) || !rhs.slice(as.length + 1).trim()) why = `on: "<эх хүснэгтийн багана> == ${as}.<Багана>" хэлбэртэй байх ёстой (${on})`;
+      }
+      if (why) add('ref', 'error', 'report_join', repFile, 0, `reports.yaml: «${name}» join «${jt}»: ${why}`);
+    }
+  }
+
+  // ---- T3 WP-E (G-T3-11): api.yaml — серверийн api_name/api_dup/api_source/api_field/api_transition/api_lines/api_report (SolutionDeploy.cpp 7e)
+  const apiFile = fileOf('api', 'api.yaml');
+  if (apiFile && yaml[apiFile] && typeof yaml[apiFile] === 'object') {
+    const ad = yaml[apiFile];
+    const defVer = typeof ad.version === 'string' ? ad.version.trim() : 'v1';
+    const reports = new Set(asList(yaml[fileOf('reports', 'reports.yaml')]?.reports).map((r) => str(r?.name)));
+    const cols = (t) => new Set((tables.get(t)?.columns ?? []).map((c) => c.name));
+    const normFields = (f) => (Array.isArray(f) ? f.map((x) => ({ name: str(x), column: str(x) })) : f && typeof f === 'object' ? Object.entries(f).map(([k, v]) => ({ name: k, column: str(typeof v === 'object' && v ? v.column : v) })) : []);
+    const seenNV = new Set(), seenVP = new Set();
+    for (const a of asList(ad.apis)) {
+      if (!a || typeof a !== 'object') continue;
+      const name = str(a.name), ver = typeof a.version === 'string' ? a.version.trim() : defVer, path = typeof a.path === 'string' ? a.path.trim() : name;
+      const bad = (code, msg) => add('ref', 'error', code, apiFile, 0, `api.yaml «${name}» ${ver}: ${msg}`);
+      if (!/^[a-z][a-z0-9_-]{0,99}$/.test(name)) bad('api_name', '`name` — латин жижиг үсэг, тоо, _ - (эрхийн объект api:<нэр>, OAuth scope)');
+      if (!/^[a-z0-9][a-z0-9_-]*(\/[a-z0-9][a-z0-9_-]*)*$/.test(path)) bad('api_path', '`path` — a-z0-9_- хэсгүүд «/»-ээр');
+      if (seenNV.has(`${name}@${ver}`)) bad('api_dup', 'ижил нэр × хувилбар давхардсан');
+      if (seenVP.has(`${ver}/${path}`)) bad('api_dup', 'ижил хувилбар × зам давхардсан');
+      seenNV.add(`${name}@${ver}`); seenVP.add(`${ver}/${path}`);
+      const isTable = a.table !== undefined, isReport = a.report !== undefined;
+      if (isTable === isReport) bad('api_source', '`table` эсвэл `report`-ийн яг нэг нь');
+      if (isTable) {
+        const tbl = str(a.table), fields = normFields(a.fields);
+        if (!fields.length) bad('api_field', '`fields` заавал (ил гаргах талбар — secure by default)');
+        if (strict && !hasTable(tbl)) { bad('api_table', `хүснэгт «${tbl}» ERD-д алга`); continue; }
+        if (tables.has(tbl)) for (const f of fields) if (!cols(tbl).has(f.column)) bad('api_field', `«${tbl}»-д «${f.column}» багана алга`);
+        const aliases = new Set(fields.map((f) => f.name));
+        for (const s of asList(a.sort)) { const sn = str(s).replace(/^-/, ''); if (!aliases.has(sn)) bad('api_field', `sort: талбар «${sn}» fields-д алга`); }
+        const trs = new Set(machines.filter((m) => m.table === tbl).flatMap((m) => m.transitions.map((t) => str(t.caption))));
+        if (machines.some((m) => m.table === tbl)) for (const t of asList(a.transitions)) if (!trs.has(str(t))) bad('api_transition', `шилжилт «${str(t)}» «${tbl}»-ийн машинд алга`);
+        if (a.lines && typeof a.lines === 'object') for (const [ln, l] of Object.entries(a.lines)) {
+          const ct = str(l?.table);
+          if (strict && !hasTable(ct)) { bad('api_lines', `lines.${ln}: хүснэгт «${ct}» алга`); continue; }
+          if (aliases.has(ln) || ln === 'id') bad('api_lines', `lines.${ln}: талбарын нэртэй давхцав`);
+          const lf = normFields(l?.fields);
+          if (!lf.length) bad('api_lines', `lines.${ln}.fields заавал`);
+          if (tables.has(ct)) for (const f of lf) if (!cols(ct).has(f.column)) bad('api_field', `lines.${ln}: «${ct}»-д «${f.column}» багана алга`);
+        }
+      }
+      if (isReport && strict && !reports.has(str(a.report))) bad('api_report', `тайлан «${str(a.report)}» reports.yaml-д алга`);
+    }
+  }
+
+  // ---- T3 WP-D G-T3-19: generators.yaml `type: refs` (table заавал) ба `from: param.<Нэр>` (refs параметр) — серверийн generator_param
+  for (const g of asList(yaml[genFile]?.generators)) {
+    if (!g || typeof g !== 'object') continue;
+    const name = str(g.name);
+    const refs = new Set();
+    for (const p of asList(g.params)) {
+      if (!p || typeof p !== 'object' || p.type !== 'refs') continue;
+      const pt = str(p.table);
+      if (!pt || (strict && !hasTable(pt))) add('ref', 'error', 'generator_param', genFile, 0, `generators.yaml «${name}»: параметр «${str(p.name)}»: type refs — table (сонгох мөрийн хүснэгт) ${pt ? `«${pt}» ERD-д алга` : 'заавал'}`);
+      refs.add(str(p.name));
+    }
+    for (const gr of [...asList(g.lines), ...(g.rows ? [g.rows] : [])]) {
+      const from = typeof gr?.from === 'string' ? gr.from.trim() : '';
+      if (from.startsWith('param.') && !refs.has(from.slice(6).trim())) add('ref', 'error', 'generator_param', genFile, 0, `generators.yaml «${name}»: from: ${from} — \`type: refs\` параметр алга (сонгосон мөрүүдийн эх)`);
+    }
   }
 }

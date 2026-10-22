@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "buteemj:catalog/context",
   "title": "context.yaml — сессийн контекст (PLAN8 C5.3)",
-  "description": "Хэрэглэгчийн сессийн контекст (ээлж, касс, агуулах, улирал …): X0-д user.<Нэр>. Хэрэглэгч толгой хэсгээс сонгоно; сонгоогүй бол `default` нөхцөлийн эхний мөр (PLAN13 Ү6).",
+  "description": "Хэрэглэгчийн сессийн контекст (ээлж, касс, агуулах, улирал …): X0-д user.<Нэр>. Хэрэглэгч толгой хэсгээс сонгоно; сонгоогүй бол `default` нөхцөлийн эхний мөр (PLAN13 Ү6). T3 WP-F: `tracking:` — байршлын тасралтгүй трек (GPS) — /api/track, ST1935/ST1936.",
   "type": "object",
   "properties": {
     "context": {
@@ -11,12 +11,109 @@
       "x-source": "cgi/src/solution/SolutionDeploy.cpp:2683",
       "items": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
-          "name": { "type": "string", "description": "Нэр — X0-д user.<Нэр> (давхардахгүй)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2687" },
-          "table": { "type": "string", "x-ref": "table", "description": "Сонголтын хүснэгт (мөрийн PK = утга); хоосон бол чөлөөт текст", "x-source": "cgi/src/solution/SolutionDeploy.cpp:2690" },
-          "required": { "type": "boolean", "description": "Сонгоогүй бол UI анхааруулна", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4985" },
-          "default": { "type": "string", "x-expr": "x0", "description": "Сонгоогүй үеийн анхдагч: хүснэгтийн мөрийн нөхцөл (user.code, now, today, FK зам) — тохирох эхний мөр (жишээ нь `Ажилтан == user.code and Эхлэх цаг <= now and Дуусах цаг >= now`)", "x-source": "cgi/src/solution/SolutionDeploy.cpp:4960" }
+          "name": {
+            "type": "string",
+            "description": "Нэр — X0-д user.<Нэр> (давхардахгүй)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2687"
+          },
+          "table": {
+            "type": "string",
+            "x-ref": "table",
+            "description": "Сонголтын хүснэгт (мөрийн PK = утга); хоосон бол чөлөөт текст",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2690"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Сонгоогүй бол UI анхааруулна",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4985"
+          },
+          "default": {
+            "type": "string",
+            "x-expr": "x0",
+            "description": "Сонгоогүй үеийн анхдагч: хүснэгтийн мөрийн нөхцөл (user.code, now, today, FK зам) — тохирох эхний мөр (жишээ нь `Ажилтан == user.code and Эхлэх цаг <= now and Дуусах цаг >= now`)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:4960"
+          }
+        }
+      }
+    },
+    "tracking": {
+      "type": "array",
+      "description": "Байршлын тасралтгүй трек (T3 WP-F G-T3-16): `while` үнэн үед (ихэвчлэн ээлж/контекст сонгосон) гар утас `every` секунд тутам байршлыг багцаар POST /api/track-д илгээнэ (офлайн дараалал, давхардалгүй). Хөтөч/PWA — апп нээлттэй үед л; арын горимд — Бүтээмжийн native бүрхүүл (docs/mobile/native-bridge.md). Хэрэглэгч/байгууллага токеноос. Харах: өөрийнхийг, бусдынхыг `viewers` үүрэг; form таб `{block: track}`, /track хуудас.",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp (7f tracking)",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Нэр (давхардахгүй; form таб `tracking:`, API /api/track/<нэр>)"
+          },
+          "every": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3600
+              },
+              {
+                "type": "string",
+                "pattern": "^\\s*[0-9]{1,4}\\s*(s|m)?\\s*$"
+              }
+            ],
+            "description": "Давтамж — секунд (`10s`, `1m`, 10); 1..3600, анхдагч 10s. Сервер нэг багц дотор хагас давтамжаас ойр цэгийг хасна"
+          },
+          "minDistance": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Өмнөх цэгээс ийм метрээс ойр бол клиент бүртгэхгүй (0 = шүүхгүй)"
+          },
+          "accuracy": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Нарийвчлал (метр) үүнээс муу цэгийг хасна (0 = шүүхгүй)"
+          },
+          "while": {
+            "type": "string",
+            "x-expr": "x0",
+            "description": "Идэвхтэй байх нөхцөл — X0, `user.<Контекст>` (жишээ нь `not empty(user.Ээлж)`); сервер хүлээн авахдаа сессийн контекстоор үнэлнэ (худал бол хадгалахгүй)"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "x-ref": "role"
+            },
+            "description": "Трек илгээх үүргүүд (хоосон = бүх хэрэглэгч)"
+          },
+          "viewers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "x-ref": "role"
+            },
+            "description": "Бусдын трекийг харах үүргүүд (өөрийнхийг үргэлж; администратор бүгдийг)"
+          },
+          "retention": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3650
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{1,4}d?$"
+              }
+            ],
+            "description": "Хадгалах хугацаа (хоног, `400d` анхдагч) — worker цаг тутам хуучныг устгана (сарын хуваалтыг бүтнээр нь)"
+          }
         }
       }
     }

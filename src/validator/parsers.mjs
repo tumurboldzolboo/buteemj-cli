@@ -102,18 +102,20 @@ export function parseRoles(csv) {
   const header = rows[0];
   rows.slice(1).forEach((r) => {
     const cell = (i) => trim(r.cells[i] ?? '');
-    if (!cell(0) || !cell(1)) {
+    // T3 WP-A: 10 дахь «Объект» багана (дэлгэц:/товч:/тайлан:/хуудас:/api:) — Хүснэгт хоосон байж болно (Package.cpp parseRoles)
+    if (!cell(0) || (!cell(1) && !cell(9))) {
       if (r.cells.some((c) => trim(c))) issues.push({ severity: 'error', code: 'roles_row', line: r.line, message: 'Үүрэг эсвэл Хүснэгт хоосон — сервер мөрийг алгасна' });
       return;
     }
     for (const i of [2, 3, 4, 5]) {
       const v = asciiLower(cell(i));
-      if (!FLAG_TRUE.includes(v) && !FLAG_FALSE.includes(v)) issues.push({ severity: 'error', code: 'roles_flag', line: r.line, message: `${header?.cells[i] ?? `${i + 1}-р багана`}: «${cell(i)}» — 0/1 байх ёстой (сервер үгүй гэж уншина)` });
+      if (!FLAG_TRUE.includes(v) && !FLAG_FALSE.includes(v) && v !== '-') issues.push({ severity: 'error', code: 'roles_flag', line: r.line, message: `${header?.cells[i] ?? `${i + 1}-р багана`}: «${cell(i)}» — 0/1/- байх ёстой (сервер үгүй гэж уншина)` });
     }
-    if (r.cells.length > 9 && r.cells.slice(9).some((c) => trim(c))) issues.push({ severity: 'error', code: 'roles_columns', line: r.line, message: `${r.cells.length} багана — 9-өөс хойших баганыг сервер уншихгүй` });
+    if (r.cells.length > 10 && r.cells.slice(10).some((c) => trim(c))) issues.push({ severity: 'error', code: 'roles_columns', line: r.line, message: `${r.cells.length} багана — 10-аас хойших баганыг сервер уншихгүй` });
+    if (cell(1) && cell(9)) issues.push({ severity: 'error', code: 'roles_object', line: r.line, message: 'Хүснэгт ба Объект хоёулаа — нэг мөрөнд аль нэг нь' });
     const semi = (s) => s.split(';').map(trim).filter(Boolean);
     const fl = (i) => FLAG_TRUE.includes(asciiLower(cell(i)));
-    out.push({ role: cell(0), table: cell(1), view: fl(2), create: fl(3), update: fl(4), remove: fl(5), rowFilter: cell(6), hidden: semi(cell(7)), readOnly: semi(cell(8)), line: r.line });
+    out.push({ role: cell(0), table: cell(1), view: fl(2), create: fl(3), update: fl(4), remove: fl(5), rowFilter: cell(6), hidden: semi(cell(7)), readOnly: semi(cell(8)), object: cell(9), line: r.line });
   });
   return { roles: out, issues, header: header?.cells ?? [] };
 }

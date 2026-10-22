@@ -431,6 +431,143 @@
             }
           }
         },
+        "gallery": {
+          "type": "object",
+          "description": "Зурагтай каталог харагдац (T3 G-T3-24): карт бүрт зураг, гарчиг, дэд мөр; ангиллын чип шүүлт (group), хайлт, картын товч (create — тоо оруулж шууд бичлэг үүсгэх, жишээ нь «Сагслах»)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+          "required": [
+            "image"
+          ],
+          "properties": {
+            "image": {
+              "type": "string",
+              "description": "Зургийн багана — file (эхний хавсралт) эсвэл picture (зам)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+              "x-ref": "column"
+            },
+            "title": {
+              "type": "string",
+              "description": "Картын гарчгийн багана (FK бол лавлах нэрээр)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+              "x-ref": "column"
+            },
+            "subtitle": {
+              "type": "string",
+              "description": "Картын дэд мөрийн багана (FK бол лавлах нэрээр)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+              "x-ref": "column"
+            },
+            "group": {
+              "type": "string",
+              "description": "Ангиллын чип шүүлтийн багана (ихэвчлэн FK)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+              "x-ref": "column"
+            },
+            "actions": {
+              "type": "array",
+              "description": "Картын товчнууд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+              "items": {
+                "type": "object",
+                "required": [
+                  "label",
+                  "type",
+                  "table"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Товчны нэр",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Үйлдэл: create — шинэ бичлэгийг шууд үүсгэнэ (маягтгүй)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+                    "const": "create"
+                  },
+                  "table": {
+                    "type": "string",
+                    "description": "Үүсгэх хүснэгт",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+                    "x-ref": "table"
+                  },
+                  "prefill": {
+                    "type": "object",
+                    "description": "{<шинэ бичлэгийн багана>: id (картын бичлэг) | <картын хүснэгтийн багана>}",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "quantity": {
+                    "type": "string",
+                    "description": "Тоо оруулах багана (шинэ бичлэгийн; картад тоон талбар, анхдагч 1)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927"
+                  },
+                  "roles": {
+                    "type": "array",
+                    "description": "Товч харагдах үүргүүд (нэрээр)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+                    "items": {
+                      "type": "string",
+                      "x-ref": "role"
+                    }
+                  }
+                }
+              }
+            },
+            "roles": {
+              "type": "array",
+              "description": "Каталог харагдах үүргүүд (нэрээр)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            }
+          }
+        },
+        "map": {
+          "type": "object",
+          "description": "Газрын зургийн харагдац (T3 WP-F G-T3-13/14): «Газрын зураг» товч — мөр бүрийн цэг (`point` — «өргөрөг,уртраг» текст, widget: gps) ба/эсвэл бүс (`polygon` — GeoJSON текст, widget: polygon); ойрын цэгийг бүлэглэнэ (`cluster`, анхдагч true), `label` — tooltip (FK бол нэрээр), `color` — утга бүрт өнгө; цэг дээр дарвал бичлэг нээгдэнэ. Tile эх үүсвэр — ST1934 map.tiles",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (translateListScreen map)",
+          "additionalProperties": false,
+          "properties": {
+            "point": {
+              "type": "string",
+              "x-ref": "column",
+              "description": "«өргөрөг,уртраг» текст багана"
+            },
+            "polygon": {
+              "type": "string",
+              "x-ref": "column",
+              "description": "GeoJSON полигон текст багана"
+            },
+            "label": {
+              "type": "string",
+              "x-ref": "column",
+              "description": "Шошго багана"
+            },
+            "color": {
+              "type": "string",
+              "x-ref": "column",
+              "description": "Өнгөөр ялгах багана (утга бүрт тогтмол өнгө)"
+            },
+            "cluster": {
+              "type": "boolean",
+              "description": "Ойрын цэгийг бүлэглэх (анхдагч true)"
+            },
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              },
+              "description": "Харагдах үүргүүд"
+            }
+          }
+        },
         "roles": {
           "type": "array",
           "description": "Дэлгэцийг харах үүргүүд — цэс ба /api/screens/list (PLAN13 S2)",
@@ -622,14 +759,16 @@
         },
         "widget": {
           "type": "string",
-          "description": "Харагдах хэлбэр",
+          "description": "Харагдах хэлбэр (qr — текст баганын утгыг QR зураг (SVG) болгон харуулна: зөвхөн унших бол зураг л, засах бол input + QR; T3 G-T3-23; polygon — GeoJSON бүсийг газрын зураг дээр зурж засна (longtext), X0 `inside(<цэг>, <бүс>)` — T3 WP-F G-T3-14; gps — «Газрын зураг» дээр дарж/чирж цэг сонгоно — T3 WP-F G-T3-13)",
           "x-source": "cgi/src/meta/PropertyRegistry.inc:20",
           "enum": [
             "longtext",
             "badge",
             "boolean",
             "rating",
-            "gps"
+            "gps",
+            "qr",
+            "polygon"
           ]
         },
         "span": {
@@ -713,6 +852,12 @@
           "type": "boolean",
           "description": "Засах боломжтой",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1409"
+        },
+        "master": {
+          "type": "string",
+          "description": "Үүрлэсэн (ач хүү) grid: энэ дэлгэцийн өөр childGrid-ийн хүснэгт — тэр grid-д сонгосон мөрийн хүүхдүүдийг харуулна (table нь master руу FK-тай; T3 WP-D)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:master",
+          "x-ref": "table"
         },
         "columns": {
           "type": "array",
@@ -859,7 +1004,8 @@
             "history",
             "attachments",
             "documents",
-            "report"
+            "report",
+            "track"
           ]
         },
         "report": {
@@ -875,6 +1021,25 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "tracking": {
+          "type": "string",
+          "description": "block: track — context.yaml `tracking:` нэр (T3 WP-F): бичлэгийн хугацааны явсан зам (зам, эхлэл/төгсгөл, тоглуулах, нийт зай)"
+        },
+        "user": {
+          "type": "string",
+          "x-ref": "column",
+          "description": "block: track — хэрэглэгчийн код (ST0032) талбар; хоосон бол одоогийн хэрэглэгч"
+        },
+        "from": {
+          "type": "string",
+          "x-ref": "column",
+          "description": "block: track — эхлэх огноо/цаг талбар"
+        },
+        "to": {
+          "type": "string",
+          "x-ref": "column",
+          "description": "block: track — дуусах огноо/цаг талбар (огноо бол тэр өдрийг бүтнээр)"
         },
         "roles": {
           "type": "array",

@@ -34,6 +34,38 @@
       "description": "Хүснэгтүүд байгууллагын хүрээтэй эсэх (анхдагч true)",
       "x-source": "cgi/src/solution/Package.cpp:435"
     },
+    "permissions": {
+      "type": "object",
+      "description": "Эрхийн тохиргоо (T3 WP-A)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2248",
+      "properties": {
+        "userOverride": {
+          "type": "string",
+          "enum": ["merge", "replace"],
+          "description": "roles.csv «@<нэвтрэх нэр>» мөр: merge (анхдагч) — бүлгийн эрхтэй нэмэгдэнэ; replace — тухайн хүснэгт/объектод бүлгийн эрхийг бүрэн дарна (0 = хандахгүй)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2248"
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "description": "Нэвтрэлтийн тохиргоо (T3 WP-G) — суулгалтын түвшинд (ST1934) бичигдэнэ",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2901",
+      "additionalProperties": false,
+      "properties": {
+        "passwordHash": {
+          "type": "string",
+          "description": "Шинэ нууц үгийн hash алгоритм (spec): pbkdf2-sha256[,i=N] | pbkdf2-sha512[,i=N] | bcrypt[,cost=N] | argon2id[,m=KiB,t=N,p=N] | md5|sha1|sha256|sha512[,salt=none|prefix|suffix][,saltFrom=random|login|login-upper|login-lower][,saltLen=N][,enc=hex|b64][,case=lower|upper]. Хэрэглэгч бүрийн хадгалсан hash алгоритмаа өөрөө илэрхийлнэ — шалгалт хэрэглэгч бүрийнхээр",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2905",
+          "pattern": "^(pbkdf2-sha256|pbkdf2-sha512|bcrypt|argon2id|md5|sha1|sha256|sha512)(,[A-Za-z]+=[A-Za-z0-9-]+)*$"
+        },
+        "rehashOnLogin": {
+          "type": "boolean",
+          "description": "Амжилттай нэвтрэхэд hash анхдагч алгоритмаас өөр/сул бол анхдагч руу дахин хэшлэх (анхдагч true; хуучин алгоритмаа хадгалах бол false)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2910"
+        }
+      }
+    },
     "requires": {
       "type": "array",
       "description": "Шаардлагатай багц/схемийн багц («hrm >= 1.0» эсвэл {key})",
@@ -144,6 +176,15 @@
         "integrations": {
           "description": "Интеграц (webhook, endpoint)",
           "x-source": "cgi/src/solution/Package.cpp:500",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "api": {
+          "description": "REST API нөөц (api.yaml — T3 WP-E)",
+          "x-source": "cgi/src/solution/Package.cpp:592",
           "x-scalar-or-list": true,
           "type": "array",
           "items": {

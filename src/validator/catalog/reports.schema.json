@@ -52,8 +52,50 @@
           "description": "Холбох хүснэгтүүд: filter/groupBy/columns/measures-д «Хүснэгт.Багана». Эх хүснэгтээс FK гинжээр (≤ 3 алхам) — эцэг/лавлах; эх рүү FK-тай хүүхэд хүснэгтийн талбарыг measures (sum|min|max|count) эсвэл sum(Хүүхэд.Талбар)-аар нэгтгэнэ (мөр үржихгүй)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5213",
           "items": {
-            "type": "string",
-            "x-ref": "table"
+            "anyOf": [
+              {
+                "type": "string",
+                "x-ref": "table"
+              },
+              {
+                "type": "object",
+                "description": "FK-гүй тэнцүү join (T3 WP-D): эх хүснэгтийн багана/FK зам == join-ийн хүснэгтийн багана; «<as|Хүснэгт>.<Багана>»-аар лавлана",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:joinEq",
+                "required": [
+                  "table",
+                  "on"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "table": {
+                    "type": "string",
+                    "description": "Join-ийн хүснэгт",
+                    "x-ref": "table",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:joinEq"
+                  },
+                  "on": {
+                    "type": "string",
+                    "description": "\"<Багана|FK зам> == <as|Хүснэгт>.<Багана>\" — текстээр тэнцүү; байгууллагын хүрээтэй бол ижил байгууллагын мөр",
+                    "x-source": "cgi/src/report/Report.cpp:joins"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "inner",
+                      "left",
+                      "full"
+                    ],
+                    "description": "Join-ийн төрөл (анхдагч left); full — аль ч талд таараагүй мөр орно (coalesce(A, B)-аар нэгтгэнэ)",
+                    "x-source": "cgi/src/report/Report.cpp:joins"
+                  },
+                  "as": {
+                    "type": "string",
+                    "description": "Нэр (нэг хүснэгтийг хоёр удаа join хийхэд); анхдагч — хүснэгтийн нэр",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:joinEq"
+                  }
+                }
+              }
+            ]
           }
         },
         "filter": {
@@ -606,9 +648,9 @@
         },
         "channel": {
           "type": "string",
-          "description": "Суваг: bell (=inapp) | inapp | endpoint:<Нэр>[:/зам]",
-          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5274",
-          "pattern": "^(bell|inapp|endpoint:[A-Za-z_][A-Za-z0-9_]{0,99}(:/\\S*)?)$"
+          "description": "Суваг: bell (=inapp) | inapp | email (SMTP — T3 WP-G) | inapp+email | endpoint:<Нэр>[:/зам]",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:6098",
+          "pattern": "^(bell|inapp|email|inapp\\+email|endpoint:[A-Za-z_][A-Za-z0-9_]{0,99}(:/\\S*)?)$"
         }
       }
     },

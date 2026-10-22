@@ -52,6 +52,16 @@
                   "description": "Нууц үг (зөвхөн e2e)",
                   "x-source": "cgi/src/solution/SolutionDeploy.cpp:3898"
                 },
+                "passwordHash": {
+                  "type": "string",
+                  "description": "Шилжүүлсэн (хуучин системийн) нууц үгийн hash — яг хэвээр (T3 WP-G): pbkdf2_sha256$…, $2b$… (bcrypt), $argon2id$…, $digest$alg=md5,pos=suffix,enc=hex,case=upper$<давс b64>$<hex> (Тоду), {SSHA}…; password-оос давуу",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:2916"
+                },
+                "email": {
+                  "type": "string",
+                  "description": "Имэйл (мэдэгдэл, нууц үг сэргээх; анхдагч <login>@<багц>.local — хүргэгдэхгүй)",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp:2919"
+                },
                 "roles": {
                   "type": "array",
                   "items": {
