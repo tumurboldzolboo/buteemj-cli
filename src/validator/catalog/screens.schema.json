@@ -1379,7 +1379,7 @@
             },
             "compare": {
               "type": "string",
-              "description": "Өмнөх үетэй харьцуулах (prev, анхдагч) эсвэл none",
+              "description": "Өмнөх үетэй харьцуулах (prev, анхдагч) эсвэл none — зөвхөн `metric`-тэй kpi блокт (source-той kpi-д нөлөөгүй)",
               "x-source": "cgi/src/page/Page.cpp:kpi",
               "enum": [
                 "prev",
