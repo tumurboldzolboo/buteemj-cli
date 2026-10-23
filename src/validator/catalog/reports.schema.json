@@ -75,7 +75,7 @@
                   },
                   "on": {
                     "type": "string",
-                    "description": "\"<Багана|FK зам> == <as|Хүснэгт>.<Багана>\" — текстээр тэнцүү; байгууллагын хүрээтэй бол ижил байгууллагын мөр",
+                    "description": "\"<Багана|FK зам> == <as|Хүснэгт>.<Багана>\" — текстээр тэнцүү; аль ч талд `date(<Багана>)` — огноо-цагийг огноо болгож (T3b WP-O); байгууллагын хүрээтэй бол ижил байгууллагын мөр",
                     "x-source": "cgi/src/report/Report.cpp:joins"
                   },
                   "type": {
@@ -139,7 +139,7 @@
         },
         "sort": {
           "type": "array",
-          "description": "Эрэмбэ (баганын гарчгаар)",
+          "description": "Эрэмбэ (баганын гарчгаар; үлдэгдлийн тайланд by-ийн хэмжээс ба хэмжигдэхүүний нэрээр — T3b WP-O)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5210",
           "items": {
             "type": "object",
@@ -163,6 +163,26 @@
               }
             }
           }
+        },
+        "limit": {
+          "description": "Топ N (T3b WP-O): `sort`-ын дараах эхний N мөр (1..5000) эсвэл param.<тоон параметр> (утгагүй бол хязгааргүй); бүлэглэсэн, union, үлдэгдлийн тайланд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:limit",
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5000
+            },
+            {
+              "type": "string",
+              "pattern": "^param\\."
+            }
+          ]
+        },
+        "having": {
+          "type": "string",
+          "description": "Нэгтгэлийн дараах шүүлт (HAVING, T3b WP-O): «<баганын гарчиг> op <тоо|'текст'|param.<нэр>|огнооны токен>», `<гарчиг> == null`, and/or, хаалт — гарчиг нь groupBy/measures/columns-ийн (үлдэгдлийн тайланд: by-ийн хэмжээс, «Эхний үлдэгдэл», «Орлого», «Зарлага», «Эцсийн үлдэгдэл»; available: «Үлдэгдэл», «Нөөцлөгдсөн», «Боломжит»; openItems: «Огноо», «Хоног», «Дүн», «Үлдэгдэл»); утгагүй параметртэй нөхцөл хасагдана",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:having"
         },
         "chart": {
           "type": "string",
@@ -203,6 +223,54 @@
           "description": "Бүтэцтэй тайлан (мөр × багана, томъёо)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:2623",
           "$ref": "#/$defs/layout"
+        },
+        "refresh": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Тайлан нээхэд (on: open) эсвэл «Дахин бодох» товчоор (button) генератор ажиллуулна (T3b WP-Q, reports G-02 — Тодугийн CT_* кэш): POST /api/reports/<id>/refresh — тайланг нээх эрхтэй хэрэглэгч; генератор өөрийн эрхээр (`runAs: system` — бичих эрхгүй харагчид ч). Зэрэг нээлтийг (генератор × байгууллага × параметр) advisory lock-оор дараалуулж, `within` секундэд шинэ бол алгасна; товч (force) хугацаа үл харгалзана",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:refresh",
+          "properties": {
+            "generate": {
+              "type": "string",
+              "x-ref": "generator",
+              "description": "Генератор (generators.yaml, `on:`-гүй)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:refresh"
+            },
+            "on": {
+              "type": "string",
+              "enum": [
+                "open",
+                "button"
+              ],
+              "description": "open (анхдагч) — тайлан/хуудасны блок нээх, ажиллуулах бүрд + товч; button — зөвхөн товчоор",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:refresh"
+            },
+            "within": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 86400,
+              "description": "Ижил (байгууллага × параметр) ажиллалтыг энэ секундэд шинэ гэж алгасах (анхдагч 60; 0 — үргэлж)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:refresh"
+            },
+            "params": {
+              "type": "object",
+              "description": "{<генераторын параметр>: param.<тайлангийн параметр> | <тогтмол>} — анхдагч: ижил нэртэй параметрүүд",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:refresh"
+            }
+          }
+        },
+        "onOpen": {
+          "type": "string",
+          "pattern": "^\\s*generate\\(.+\\)\\s*$",
+          "description": "Товчлол: `generate(<Генератор>)` = `refresh: {generate: <Генератор>, on: open}` (T3b WP-Q)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:onOpen"
         }
       }
     },
@@ -296,7 +364,7 @@
           "properties": {
             "expr": {
               "type": "string",
-              "description": "Илэрхийлэлт багана: days(A - B), hours(A - B), year/quarter/month(A), sum/max/min/count/avg(<Хүүхэд>.<Талбар>), арифметик, today, calc <Тооцоо>.<гаралт>",
+              "description": "Илэрхийлэлт багана: days(A - B), hours(A - B), year/quarter/month(A), day(A) (огноо), week(A) (ISO долоо хоногийн даваа), period(A, param.<Үе>|'day|week|month|quarter|year') (үеийн эхний өдөр — бүлэглэх, T3b WP-O), sum/max/min/count/avg(<Хүүхэд>.<Талбар>), арифметик, today, calc <Тооцоо>.<гаралт>",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122"
             },
             "label": {
@@ -424,10 +492,32 @@
         },
         "where": {
           "type": "object",
-          "description": "Хэмжээс эсвэл «<лавлах хэмжээс>.<Багана>» → загвар ('a|b*' LIKE, '!…' эсрэг) эсвэл хэмжээс → param.<нэр> (параметрийн утгаар тэнцүү, хоосон бол шүүхгүй); kind: balance (rollup-гүй)",
+          "description": "Хэмжээс эсвэл «<лавлах хэмжээс>.<Багана>» → загвар ('a|b*' LIKE, '!…' эсрэг), хэмжээс → param.<нэр> (параметрийн утгаар тэнцүү, хоосон бол шүүхгүй), эсвэл {from, to} — хүрээ (хил орно; param.<нэр> | огнооны токен | утга; шинжийн төрлөөр — огноо-цаг огноон параметрээр огноогоор; утгагүй хил хасагдана — T3b WP-O); kind: balance (rollup-гүй)",
           "x-source": "cgi/src/report/Report.cpp:367",
           "additionalProperties": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Хүрээ (T3b WP-O, G-DS-06)",
+                "x-source": "cgi/src/report/Report.cpp:range",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "description": "Доод хил (≥): param.<нэр> | огнооны токен | утга",
+                    "x-source": "cgi/src/report/Report.cpp:range"
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "Дээд хил (≤): param.<нэр> | огнооны токен | утга",
+                    "x-source": "cgi/src/report/Report.cpp:range"
+                  }
+                }
+              }
+            ]
           }
         },
         "reserve": {

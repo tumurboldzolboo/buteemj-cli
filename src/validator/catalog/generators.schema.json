@@ -27,8 +27,14 @@
             "required": ["name"],
             "properties": {
               "name": { "type": "string", "description": "Параметрийн нэр", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
-              "type": { "type": "string", "enum": ["date", "datetime", "number", "text", "ref", "refs"], "description": "Төрөл (анхдагч text); datetime — огноо + цаг (UI огноо-цаг, токен now; T3b WP-L); ref — лавлах хүснэгтийн мөр (param.<Нэр>.<Багана> FK замаар), UI сонгогч; refs — сонгосон олон мөр (жагсаалтын сонголт; `lines.from`/`rows.from: param.<Нэр>`, T3 WP-D)", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
+              "type": { "type": "string", "enum": ["date", "datetime", "number", "text", "ref", "refs", "rows"], "description": "Төрөл (анхдагч text); rows — ledger/тайлангийн мөрөөс сонголт (from: {ledger, by} | {report}, key; `from: param.<Нэр>`, `x in (param.<Нэр>.<талбар>)`; утгыг сервер эх мөрөөс дахин гаргана — T3b WP-N); datetime — огноо + цаг (UI огноо-цаг, токен now; T3b WP-L); ref — лавлах хүснэгтийн мөр (param.<Нэр>.<Багана> FK замаар), UI сонгогч; refs — сонгосон олон мөр (жагсаалтын сонголт; `lines.from`/`rows.from: param.<Нэр>`, T3 WP-D)", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
               "table": { "type": "string", "x-ref": "table", "description": "type: ref, refs — лавлах/сонгох мөрийн хүснэгт (мөр бүр хэрэглэгчид харагдах ёстой)", "x-source": "cgi/src/solution/DeployCalc.inc:283" },
+              "from": {
+                "anyOf": [ { "$ref": "#/$defs/ledgerFrom" }, { "type": "object", "required": ["report"], "additionalProperties": false, "properties": { "report": { "type": "string", "description": "reports.yaml-ийн тайлангийн нэр (хэрэглэгчийн эрхээр ажиллана; баганын шошго = талбар)", "x-source": "cgi/src/solution/DeployCalc.inc:rowsParam" } } } ],
+                "description": "type: rows — сонгох мөрийн эх: {ledger, by, where, from, to, scope} (хэмжээс + хэмжигдэхүүн) эсвэл {report: <нэр>} (T3b WP-N, Тоду G-ST-02)",
+                "x-source": "cgi/src/solution/DeployCalc.inc:rowsParam"
+              },
+              "key": { "$ref": "#/$defs/strList", "description": "type: rows — сонгосон мөрийг таних талбарууд (ledger-д анхдагч by; тайланд заавал)", "x-source": "cgi/src/solution/DeployCalc.inc:rowsParam" },
               "required": { "type": "boolean", "description": "false — хоосон байж болно (анхдагч true)", "x-source": "cgi/src/state/Generator.cpp:62" },
               "default": { "type": ["string", "number", "boolean"], "description": "Анхдагч утга (today, last_month_end …); `user.<Нэр>` — ажиллуулсан хэрэглэгчийн code/name/role/org эсвэл сессийн контекст (context.yaml; T3b WP-L)", "x-source": "cgi/src/solution/DeployCalc.inc:defaultUser" }
             }
@@ -73,7 +79,20 @@
       "filter": { "type": "string", "x-expr": "x0", "description": "Эх мөрийн шүүлт", "x-source": "cgi/src/solution/DeployCalc.inc:251" },
       "order": { "$ref": "#/$defs/strList", "description": "Эрэмбэ (<илэрхийлэл>[ asc|desc])", "x-source": "cgi/src/solution/DeployCalc.inc:258" },
       "partition": { "$ref": "#/$defs/strList", "description": "Цонхны бүлэглэл (rownum() г.м.)", "x-source": "cgi/src/solution/DeployCalc.inc:259" },
-      "nonzero": { "$ref": "#/$defs/strList", "description": "Бүгд 0 бол мөрийг алгасах баганууд", "x-source": "cgi/src/solution/DeployCalc.inc:268" }
+      "nonzero": { "$ref": "#/$defs/strList", "description": "Бүгд 0 бол мөрийг алгасах баганууд", "x-source": "cgi/src/solution/DeployCalc.inc:268" },
+      "groupBy": { "$ref": "#/$defs/strList", "description": "T3b WP-N (N-08): эх мөрийг бүлэглэх илэрхийллүүд — бүлэг бүрт нэг мөр (rows: нэг баримт); map/order-д нэгтгэл sum(x), avg(x), min(x), max(x), count(), first(x, order: <илэрхийлэл> [desc]); нэгтгэлийн гадна нэр нь бүлэглэсэн багана (FK зам ч) эсвэл groupBy-ийн илэрхийлэлтэй ижил текст; partition-тэй хамт биш", "x-source": "cgi/src/solution/DeployCalc.inc:groupSql" }
+    },
+    "each": {
+      "type": "object",
+      "required": ["from"],
+      "additionalProperties": false,
+      "description": "T3b WP-N (N-10, Тоду core G-04): эх мөр бүрийг өөр хүснэгтийн тохирох мөр бүрээр үржүүлнэ (A × B — гишүүн × дэд ангилал); map/order-д нэр нь B, `row.<Багана>` (эсвэл as: нэр) — A; бүлгийн filter нь A-д",
+      "x-source": "cgi/src/solution/DeployCalc.inc:groupSql",
+      "properties": {
+        "from": { "type": "string", "x-ref": "table", "description": "B хүснэгт", "x-source": "cgi/src/solution/DeployCalc.inc:groupSql" },
+        "filter": { "type": "string", "x-expr": "x0", "description": "B мөрийн нөхцөл (row. — A мөр; under(id, row.Ангилал) г.м.)", "x-source": "cgi/src/solution/DeployCalc.inc:groupSql" },
+        "as": { "type": "string", "description": "A мөрийн нэмэлт нэр (row.-оос гадна)", "x-source": "cgi/src/solution/DeployCalc.inc:groupSql" }
+      }
     },
     "lineGroup": {
       "type": "object",
@@ -84,8 +103,15 @@
         "order": { "$ref": "#/$defs/groupCommon/order" },
         "partition": { "$ref": "#/$defs/groupCommon/partition" },
         "nonzero": { "$ref": "#/$defs/groupCommon/nonzero" },
-        "key": { "$ref": "#/$defs/strList", "description": "on + lines: баримт дахь мөрийн түлхүүр", "x-source": "cgi/src/solution/DeployCalc.inc:349" },
-        "map": { "$ref": "#/$defs/colMap", "description": "Мөрийн баганын утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:263" }
+        "groupBy": { "$ref": "#/$defs/groupCommon/groupBy" },
+        "each": { "$ref": "#/$defs/each" },
+        "key": { "$ref": "#/$defs/strList", "description": "on + lines: баримт дахь мөрийн түлхүүр; ач хүү мөрт — тухайн эцэг мөрд", "x-source": "cgi/src/solution/DeployCalc.inc:349" },
+        "map": { "$ref": "#/$defs/colMap", "description": "Мөрийн баганын утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:263" },
+        "lines": {
+          "anyOf": [ { "$ref": "#/$defs/lineGroup" }, { "type": "array", "items": { "$ref": "#/$defs/lineGroup" } } ],
+          "description": "T3b WP-N (N-10): ач хүү мөр — шинэ мөр бүрээр (бүлэг → суваг → үнэ); `line.<Багана|FK зам>` = энэ (эцэг) мөр, line.id — шинэ id; table нь эцэг мөр рүү FK-тай; гүн ≤ 3; буцаалтад бүгд устна",
+          "x-source": "cgi/src/solution/DeployCalc.inc:nestedLines"
+        }
       }
     },
     "deleteGroup": {
@@ -105,6 +131,8 @@
         "order": { "$ref": "#/$defs/groupCommon/order" },
         "partition": { "$ref": "#/$defs/groupCommon/partition" },
         "nonzero": { "$ref": "#/$defs/groupCommon/nonzero" },
+        "groupBy": { "$ref": "#/$defs/groupCommon/groupBy" },
+        "each": { "$ref": "#/$defs/each" },
         "map": { "$ref": "#/$defs/colMap", "description": "Target баганын утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:263" }
       }
     },
@@ -124,7 +152,7 @@
       "anyOf": [
         { "$ref": "#/$defs/ledgerFrom" },
         { "$ref": "#/$defs/explodeFrom" },
-        { "type": "string", "pattern": "^param\\.", "description": "Сонгосон мөрүүд: param.<refs параметр> (T3 WP-D)", "x-source": "cgi/src/solution/DeployCalc.inc:refsParams" },
+        { "type": "string", "pattern": "^param\\.", "description": "Сонгосон мөрүүд: param.<refs параметр> (T3 WP-D) эсвэл param.<rows параметр> — ledger/тайлангийн сонгосон мөр, талбар = хэмжээс/хэмжигдэхүүн/баганын шошго (T3b WP-N)", "x-source": "cgi/src/solution/DeployCalc.inc:refsParams" },
         { "type": "string", "x-ref": "table", "description": "Эх хүснэгт" }
       ],
       "description": "Мөрийн эх: хүснэгт | param.<refs параметр> | {ledger: …} | {explode: …}",

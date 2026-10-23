@@ -197,6 +197,54 @@
               }
             }
           },
+          "lookups": {
+            "type": "array",
+            "description": "T3b WP-R (N-18): нэмэлт хайлт — дарааллаар (runAs-ийн Харах эрх, мөрийн шүүлт, байгууллагаар; хамгийн сүүлийн мөр) → `<as>.<Багана>` (`<as>.id`) map/key/when/response ба дараагийн lookups-ийн where-д; required: false бол олдохгүй үед null",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "items": {
+              "type": "object",
+              "required": [
+                "as",
+                "table",
+                "where"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "as": {
+                  "type": "string",
+                  "description": "Нэр (X0 угтвар): латин identifier, давтагдахгүй; нөөц нэр биш (payload, query, path, headers, lookup, record, id, status, error, secret, user, endpoint, org, now, today, skipped)",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,39}$"
+                },
+                "table": {
+                  "type": "string",
+                  "description": "Хайх хүснэгт",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                  "x-ref": "table"
+                },
+                "where": {
+                  "type": "object",
+                  "description": "Багана → утга (X0 — payload.*, query.*, path.*, headers.*, lookup.*, өмнөх <as>.*; regexp(…) — тайлбараас регистр гэх мэт); бүгд тэнцүү (AND)",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+                  "additionalProperties": {
+                    "type": "string",
+                    "x-expr": "x0"
+                  }
+                },
+                "required": {
+                  "type": "boolean",
+                  "description": "Олдохгүй бол 404 (анхдагч true)",
+                  "x-source": "cgi/src/integration/Webhook.cpp"
+                }
+              }
+            }
+          },
+          "when": {
+            "type": "string",
+            "description": "T3b WP-R (N-18): нөхцөл (X0 — payload.*, query.*, lookup.*, <as>.*): худал бол мөр, давхардлын түлхүүр, процесс үүсгэхгүй — амжилттай (ok) хариу, `skipped` = true (жишээ нь payload.status == 'SUCCESS', дүн таарах дотоод шалгалт); үнэлэлтийн алдаа → 400",
+            "x-source": "cgi/src/integration/Webhook.cpp",
+            "x-expr": "x0"
+          },
           "key": {
             "type": "string",
             "description": "Давхардлын түлхүүр (X0, жишээ нь гүйлгээний дугаар): ижил түлхүүрээр дахин ирвэл мөр үүсгэхгүй, анхны хариуг буцаана (ST1808)",
@@ -262,7 +310,7 @@
           },
           "method": {
             "type": "string",
-            "description": "HTTP арга (анхдагч POST)",
+            "description": "HTTP арга (анхдагч POST); GET ба body зарлаагүй бол биегүй",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:3516",
             "enum": [
               "GET",
@@ -275,11 +323,23 @@
           },
           "path": {
             "type": "string",
-            "description": "Зам (анхдагч /)",
-            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3514"
+            "description": "Зам (анхдагч /); T3b WP-R: `${<X0>}` — бичлэгийн талбар нэрээр (FK зам, each-д хүү мөр ба parent.*), илгээх үед URL-encode (. ч) хийж орлуулна, жишээ нь /tin?regno=${Регистр}",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp"
+          },
+          "each": {
+            "type": "string",
+            "description": "T3b WP-R (N-18): хүү хүснэгт — хүү мөр БҮРТ нэг дуудлага (id-ийн дарааллаар): body/path/success/error-ийн нэр = хүү мөрийн багана, parent.<Багана> = толгой; response тэр хүү мөрт (children-гүй). sync — нэг transaction (нэг нь унавал бүгд буцна); outbox — хүү мөр бүрт нэг мөр",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "x-ref": "table"
+          },
+          "where": {
+            "type": "string",
+            "description": "each-ийн шүүлт (X0 — хүү мөрийн багана, parent.<Багана>); зөвхөн each-тэй",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp",
+            "x-expr": "x0"
           },
           "body": {
-            "description": "Илгээх бие: түлхүүр → X0 (Багана, FK.Багана, endpoint.<нууц бус тохиргоо>, org.registerNo, text(x, '0.00')), тогтмол, үүрлэсэн объект/массив; мөрийн массив {each: <Хүү хүснэгт>, where: <X0>, groupBy: [<Багана>], map: {...}} — map-д Багана = мөр, parent.<Багана> = толгой, group.rows = бүлгийн мөрүүд (group.rows.sum(Дүн)); бүлгийн доторх ижил хүснэгтийн each = тэр бүлгийн мөрүүд",
+            "description": "Илгээх бие: түлхүүр → X0 (Багана, FK.Багана, endpoint.<нууц бус тохиргоо>, org.registerNo, text(x, '0.00')), тогтмол, үүрлэсэн объект/массив; мөрийн массив {each: <Хүү хүснэгт>, where: <X0>, groupBy: [<Багана>], map: {...}} — map-д Багана = мөр, parent.<Багана> = толгой, group.rows = бүлгийн мөрүүд (group.rows.sum(Дүн)); бүлгийн доторх ижил хүснэгтийн each = тэр бүлгийн мөрүүд; T3b WP-R: X0 `hmac('<sha256|sha512|sha1>', endpoint.<нууц тохиргоо>, <мессеж>[, 'hex'|'base64'])`, `digest('<sha256|sha512|sha1|md5>', <мессеж>[, …])` — нууц зөвхөн hmac-ийн түлхүүрт (бусад газар endpoint.<нууц> = null), бүртгэл/хариунд гарахгүй",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp:3517",
             "additionalProperties": true
           },
@@ -363,7 +423,7 @@
           },
           "headers": {
             "type": "object",
-            "description": "Нэмэлт HTTP толгой: нэр → загвар ({{endpoint.<тохиргоо>}} — илгээх үед орлуулна, нууц тохиргоо ч; бичлэгийн талбар биш)",
+            "description": "Нэмэлт HTTP толгой: нэр → загвар ({{endpoint.<тохиргоо>}} — илгээх үед орлуулна, нууц тохиргоо ч); T3b WP-R: {{<X0>}} — илгээх үед body (илгээх бие яг тэр текст), method, path, endpoint.<нууц бус>; hmac('sha256', endpoint.<нууц>, body) — биеийн гарын үсэг (outbox-д worker тооцно); бичлэгийн талбар биш",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp",
             "additionalProperties": {
               "type": "string"
@@ -378,13 +438,13 @@
           },
           "success": {
             "type": "string",
-            "description": "Амжилтын нөхцөл X0 (response.*, status) — худал бол алдаа (sync: шилжилт буцна; outbox: дахин оролдоно). Анхдагч: HTTP 2xx",
+            "description": "Амжилтын нөхцөл X0 (response.*, status, бичлэгийн талбар НЭРЭЭР — FK зам ч; each-д хүү мөр, parent.*) — худал бол алдаа (sync: шилжилт буцна; outbox: дахин оролдоно — эх мөрийн талбар л). Анхдагч: HTTP 2xx",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp",
             "x-expr": "x0"
           },
           "error": {
             "type": "string",
-            "description": "Алдааны мессеж X0 (response.*, status) — хэрэглэгчид харуулна",
+            "description": "Алдааны мессеж X0 (response.*, status, бичлэгийн талбар НЭРЭЭР, жишээ нь concat(text(Нийт дүн), ' ', response.message)) — хэрэглэгчид харуулна",
             "x-source": "cgi/src/solution/SolutionDeploy.cpp",
             "x-expr": "x0"
           }

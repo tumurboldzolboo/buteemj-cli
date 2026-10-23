@@ -173,6 +173,12 @@
           "description": "Хувилбар форм (анхдагч биш)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:2690"
         },
+        "when": {
+          "type": "string",
+          "x-expr": "x0",
+          "description": "Хувилбар формыг бичлэгийн утгаар сонгох нөхцөл (T3b WP-Q, X0 — багана, FK зам ≤ 5, user.*): байгаа бичлэг нээхэд (GET /api/screens/form/<хүснэгт>?record=<id>) таарсан эхний хувилбар (үүрэг/дэлгэцийн эрхтэй); таараагүй/шинэ бичлэг — анхдагч. Зөвхөн `variant: true`; хэрэглэгчид харагдахгүй бичлэгээр үнэлэхгүй",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:when"
+        },
         "offline": {
           "description": "Офлайн: true (= create) эсвэл {create, update, cache}",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1553",
@@ -441,9 +447,14 @@
           "properties": {
             "image": {
               "type": "string",
-              "description": "Зургийн багана — file (эхний хавсралт) эсвэл picture (зам)",
+              "description": "Зургийн багана — file (эхний хавсралт) эсвэл picture (зам); `<Хүү хүснэгт>.<file багана>` — энэ хүснэгт рүү FK-тэй хүү хүснэгтийн эцэг бүрийн эхний мөрийн зураг (T3b WP-Q; GET /api/screens/gallery/<дэлгэц>?keys= — хүүгийн эрх, мөрийн шүүлтээр)",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:1927",
               "x-ref": "column"
+            },
+            "imageOrder": {
+              "type": "string",
+              "description": "`image: <Хүү>.<багана>` үед эхний мөрийг сонгох эрэмбийн хүүгийн багана (өсөхөөр; анхдагч — pk) — T3b WP-Q",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:imageOrder"
             },
             "title": {
               "type": "string",

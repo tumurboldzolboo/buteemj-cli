@@ -6,6 +6,8 @@
 //   env: {row: Scope|null, scopes: {нэр: Scope}, params: Set, paramRefs: Map(нэр → хүснэгт), ident(n) → bool, call(fn, raw) → {ok}|{err}|null, windows}
 //   Scope: {table} | {table, keyed: true} | {fields: Map(нэр → лавлах хүснэгт|'')}
 //   S.treeParent(t) → өөр рүүгээ FK баганын нэр | '' (T3b WP-K); env.scopes.user/transition — WP-L генераторын хүрээ (compile.mjs)
+//   T3b WP-N: env.group (groupBy-ийн map/order — sum/avg/min/max/count/first), env.groupKeys (Set: бүлэглэсэн баганын нэр | талбар),
+//   env.paramLists (Set: `x in (param.<Нэр>)`), env.totalTables (total(<илэрхийлэл>)); Scope {any: true} — талбар нь ажиллах үед (тайлангийн мөр)
 // T3b WP-L: regexp()/matches()-ийн каноник загвар — web/src/lib/regexp.ts (= cgi/src/expr/Regexp.h). Top-level await-гүй (studio CJS build):
 // платформын ESM оролт (scripts/bj.mjs, validate/test.mjs) `loadRegexpCanonical()`-ыг дуудна; CLI/studio-ийн хуулбарт байхгүй бол шалгахгүй.
 let reCanonical = null;
@@ -114,7 +116,14 @@ function parse(t) {
         const c = { k: 'call', s: tk.s, kids: [] };
         while (!err && !isOp(')')) {
           if (t[i].k === 'end') return fail(`функц «${tk.s}»: ) дутуу`);
-          if (t[i].k === 'id' && i + 1 < t.length && t[i + 1].k === 'op' && t[i + 1].s === ':') { const nm = t[i].s; i += 2; c.kids.push({ k: 'named', s: nm, kids: [expr()] }); }
+          if (t[i].k === 'id' && i + 1 < t.length && t[i + 1].k === 'op' && t[i + 1].s === ':') {
+            const nm = t[i].s; i += 2;
+            const nd = { k: 'named', s: nm, kids: [expr()] };
+            // T3b WP-N: `order: <илэрхийлэл> desc|asc` (олон үгтэй нэрт наалдсан ч)
+            if (nm === 'order' && !err && t[i].k === 'id' && (t[i].s === 'desc' || t[i].s === 'asc')) nd.kids.push({ k: 'id', s: t[i++].s, kids: [] });
+            else if (nm === 'order' && !err) for (const d of [' desc', ' asc']) if (nd.kids[0].k === 'id' && nd.kids[0].s.length > d.length && nd.kids[0].s.endsWith(d)) { nd.kids[0] = { ...nd.kids[0], s: nd.kids[0].s.slice(0, -d.length) }; nd.kids.push({ k: 'id', s: d.slice(1), kids: [] }); break; }
+            c.kids.push(nd);
+          }
           else c.kids.push(expr());
           if (isOp(',')) i++;
           else if (!isOp(')')) return fail(`функц «${tk.s}»: таслал эсвэл )`);
@@ -166,6 +175,7 @@ function compiler(S, root) {
     return { t: cur, c: col };
   };
   const inScope = (sc, name) => {
+    if (sc.any) return OK; // T3b WP-N: тайлангийн мөр (`type: rows` + report) — баганын шошгыг сервер шалгана
     if (sc.fields) {
       if (sc.fields.has(name)) return OK;
       const d = name.indexOf('.');
@@ -178,6 +188,49 @@ function compiler(S, root) {
     if (sc.keyed && name === 'id') return OK; // параметр (текст) — серверт баганын мэдээлэлгүй
     return pathIn(sc.table, name);
   };
+  let inAgg = false; // T3b WP-N: groupBy-ийн нэгтгэлийн аргумент дотор
+  // эх мөрийн нэрийн суурь (FK замын эхний сегмент) бүлэглэсэн түлхүүрт байгаа эсэх — DeployCalc/ExprSql groupedRef
+  const groupedRef = (env, name) => {
+    const sc = env.row, d = name.indexOf('.');
+    if (sc.any) return true;
+    if (sc.fields) return env.groupKeys.has(sc.fields.has(name) ? name : name.slice(0, d < 0 ? name.length : d));
+    if (!sc.table) return false;
+    let base = name === 'id' ? 'id' : S.column(sc.table, name) ? name : '';
+    if (!base && d >= 0) { const f = trimS(name.slice(0, d)); base = f === 'id' ? 'id' : S.column(sc.table, f) ? f : ''; }
+    return !!base && env.groupKeys.has(base);
+  };
+  const groupAgg = (n, env) => {
+    const f = n.s;
+    if (inAgg) return bad(`${f}(): нэгтгэл дотор нэгтгэл болохгүй`);
+    const pos = [];
+    let ob = null;
+    for (const k of n.kids) {
+      if (k.k === 'named' && k.s === 'order' && f === 'first') { ob = k; continue; }
+      if (k.k === 'named') return bad(f + (f === 'first' ? ': нэрлэсэн аргумент order:' : ': нэрлэсэн аргумент хүлээгээгүй'));
+      pos.push(k);
+    }
+    if ((f === 'count' && pos.length > 1) || (f !== 'count' && pos.length !== 1)) return bad(f === 'count' ? 'count([<утга>])' : `${f}(<утга>)`);
+    const inn = { ...env, windows: false };
+    inAgg = true;
+    let ok = !pos.length || node(pos[0], inn);
+    if (ok && ob) ok = node(ob.kids[0], inn);
+    inAgg = false;
+    return ok ? OK : null;
+  };
+  // total(<мөрийн багана|илэрхийлэл>) — өмнөх мөрийн хүснэгтүүдийн аль нэгэнд
+  const totalCall = (n, env) => {
+    if (n.kids.length !== 1 || n.kids[0].k === 'named') return bad('total(<мөрийн багана|илэрхийлэл>)');
+    let first = '';
+    for (const t of env.totalTables) {
+      const save = err;
+      err = '';
+      const v = node(n.kids[0], { ...env, row: { table: t }, windows: false, totalTables: [] });
+      if (v) { err = save; return OK; }
+      if (!first) first = err;
+      err = save;
+    }
+    return bad(n.kids[0].k === 'id' ? `total: өмнөх мөрүүдэд багана «${n.kids[0].s}» алга` : `total: ${first}`);
+  };
   const ident = (name, env) => {
     if (['today', 'now', 'true', 'false', 'null'].includes(name)) return OK;
     if (name.startsWith('param.')) {
@@ -187,13 +240,20 @@ function compiler(S, root) {
         if (p.length <= pn.length + 1 || !p.startsWith(pn) || p[pn.length] !== '.' || !env.params?.has(pn)) continue;
         return inScope({ table: rt, keyed: true }, p.slice(pn.length + 1)) || bad(`«${name}» олдсонгүй`);
       }
+      if (env.paramLists?.has(p)) return bad(`param.${p} — олон утгат параметр: \`x in (param.${p})\` эсвэл \`from: param.${p}\``);
       return bad(`параметр «${p}» тодорхойлогдоогүй`);
     }
     const d = name.indexOf('.');
     if (d >= 0 && env.scopes?.[name.slice(0, d)]) {
       return inScope(env.scopes[name.slice(0, d)], name.slice(d + 1)) || bad(`«${name}» олдсонгүй`);
     }
-    if (env.row) { const v = inScope(env.row, name); if (v) return v; }
+    if (env.row) {
+      const v = inScope(env.row, name);
+      if (v) {
+        if (env.groupKeys && !inAgg && !groupedRef(env, name)) return bad(`«${name}» нь groupBy-д алга — нэгтгэл (sum, max, first …) эсвэл groupBy-д нэмнэ үү`);
+        return v;
+      }
+    }
     if (env.ident && env.ident(name)) return OK;
     if (name === 'user' && env.scopes?.user && inScope(env.scopes.user, 'code')) return OK; // T3b WP-L: `user` = user.code (X0-тэй ижил)
     return bad(`нэр «${name}» олдсонгүй (багана, FK зам, param.<нэр> эсвэл тодорхойлсон нэр)`);
@@ -230,11 +290,11 @@ function compiler(S, root) {
     if (!n.kids.length || n.kids[0].k !== 'id') return bad(`${n.s}(<Хүснэгт>, …)`);
     const tbl = S.table(n.kids[0].s);
     if (!tbl) return bad(`${n.s}: хүснэгт «${n.kids[0].s}» алга`);
-    const inn = { ...env, row: { table: tbl }, scopes: { ...env.scopes, ...(env.row ? { row: env.row } : {}) }, windows: false };
+    const inn = { ...env, row: { table: tbl }, scopes: { ...env.scopes, ...(env.row ? { row: env.row } : {}) }, windows: false, group: false, groupKeys: null };
     const pos = [];
     for (const k of n.kids.slice(1)) {
       if (k.k === 'named' && k.s === 'as') { if (!bindAs(n.s, k, env, inn)) return null; continue; }
-      if (k.k === 'named' && k.s === 'order' && isFirst) { orderBy = k.kids[0]; continue; }
+      if (k.k === 'named' && k.s === 'order' && isFirst) { orderBy = k.kids[0]; continue; } // чиглэл (kids[1]) — задлагч
       if (k.k === 'named') {
         if (k.s !== 'date') return bad(n.s + (isFirst ? ': нэрлэсэн аргумент date:, order:, as:' : ': нэрлэсэн аргумент date:, as:'));
         if (k.kids[0].k === 'id' && k.kids[0].s === 'none') continue;
@@ -283,7 +343,7 @@ function compiler(S, root) {
     if (!tbl) return bad(`nearest: хүснэгт «${pos[0].s}» алга`);
     if (!S.opaque?.(tbl) && !S.column(tbl, pos[1].s)) return bad(`nearest: «${pos[1].s}» багана алга`);
     if (!node(pos[2], env)) return null;
-    const inn = { ...env, row: { table: tbl }, scopes: { ...env.scopes, ...(env.row ? { row: env.row } : {}) }, windows: false };
+    const inn = { ...env, row: { table: tbl }, scopes: { ...env.scopes, ...(env.row ? { row: env.row } : {}) }, windows: false, group: false, groupKeys: null };
     for (const k of n.kids) if (k.k === 'named' && k.s === 'as' && !bindAs('nearest', k, env, inn)) return null;
     if (pos.length === 4 && !node(pos[3], inn)) return null;
     if (within && !node(within, env)) return null;
@@ -348,6 +408,12 @@ function compiler(S, root) {
     if (f === 'balance' || f === 'change') return ledgerCall(n, env);
     if (['sumof', 'countof', 'avgof', 'minof', 'maxof', 'firstof'].includes(f)) return tableAgg(n, env);
     if (f === 'asof') return asofCall(n, env);
+    // T3b WP-N: бүлгийн нэгтгэл (groupBy-тэй map/order) ба total()
+    if (['sum', 'avg', 'count', 'first'].includes(f) || ((f === 'min' || f === 'max') && env.group && n.kids.length === 1)) {
+      if (!env.group) return bad(`${f}(): нэгтгэл зөвхөн groupBy-тэй бүлгийн map/order-д`);
+      return groupAgg(n, env);
+    }
+    if (f === 'total' && env.totalTables?.length) return totalCall(n, env);
     if (env.call) {
       const r = env.call(f, n.kids.map((k) => (k.k === 'id' || k.k === 'str' ? k.s : '')));
       if (r?.ok) return OK;
@@ -375,6 +441,12 @@ function compiler(S, root) {
       case 'call': return call(n, env);
       case 'named': return bad(`нэрлэсэн аргумент «${n.s}:» зөвхөн функцэд`);
       case 'neg': case 'not': return node(n.kids[0], env);
+      case 'in': { // T3b WP-N (G-DS-12): `x in (param.<refs>)` — олон утгат параметр
+        if (!node(n.kids[0], env)) return null;
+        const listed = (p) => env.paramLists?.has(p) || (p.includes('.') && env.paramLists?.has(`${p.slice(0, p.indexOf('.'))}.*`)); // тайлангийн мөр — талбарыг сервер
+        for (const k of n.kids.slice(1)) { if (k.k === 'id' && k.s.startsWith('param.') && listed(k.s.slice(6))) continue; if (!node(k, env)) return null; }
+        return OK;
+      }
       default: for (const k of n.kids) if (!node(k, env)) return null; return OK;
     }
   };

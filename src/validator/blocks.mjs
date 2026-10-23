@@ -230,6 +230,7 @@ export function screenErrors(S, screens, groups = null) {
 export function reportErrors(S, reports) {
   const out = [];
   for (const y of reports) {
+    if (isObj(y) && y.layout === undefined) out.push(...reportTailErrors(y));
     if (!isObj(y) || y.layout !== undefined || !str(y.source) || y.union !== undefined) continue;
     const tbl = S.table(str(y.source));
     if (!tbl || S.opaque(tbl)) continue;
@@ -273,6 +274,60 @@ export function reportErrors(S, reports) {
       return false;
     };
     for (const part of splitTopKw(str(y.filter), ' and ')) cond(part);
+  }
+  return out;
+}
+
+// T3b WP-O (N-15): `limit` (1..5000 | param.<нэр>), `having` (баганын гарчгаар), үлдэгдлийн тайлангийн `sort` — SolutionDeploy.cpp reports() (report_skip)
+function reportLabels(y) {
+  if (isObj(y.balance)) {
+    const b = y.balance, kind = b.kind === undefined ? 'balance' : str(b.kind);
+    const by = asList(b.by).map((d) => (typeof d === 'string' ? d : JSON.stringify(d)));
+    const head = kind === 'balance' && b.rollup === 'tree' ? [...by.slice(0, 1), 'Түвшин'] : by;
+    const fixed = kind === 'available' ? ['Үлдэгдэл', 'Нөөцлөгдсөн', 'Боломжит'] : kind === 'openItems' ? ['Огноо', 'Хоног', 'Дүн', 'Үлдэгдэл'] : ['Эхний үлдэгдэл', 'Орлого', 'Зарлага', 'Эцсийн үлдэгдэл'];
+    return [...head, ...fixed];
+  }
+  const out = [];
+  for (const g of asList(y.groupBy)) if (typeof g === 'string') out.push(g);
+  for (const m of asList(y.measures)) if (isObj(m)) out.push(m.fn === 'count' && m.field === undefined ? str(m.label ?? 'Тоо') : str(m.label) || str(m.field));
+  for (const c of asList(y.columns)) {
+    if (typeof c === 'string') out.push(c);
+    else if (isObj(c) && c.expr !== undefined) out.push(str(c.label ?? c.expr));
+    else if (isObj(c)) out.push(str(c.label) || str(c.field));
+  }
+  return out;
+}
+function reportTailErrors(y) {
+  const out = [], name = str(y.name), params = new Set(asList(y.params).map((p) => str(p?.name)));
+  const skip = (m) => out.push({ code: 'report_skip', message: `Тайлан «${name}»: ${m}` });
+  const needs = y.limit !== undefined || y.having !== undefined || isObj(y.balance);
+  if (!needs) return out;
+  const labels = reportLabels(y);
+  if (y.limit !== undefined && y.limit !== null) {
+    const l = y.limit, ls = typeof l === 'string' ? l.trim() : '';
+    const ok = (Number.isInteger(l) && l >= 1 && l <= 5000) || (ls.startsWith('param.') && params.has(ls.slice(6).trim()));
+    if (!ok) skip(`limit «${typeof l === 'string' ? ls : JSON.stringify(l)}» — 1..5000 бүхэл тоо эсвэл param.<параметр>`);
+  }
+  if (isObj(y.balance)) for (const srt of asList(y.sort)) if (isObj(srt) && !labels.includes(str(srt.field))) skip(`sort «${str(srt.field)}» багана алга`);
+  if (typeof y.having === 'string' && y.having.trim()) {
+    let bad = '';
+    const cond = (part0) => {
+      const part = stripOuterParens(part0);
+      for (const kw of [' or ', ' and ']) { const ps = splitTopKw(part, kw); if (ps.length > 1) return ps.every(cond); }
+      let m = /^(.+?)\s*(==|!=|=)\s*null$/u.exec(part);
+      const isNull = !!m;
+      if (!m) m = /^(.+?)\s*(==|!=|>=|<=|>|<|=)\s*(.+)$/u.exec(part);
+      if (!m) { bad = part; return false; }
+      const lbl = m[1].trim();
+      if (!labels.includes(lbl)) { bad = `${part}» — багана «${lbl}» алга (баганын гарчгаар бичнэ`; return false; }
+      if (isNull) return true;
+      const rhs = m[3].trim();
+      if (rhs.startsWith('param.')) { if (params.has(rhs.slice(6).trim())) return true; bad = `${part}» — параметр «${rhs.slice(6)}» алга`; return false; }
+      if (dateToken(rhs) || /^(['"]).*\1$/.test(rhs)) return true;
+      if (rhs.includes('(')) { bad = `${part}» — функц дэмжигдэхгүй`; return false; }
+      return true;
+    };
+    if (!cond(y.having)) skip(`having «${bad}» орчуулагдсангүй`);
   }
   return out;
 }

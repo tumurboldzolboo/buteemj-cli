@@ -74,12 +74,13 @@ export function ledgerInfos(docs) {
 const scopeT = (table) => ({ table });
 
 // ---- generators.yaml
-function mapCheck(S, tbl, m, env) {
+function mapCheck(S, tbl, m, env, exact = null) {
   if (!isObj(m)) return '';
   for (const k of Object.keys(m).sort()) { // nlohmann::json объект түлхүүрээр эрэмбэлэгдсэн — эхний алдаа серверийнхтэй ижил
     const v = m[k];
     if (!S.column(tbl, k)) return `«${tbl}»-д багана «${k}» алга`;
     if (typeof v === 'number' || typeof v === 'boolean' || v === null) continue;
+    if (typeof v === 'string' && exact?.has(v.trim())) continue; // T3b WP-N: groupBy-ийн илэрхийлэлтэй ижил текст
     if (typeof v === 'string') { const e = compileExpr(v, S, env); if (e) return `«${k}»: ${e}`; continue; }
     return `«${k}»: утга буруу`;
   }
@@ -101,7 +102,8 @@ function orderCheck(S, v, env, allowDir) {
 function sourceCheck(S, from, env, refsParams) {
   if (typeof from === 'string' && from.trim().startsWith('param.')) {
     const pn = from.trim().slice(6).trim();
-    if (!refsParams.has(pn)) return { err: `from: param.${pn} — \`type: refs\` параметр алга` };
+    if (refsParams.rows?.has(pn)) return { env: { ...env, row: refsParams.rows.get(pn) } }; // T3b WP-N (N-12): ledger/тайлангийн сонгосон мөр
+    if (!refsParams.has(pn)) return { err: `from: param.${pn} — \`type: refs\` эсвэл \`type: rows\` параметр алга` };
     return { env: { ...env, row: scopeT(refsParams.get(pn)) } };
   }
   if (typeof from === 'string') {
@@ -168,10 +170,44 @@ function groupCheck(S, g, outTable, mapKey, update, env0, refsParams) {
     const e = compileExpr(f, S, env);
     if (e) return `filter: ${e}`;
   }
+  // T3b WP-N (N-10): each — A × B (map-д нэр нь B, row. — A); бүлгийн filter нь A-д
+  if (g?.each !== undefined) {
+    const ea = g.each;
+    if (single || update || !isObj(ea) || typeof ea.from !== 'string') return 'each: {from: <Хүснэгт>, filter, as} — from-той бүлэгт';
+    const bt = S.table(str(ea.from));
+    if (!bt) return `each.from: хүснэгт «${str(ea.from)}» алга`;
+    const outer = env.row;
+    env = { ...env, row: scopeT(bt), scopes: { ...env.scopes, row: outer } };
+    if (ea.as !== undefined) {
+      const an = str(ea.as);
+      if (!an || an.includes('.') || ['row', 'doc', 'param', 'user', 'transition', 'src', 'item', 'root', 'line', 'old', 'trigger', 'id'].includes(an)) return 'each.as: нөөц бус, цэггүй нэр';
+      env.scopes[an] = outer;
+    }
+    if (str(ea.filter)) { const e = compileExpr(str(ea.filter), S, env); if (e) return `each.filter: ${e}`; }
+  }
+  // T3b WP-N (N-08): groupBy — нэгтгэлийн гадна нэр нь бүлэглэсэн энгийн багана эсвэл groupBy-ийн илэрхийлэлтэй ижил текст
+  const grouped = g?.groupBy !== undefined;
+  let exact = null;
+  if (grouped) {
+    if (single || update) return 'groupBy нь from-той lines/rows бүлэгт';
+    if (g.partition !== undefined) return 'groupBy нь partition (цонхны функц)-тэй хамт биш';
+    const gl = listOf(g.groupBy);
+    if (!gl.length) return 'groupBy: [<илэрхийлэл>] (хоосон биш)';
+    const keys = new Set();
+    exact = new Set();
+    for (const e0 of gl) {
+      const e = e0.trim();
+      const x = compileExpr(e, S, env);
+      if (x) return `groupBy: ${x}`;
+      exact.add(e);
+      if (env.row?.fields ? env.row.fields.has(e) : e === 'id' || (env.row?.table && S.column(env.row.table, e) === e)) keys.add(e);
+    }
+    env = { ...env, group: true, groupKeys: keys };
+  }
   if (g?.order !== undefined) { const e = orderCheck(S, g.order, env, true); if (e) return `order: ${e}`; }
   if (g?.partition !== undefined) { const e = orderCheck(S, g.partition, env, false); if (e) return `partition: ${e}`; }
-  env = { ...env, windows: !single };
-  const m = mapCheck(S, outTable, g?.[mapKey] ?? {}, env);
+  env = { ...env, windows: !single && !grouped };
+  const m = mapCheck(S, outTable, g?.[mapKey] ?? {}, env, exact);
   if (m) return m;
   for (const n of listOf(g?.nonzero)) if (!S.column(outTable, n)) return `nonzero: багана «${n}» алга`;
   return '';
@@ -186,13 +222,16 @@ export function userScopes(S, contexts = new Map()) {
 }
 
 export function generatorError(S, g, tables, contexts = new Map()) {
-  const base = { params: new Set(), paramRefs: new Map(), scopes: userScopes(S, contexts), row: null };
+  const base = { params: new Set(), paramRefs: new Map(), paramLists: new Set(), scopes: userScopes(S, contexts), row: null };
   const refsParams = new Map();
+  refsParams.rows = new Map(); // T3b WP-N (N-12): `type: rows` → мөрийн хүрээ
+  const rowsDefs = [];
   for (const p of asList(g.params)) {
     const pn = str(p?.name), ty = p?.type === undefined ? 'text' : p.type;
-    if (!pn || !['date', 'datetime', 'number', 'text', 'ref', 'refs'].includes(ty)) return 'params: {name, type: date|datetime|number|text|ref|refs, table (ref, refs), default}';
+    if (!pn || !['date', 'datetime', 'number', 'text', 'ref', 'refs', 'rows'].includes(ty)) return 'params: {name, type: date|datetime|number|text|ref|refs|rows, table (ref, refs), from (rows), default}';
     if (pn.includes('.')) return `params: нэр «${pn}»-д цэг байж болохгүй`;
-    if (ty === 'refs') { const rt = S.table(str(p.table)); if (!rt) return `params «${pn}»: type refs — table «${str(p.table)}» алга`; refsParams.set(pn, rt); continue; }
+    if (ty === 'refs') { const rt = S.table(str(p.table)); if (!rt) return `params «${pn}»: type refs — table «${str(p.table)}» алга`; refsParams.set(pn, rt); base.paramLists.add(pn); continue; }
+    if (ty === 'rows') { rowsDefs.push(p); continue; }
     base.params.add(pn);
     if (ty === 'ref') { const rt = S.table(str(p.table)); if (!rt) return `params «${pn}»: type ref — table (лавлах хүснэгт) «${str(p.table)}» алга`; base.paramRefs.set(pn, rt); }
     // T3b WP-L (N-04): `default: user.<Нэр>` — code | name | role | org эсвэл context.yaml-ийн контекст
@@ -201,6 +240,7 @@ export function generatorError(S, g, tables, contexts = new Map()) {
       if (!['code', 'name', 'role', 'org'].includes(un) && !contexts.has(un)) return `params «${pn}»: default user.${un} — code | name | role | org эсвэл context.yaml-ийн контекст`;
     }
   }
+  for (const p of rowsDefs) { const e = rowsParamCheck(S, p, base, refsParams); if (e) return e; }
   let on = '';
   if (g.on !== undefined) {
     on = S.table(str(g.on));
@@ -261,12 +301,8 @@ export function generatorError(S, g, tables, contexts = new Map()) {
   }
   if (g.keyExcept !== undefined && !key.length) return 'keyExcept нь key-тэй хамт';
   const lineTables = [];
-  const withTotal = (env) => ({ ...env, call: (fn, raw) => {
-    if (fn !== 'total') return env.call ? env.call(fn, raw) : null;
-    if (raw.length !== 1 || !raw[0]) return { err: 'total(<мөрийн багана>)' };
-    if (lineTables.some((t) => S.column(t, raw[0]))) return { ok: true };
-    return { err: `total: өмнөх мөрүүдэд багана «${raw[0]}» алга` };
-  } });
+  // total(<мөрийн багана|илэрхийлэл>) — өмнөх мөрийн бүлгүүдийн хүснэгтээр (T3b WP-N: exprsql totalCall)
+  const withTotal = (env) => ({ ...env, totalTables: lineTables.length ? [...lineTables] : [''] });
   if (g.rows !== undefined) {
     const e = groupCheck(S, g.rows, target, 'map', false, base, refsParams);
     if (e) return `rows: ${e}`;
@@ -284,6 +320,7 @@ export function generatorError(S, g, tables, contexts = new Map()) {
       if (!tables.get(lt)?.columns.some((c) => c.ref?.table === target && S.fk(lt, c.name) === target) && !S.opaque(lt)) return `lines: «${lt}»-д «${target}» рүү FK алга`;
       const e = groupCheck(S, gr, lt, 'map', false, withTotal(base), refsParams);
       if (e) return `lines[${i}]: ${e}`;
+      if (gr?.lines !== undefined) { const ne = nestedCheck(S, gr.lines, lt, base, refsParams, tables, 1); if (ne) return `lines[${i}].${ne}`; }
       if (intoDoc) for (const k of listOf(gr?.key !== undefined ? gr.key : g.key)) if (!S.column(lt, k)) return `lines.key: «${k}» багана алга`;
       lineTables.push(lt);
       prev = lt;
@@ -314,6 +351,51 @@ export function generatorError(S, g, tables, contexts = new Map()) {
   }
   const hasGroups = g.rows === undefined && target && asList(g.lines).length > 0;
   if (!hasGroups && g.rows === undefined && !asList(g.update).length && !asList(g.delete).length && !(target && g.header !== undefined) && g.require === undefined) return 'lines, rows, update, delete, target + header эсвэл require алга';
+  return '';
+}
+
+// T3b WP-N (N-10): ач хүү мөр — DeployCalc.inc nestedLines (line.<Багана> = эцэг мөр)
+function nestedCheck(S, lines0, parent, base, refsParams, tables, depth) {
+  if (depth > 3) return 'lines: үүрлэлт 3 шатаас гүн байж болохгүй';
+  const lines = isObj(lines0) ? [lines0] : lines0;
+  if (!Array.isArray(lines) || !lines.length) return 'lines: [{table, from, map, …}] (ач хүү мөр)';
+  for (let i = 0; i < lines.length; i++) {
+    const gr = lines[i], at = `lines[${i}]`;
+    if (!isObj(gr)) return `${at}: {table, from, map}`;
+    const lt = S.table(str(gr.table));
+    if (!lt) return `${at}: table (ач хүү мөрийн хүснэгт) «${str(gr.table)}» алга`;
+    if (!tables.get(lt)?.columns.some((c) => c.ref?.table === parent && S.fk(lt, c.name) === parent) && !S.opaque(lt)) return `${at}: «${lt}»-д «${parent}» рүү FK алга`;
+    const env = { ...base, scopes: { ...base.scopes, line: { table: parent } } };
+    const e = groupCheck(S, gr, lt, 'map', false, env, refsParams);
+    if (e) return `${at}: ${e}`;
+    for (const k of listOf(gr.key)) if (!S.column(lt, k)) return `${at}.key: «${k}» багана алга`;
+    if (gr.lines !== undefined) { const ne = nestedCheck(S, gr.lines, lt, base, refsParams, tables, depth + 1); if (ne) return `${at}.${ne}`; }
+  }
+  return '';
+}
+
+// T3b WP-N (N-12): `type: rows` — DeployCalc.inc rowsParam (тайлангийн баганыг сервер л мэднэ — энд {any})
+function rowsParamCheck(S, p, base, refsParams) {
+  const pn = str(p.name), from = p.from;
+  let row = null, names = null, key = [];
+  if (isObj(from) && from.ledger !== undefined && from.explode === undefined) {
+    const ln = str(from.ledger), li = S.ledger(ln);
+    if (!li) return `params «${pn}»: from: ledger «${ln}» алга`;
+    const r = sourceCheck(S, from, base, refsParams);
+    if (r.err) return `params «${pn}»: ${r.err}`;
+    row = r.env.row;
+    const by = from.by !== undefined ? listOf(from.by) : li.dims;
+    names = new Set([...by, ...li.measures]);
+    key = by;
+  } else if (isObj(from) && from.report !== undefined) {
+    row = { any: true };
+  } else return `params «${pn}»: type rows — from: {ledger: …, by} эсвэл {report: <нэр>}`;
+  if (p.key !== undefined) key = listOf(p.key);
+  if (!key.length) return `params «${pn}»: type rows — key: [<талбар>] (сонгосон мөрийг таних)`;
+  if (names) for (const k of key) if (!names.has(k)) return `params «${pn}»: key «${k}» талбар алга`;
+  refsParams.rows.set(pn, row);
+  for (const n of names ?? []) base.paramLists.add(`${pn}.${n}`);
+  if (!names) base.paramLists.add(`${pn}.*`);
   return '';
 }
 

@@ -8,6 +8,10 @@ import { ledgerErrors, screenErrors, reportErrors, endpointErrors } from './bloc
 import { parseRoles } from './parsers.mjs';
 import { x0Parses } from './x0.mjs';
 
+// T3b WP-R (G-19): нэрээр бичсэн X0 (зайтай кирилл нэр — «Нийт дүн») — нэрийг (литералаас гадна) нэг identifier-ээр орлуулаад задлана
+// (SolutionDeploy.cpp namedParses-тай ижил; нэрийн шийдвэрлэлт серверт apply-д)
+const namedParses = (e) => x0Parses(String(e ?? '').replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^\x00-\x7F](?:[^\x00-\x7F]|[0-9_])*(?:[ -](?=[^\x00-\x7F])(?:[^\x00-\x7F]|[0-9_])*)*/g, (m) => (m[0] === '"' || m[0] === "'" ? m : 'bjName')));
+
 const asList = (v) => (v === null || v === undefined ? [] : Array.isArray(v) ? v : [v]);
 const str = (v) => (typeof v === 'string' ? v.trim() : v === null || v === undefined ? '' : String(v));
 
@@ -20,6 +24,55 @@ export function documentName(html, file) {
   return name || file.split('/').pop();
 }
 // SolutionDeploy.cpp htmlMeta
+// T3b WP-P (N-16): <meta name="param" …> (cgi/src/doc/DocTemplate.cpp parseParams-тэй ижил дүрэм, мессеж)
+const unescAttr = (v) => v.replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+export function docParams(html) {
+  const out = [], seen = new Set();
+  let error = '';
+  const fail = (m) => { if (!error) error = m; };
+  for (const [tag] of html.matchAll(/<meta\s+(?:[^>]*\s)?name\s*=\s*["']param["'][^>]*>/gi)) {
+    const a = {};
+    for (const m of tag.matchAll(/([A-Za-z][A-Za-z0-9-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) a[m[1].toLowerCase()] = unescAttr(m[2] ?? m[3] ?? '');
+    const d = { name: (a.content ?? '').trim(), type: a['data-type'] !== undefined ? a['data-type'].trim() : 'text', table: (a['data-table'] ?? '').trim(), def: (a['data-default'] ?? '').trim() };
+    if (!d.name || /[.{}"]/.test(d.name)) { fail('<meta name="param">: content (нэр) хоосон эсвэл . { } " агуулсан'); continue; }
+    if (!['text', 'number', 'date', 'boolean', 'ref'].includes(d.type)) { fail(`Параметр «${d.name}»: data-type «${d.type}» — text | number | date | boolean | ref`); continue; }
+    if (d.type === 'ref' && !d.table) { fail(`Параметр «${d.name}»: ref төрөлд data-table заавал`); continue; }
+    if (seen.has(d.name)) { fail(`Параметр «${d.name}» давхардсан`); continue; }
+    seen.add(d.name);
+    out.push(d);
+  }
+  return { params: out, error };
+}
+// T3b WP-P: SolutionDeploy.cpp docTemplateIssues-тэй ижил — {{#each}}/{{#if}}/{{else}} тэнцвэр (document_if), {{barcode}} төрөл (document_barcode), параметр (document_param)
+export function docTemplateIssues(htmlIn) {
+  const out = [];
+  const html = htmlIn.replace(/<!--[\s\S]*?-->/g, '');
+  const st = [];
+  let bad = false;
+  for (const m of html.matchAll(/\{\{([\s\S]*?)\}\}/g)) {
+    if (bad) break;
+    const t = m[1].trim();
+    if (t.startsWith('#each')) st.push(['each', false]);
+    else if (t.startsWith('#if')) {
+      if (!t.slice(3).trim()) { out.push(['document_if', '{{#if}} — нөхцөл хоосон']); bad = true; }
+      st.push(['if', false]);
+    } else if (t === 'else') {
+      const top = st[st.length - 1];
+      if (!top || top[0] !== 'if' || top[1]) { out.push(['document_if', '{{else}} — {{#if}}-ийн гадна эсвэл давхар']); bad = true; } else top[1] = true;
+    } else if (t === '/each' || t === '/if') {
+      const top = st[st.length - 1];
+      if (!top || top[0] !== t.slice(1)) { out.push(['document_if', `{{${t}}} — тохирох {{#${t.slice(1)}}} алга`]); bad = true; } else st.pop();
+    } else if (/^barcode( |$)/.test(t)) {
+      const b = /^barcode\s+("[^"]*"|\S+)(?:\s+"([^"]*)")?\s*$/.exec(t);
+      if (!b) out.push(['document_barcode', `{{${t}}} — {{barcode <Талбар> "ean13|ean8|upca|code128"}}`]);
+      else if (b[2] !== undefined && !['ean13', 'ean8', 'upca', 'code128'].includes(b[2])) out.push(['document_barcode', `{{${t}}} — төрөл «${b[2]}»: ean13 | ean8 | upca | code128`]);
+    }
+  }
+  if (!bad && st.length) { const k = st[st.length - 1][0]; out.push(['document_if', `{{#${k}}}-ийн {{/${k}}} алга`]); }
+  const { error } = docParams(html);
+  if (error) out.push(['document_param', error]);
+  return out;
+}
 export const htmlMeta = (html, name) => (new RegExp(`<meta\\s+name="${name}"\\s+content="([^"]*)"\\s*/?>`, 'i').exec(html)?.[1] ?? '').trim();
 
 // Серверийн lookup_like-ийн үгс (Тодугийн гаднын кейс: лавлах холбоос текст/тоо баганаар алдагдсан)
@@ -115,6 +168,8 @@ export function crossCheck(ctx) {
     const paper = htmlMeta(html, 'paper'), orient = htmlMeta(html, 'orientation');
     if (paper && !PAPERS.has(paper)) add('ref', 'error', 'document_paper', f, 1, `Баримт «${name}»: paper «${paper}» — A3 | A4 | A5 | A6 | Letter | 80mm | 58mm`);
     if (orient && orient !== 'portrait' && orient !== 'landscape') add('ref', 'error', 'document_paper', f, 1, `Баримт «${name}»: orientation «${orient}» — portrait | landscape`);
+    for (const [code, msg] of docTemplateIssues(html)) add('ref', 'error', code, f, 1, `Баримт «${name}»: ${msg}`); // T3b WP-P
+    if (strict) for (const pd of docParams(html).params) if (pd.type === 'ref' && !hasTable(pd.table)) add('ref', 'error', 'document_param', f, 1, `Баримт «${name}»: параметр «${pd.name}» data-table «${pd.table}» ERD-д алга`);
   }
 
   // ---- states.mmd generate(<нэр>) → generators.yaml (transition_generator; суусан генератор сервер дээр л мэдэгдэнэ — requires-гүй үед)
@@ -161,8 +216,9 @@ export function crossCheck(ctx) {
       else if (!['inner', 'left', 'full'].includes(ty)) why = 'type: inner | left | full';
       else {
         const eq = on.indexOf('==');
-        const rhs = eq < 0 ? '' : on.slice(eq + 2).trim();
-        if (eq < 0 || !on.slice(0, eq).trim() || !rhs.startsWith(`${as}.`) || !rhs.slice(as.length + 1).trim()) why = `on: "<эх хүснэгтийн багана> == ${as}.<Багана>" хэлбэртэй байх ёстой (${on})`;
+        const undate = (x) => { const dm = /^date\(\s*(.+?)\s*\)$/.exec(x); return dm ? dm[1].trim() : x; }; // T3b WP-O: date(<Багана>) аль ч талд
+        const rhs = eq < 0 ? '' : undate(on.slice(eq + 2).trim());
+        if (eq < 0 || !undate(on.slice(0, eq).trim()) || !rhs.startsWith(`${as}.`) || !rhs.slice(as.length + 1).trim()) why = `on: "<эх хүснэгтийн багана> == ${as}.<Багана>" хэлбэртэй байх ёстой (${on})`;
       }
       if (why) add('ref', 'error', 'report_join', repFile, 0, `reports.yaml: «${name}» join «${jt}»: ${why}`);
     }
@@ -218,8 +274,36 @@ export function crossCheck(ctx) {
   const igFile = fileOf('integrations', 'integrations.yaml');
   for (const o of asList(yaml[igFile]?.outbound)) {
     if (!o || typeof o !== 'object') continue;
-    for (const k of ['success', 'error']) if (typeof o[k] === 'string' && !x0Parses(o[k]))
+    for (const k of ['success', 'error']) if (typeof o[k] === 'string' && !namedParses(o[k]))
       add('ref', 'error', 'outbound_expr', igFile, 0, `integrations.yaml outbound «${str(o.name)}»: ${k} «${o[k]}» — X0 задлагдсангүй`);
+    // T3b WP-R (N-18): each/where (хүү мөр бүрт дуудлага), path-ийн ${X0}, headers-ийн {{X0}} — серверийн outbound_each/outbound_expr
+    const pre = `integrations.yaml outbound «${str(o.name)}»: `;
+    if (o.each !== undefined && (typeof o.each !== 'string' || (strict && !hasTable(o.each)))) add('ref', 'error', 'outbound_each', igFile, 0, `${pre}each «${str(o.each)}» — хүснэгт ERD-д алга`);
+    if (o.where !== undefined && o.each === undefined) add('ref', 'error', 'outbound_each', igFile, 0, `${pre}where нь зөвхөн each-тэй`);
+    if (o.where !== undefined && (typeof o.where !== 'string' || !namedParses(o.where))) add('ref', 'error', 'outbound_expr', igFile, 0, `${pre}where — X0 задлагдсангүй`);
+    if (o.each !== undefined && o.response && typeof o.response === 'object' && o.response.children !== undefined) add('ref', 'error', 'outbound_each', igFile, 0, `${pre}response.children нь each-тэй хамт хэрэглэгдэхгүй`);
+    for (const m of String(o.path ?? '').matchAll(/\$\{([^}]*)(\}|$)/g)) if (!m[2] || !namedParses(m[1])) { add('ref', 'error', 'outbound_expr', igFile, 0, `${pre}path «${o.path}» — \${…} X0 задлагдсангүй`); break; }
+    for (const [hn, hv] of Object.entries(o.headers && typeof o.headers === 'object' ? o.headers : {}))
+      for (const m of String(hv ?? '').matchAll(/\{\{([\s\S]*?)(\}\}|$)/g)) if (!m[2] || !x0Parses(m[1])) { add('ref', 'error', 'outbound_expr', igFile, 0, `${pre}headers «${hn}» — {{…}} X0 задлагдсангүй`); break; }
+  }
+  // ---- T3b WP-R (N-18): inbound `when`, `lookups` — серверийн hook_when/hook_lookup
+  const reservedAs = new Set(['payload', 'query', 'path', 'headers', 'now', 'today', 'lookup', 'record', 'id', 'status', 'error', 'secret', 'user', 'endpoint', 'org', 'skipped']);
+  for (const h of asList(yaml[igFile]?.inbound)) {
+    if (!h || typeof h !== 'object') continue;
+    const pre = `integrations.yaml «${str(h.name)}»: `;
+    if (h.when !== undefined && (typeof h.when !== 'string' || !x0Parses(h.when))) add('ref', 'error', 'hook_when', igFile, 0, `${pre}when X0 задлагдсангүй`);
+    if (h.lookups === undefined) continue;
+    if (!Array.isArray(h.lookups)) { add('ref', 'error', 'hook_lookup', igFile, 0, `${pre}lookups: [{as, table, where, required}] массив`); continue; }
+    const seen = new Set();
+    for (const l of h.lookups) {
+      const as = str(l?.as);
+      if (!/^[A-Za-z_][A-Za-z0-9_]{0,39}$/.test(as) || reservedAs.has(as) || seen.has(as)) add('ref', 'error', 'hook_lookup', igFile, 0, `${pre}lookups: \`as\` «${as}» — давтагдаагүй латин нэр (payload, query, lookup, record … нөөц нэр биш)`);
+      seen.add(as);
+      const w = l?.where;
+      if (!l || typeof l !== 'object' || (strict && !hasTable(str(l.table))) || !str(l.table) || !w || typeof w !== 'object' || Array.isArray(w) || !Object.keys(w).length)
+        add('ref', 'error', 'hook_lookup', igFile, 0, `${pre}lookups «${as}»: {as, table: <ERD-ийн хүснэгт>, where: {<Багана>: <X0>}} заавал`);
+      else for (const [k, v] of Object.entries(w)) if (typeof v !== 'string' || !x0Parses(v)) add('ref', 'error', 'hook_lookup', igFile, 0, `${pre}lookups «${as}».where «${k}» X0 задлагдсангүй`);
+    }
   }
 
   // ---- T3 WP-D G-T3-19: generators.yaml `type: refs` (table заавал) ба `from: param.<Нэр>` (refs параметр) — серверийн generator_param
@@ -228,6 +312,7 @@ export function crossCheck(ctx) {
     const name = str(g.name);
     const refs = new Set();
     for (const p of asList(g.params)) {
+      if (p && typeof p === 'object' && p.type === 'rows') refs.add(str(p.name)); // T3b WP-N (N-12): ledger/тайлангийн мөр
       if (!p || typeof p !== 'object' || p.type !== 'refs') continue;
       const pt = str(p.table);
       if (!pt || (strict && !hasTable(pt))) add('ref', 'error', 'generator_param', genFile, 0, `generators.yaml «${name}»: параметр «${str(p.name)}»: type refs — table (сонгох мөрийн хүснэгт) ${pt ? `«${pt}» ERD-д алга` : 'заавал'}`);
@@ -235,7 +320,7 @@ export function crossCheck(ctx) {
     }
     for (const gr of [...asList(g.lines), ...(g.rows ? [g.rows] : [])]) {
       const from = typeof gr?.from === 'string' ? gr.from.trim() : '';
-      if (from.startsWith('param.') && !refs.has(from.slice(6).trim())) add('ref', 'error', 'generator_param', genFile, 0, `generators.yaml «${name}»: from: ${from} — \`type: refs\` параметр алга (сонгосон мөрүүдийн эх)`);
+      if (from.startsWith('param.') && !refs.has(from.slice(6).trim())) add('ref', 'error', 'generator_param', genFile, 0, `generators.yaml «${name}»: from: ${from} — \`type: refs\` эсвэл \`type: rows\` параметр алга (сонгосон мөрүүдийн эх)`);
     }
   }
 
