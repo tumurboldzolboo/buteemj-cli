@@ -114,11 +114,12 @@
         },
         "columns": {
           "type": "array",
-          "description": "Баганууд",
+          "description": "Баганууд; системийн аудит багана: Бүртгэсэн хүн, Бүртгэсэн огноо, Зассан хүн, Зассан огноо (= createdBy, createdAt, updatedBy, updatedAt; зөвхөн унших, хэрэглэгч — байгууллагын гишүүний нэрээр; P-WP-10); ≤ 400 (P-WP-24)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122",
           "items": {
             "$ref": "#/$defs/column"
-          }
+          },
+          "maxItems": 400
         },
         "groupBy": {
           "type": "array",
@@ -154,15 +155,20 @@
               },
               "dir": {
                 "type": "string",
-                "description": "Чиглэл",
-                "x-source": "cgi/src/solution/SolutionDeploy.cpp:5210",
-                "enum": [
-                  "asc",
-                  "desc"
-                ]
+                "description": "Чиглэл: asc | desc эсвэл param.<Нэр> (P-WP-26 — параметрийн утга asc/desc, утгагүй бол asc)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)",
+                "pattern": "^(asc|desc|param\\..+)$",
+                "x-pattern-hint": "asc | desc | param.<Нэр>"
               }
             }
           }
+        },
+        "maxRows": {
+          "description": "P-WP-30 (L-LIMIT): буцаах мөрийн хязгаар (анхдагч 1000, 1..5000; тогтмол бүхэл тоо) — Топ N (`limit`) биш: хязгаарт хүрвэл хариунд `truncated: true`, UI анхааруулга харуулна; энгийн, union, үлдэгдлийн, layout тайланд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:maxRows",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000
         },
         "limit": {
           "description": "Топ N (T3b WP-O): `sort`-ын дараах эхний N мөр (1..5000) эсвэл param.<тоон параметр> (утгагүй бол хязгааргүй); бүлэглэсэн, union, үлдэгдлийн тайланд",
@@ -184,15 +190,103 @@
           "description": "Нэгтгэлийн дараах шүүлт (HAVING, T3b WP-O): «<баганын гарчиг> op <тоо|'текст'|param.<нэр>|огнооны токен>», `<гарчиг> == null`, and/or, хаалт — гарчиг нь groupBy/measures/columns-ийн (үлдэгдлийн тайланд: by-ийн хэмжээс, «Эхний үлдэгдэл», «Орлого», «Зарлага», «Эцсийн үлдэгдэл»; available: «Үлдэгдэл», «Нөөцлөгдсөн», «Боломжит»; openItems: «Огноо», «Хоног», «Дүн», «Үлдэгдэл»); утгагүй параметртэй нөхцөл хасагдана",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:having"
         },
+        "highlight": {
+          "type": "array",
+          "description": "Нөхцөлт өнгө (P-WP-4): «<баганын гарчиг> op <тоо|'текст'|param.<нэр>|огнооны токен>», `== null`, and/or, хаалт (having-тэй ижил) — мөр (columns-гүй) эсвэл нүд; сервер мөр бүрт үнэлнэ",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+          "items": {
+            "type": "object",
+            "required": [
+              "when",
+              "style"
+            ],
+            "properties": {
+              "when": {
+                "type": "string",
+                "description": "Нөхцөл баганын гарчгаар",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+              },
+              "style": {
+                "type": "string",
+                "description": "Загвар (theme-ийн өнгө)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                "enum": [
+                  "success",
+                  "info",
+                  "warning",
+                  "danger",
+                  "muted",
+                  "strong"
+                ]
+              },
+              "columns": {
+                "type": "array",
+                "description": "Зөвхөн эдгээр баганын (гарчгаар) нүд",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
         "chart": {
-          "type": "string",
-          "description": "График (x = эхний багана, y = нэгтгэлүүд); дүрслэл web/src/components/ReportView/ReportView.tsx",
+          "description": "График (x = эхний багана, y = нэгтгэлүүд) эсвэл P-WP-26: {type, x, y, only} — олон цуваа (y олон — бүлэглэсэн багана/олон шугам; pie/donut-д y олон бол хэмжүүр бүр нэг хэсэг — нэг мөр олон хэмжүүр), donut, зөвхөн график (only — хүснэгтгүй); дүрслэл web/src/components/ReportView/ReportChart.tsx",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5255",
-          "enum": [
-            "bar",
-            "line",
-            "pie",
-            "none"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "bar",
+                "line",
+                "pie",
+                "donut",
+                "none"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Төрөл (анхдагч bar)",
+                  "enum": [
+                    "bar",
+                    "line",
+                    "pie",
+                    "donut",
+                    "none"
+                  ],
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
+                },
+                "x": {
+                  "type": "string",
+                  "description": "Ангиллын (x) багана — гарчгаар (анхдагч эхний багана)",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
+                },
+                "y": {
+                  "description": "Утгын багана(ууд) — гарчгаар; олон бол олон цуваа",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)",
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 12
+                    }
+                  ]
+                },
+                "only": {
+                  "type": "boolean",
+                  "description": "Зөвхөн график — хүснэгтийг харуулахгүй (тайлан ба хуудасны блок)",
+                  "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
+                }
+              }
+            }
           ]
         },
         "roles": {
@@ -227,7 +321,7 @@
         "refresh": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Тайлан нээхэд (on: open) эсвэл «Дахин бодох» товчоор (button) генератор ажиллуулна (T3b WP-Q, reports G-02 — Тодугийн CT_* кэш): POST /api/reports/<id>/refresh — тайланг нээх эрхтэй хэрэглэгч; генератор өөрийн эрхээр (`runAs: system` — бичих эрхгүй харагчид ч). Зэрэг нээлтийг (генератор × байгууллага × параметр) advisory lock-оор дараалуулж, `within` секундэд шинэ бол алгасна; товч (force) хугацаа үл харгалзана",
+          "description": "Тайлан нээхэд (on: open) эсвэл «Дахин бодох» товчоор (button) генератор ажиллуулна (T3b WP-Q — тооцоолсон кэш хүснэгт): POST /api/reports/<id>/refresh — тайланг нээх эрхтэй хэрэглэгч; генератор өөрийн эрхээр (`runAs: system` — бичих эрхгүй харагчид ч). Зэрэг нээлтийг (генератор × байгууллага × параметр) advisory lock-оор дараалуулж, `within` секундэд шинэ бол алгасна; товч (force) хугацаа үл харгалзана",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:refresh",
           "properties": {
             "generate": {
@@ -305,7 +399,7 @@
             "number",
             "boolean"
           ],
-          "description": "Анхдагч утга эсвэл огнооны токен (README «Огнооны токен»: today, yesterday, now, month_start, month_end, next_month_start, year_start, year_end — `<токен>(today)` хэлбэрээр ч; ± N хоног)",
+          "description": "Анхдагч утга эсвэл огнооны токен (README «Огнооны токен»: today, yesterday, now, month_start, month_end, next_month_start, year_start, year_end — `<токен>(today)` хэлбэрээр ч; ± N хоног), эсвэл `user.<Нэр>` (P-WP-50: ажиллуулсан хэрэглэгчийн утга — code | orgCode | name | role | context.yaml-ийн контекст, жишээ нь `user.Ээлж`; утгагүй бол анхдагчгүй)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5105"
         },
         "table": {
@@ -313,6 +407,11 @@
           "description": "type: ref үед — сонгох бичлэгийн хүснэгт",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5289",
           "x-ref": "table"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "P-WP-37 (R-PREQ): заавал — утгагүй (анхдагчгүй) бол тайлан ажиллахгүй (400 «'<параметр>' параметрийг бөглөнө үү»; шүүлтэд ашиглагдаагүй ч); UI-д «*», утгагүй үед автоматаар ажиллуулахгүй. `default`-тай бол анхдагч хэрэглэгдэнэ",
+          "x-source": "cgi/src/report/Report.cpp:run (dsl::missingRequiredParam)"
         }
       }
     },
@@ -343,11 +442,16 @@
           "type": "string",
           "description": "Баганын гарчиг",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5121"
+        },
+        "when": {
+          "type": "string",
+          "description": "P-WP-26 (G-DYN): параметрийн нөхцөл — худал бол багана тайлангаас хасагдана (ажиллах үед; бүлэглэх/хэмжүүрийн баганын олонлогийг параметрээр сонгох). Зөвхөн `param.<Нэр> == 'утга'`, `!= null`, `in ('a', 'b')`, and/or/not/хаалт (огнооны токенгүй). Индексээр заасан sort/having/highlight/footer/chart дагаж хасагдана; union-ы ижил байрлалын багана ч",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
         }
       }
     },
     "column": {
-      "description": "Багана: талбарын зам («Хэлтэс.Нэр»), {expr, label} эсвэл {field, label, agg}",
+      "description": "Багана: талбарын зам («Хэлтэс.Нэр»), {expr, label, …} эсвэл {field, label, agg, …}; харагдац (P-WP-4): format, align, width, hidden, group, footer",
       "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122",
       "anyOf": [
         {
@@ -364,13 +468,73 @@
           "properties": {
             "expr": {
               "type": "string",
-              "description": "Илэрхийлэлт багана: days(A - B), hours(A - B), year/quarter/month(A), day(A) (огноо), week(A) (ISO долоо хоногийн даваа), period(A, param.<Үе>|'day|week|month|quarter|year') (үеийн эхний өдөр — бүлэглэх, T3b WP-O), sum/max/min/count/avg(<Хүүхэд>.<Талбар>), арифметик, today, calc <Тооцоо>.<гаралт>",
+              "description": "Илэрхийлэлт багана: days(A - B), hours(A - B), year/quarter/month(A), day(A) (огноо), week(A) (ISO долоо хоногийн даваа), period(A, param.<Үе>|'day|week|month|quarter|year') (үеийн эхний өдөр — бүлэглэх, T3b WP-O), sum/max/min/count/avg(<Хүүхэд>.<Талбар>), арифметик, today, calc <Тооцоо>.<гаралт>. P-WP-24: share(<x>[, <бүлэг>…]) — нийтэд (эсвэл бүлэг доторх) эзлэх хувь (0–100; нэгтгэсэн тайланд share(sum(X))); нэгтгэлийн арифметик sum|min|max|avg|count(<мөрийн илэрхийлэл>) хоорондоо (sum(A) * 100 / sum(B), iff(sum(B) == 0, 0, …)). P-WP-26: `param.<Нэр>` — параметрийн утга (`sum(Дүн) / param.Нарийвчлал`, `iff(param.Утга == 'q', sum(Тоо), sum(Дүн))`); running(<x>, <эрэмбэ>[, <бүлэг>…]) — өссөн дүн (эрэмбээр хуримтлагдсан нийлбэр; `running(sum(Дүн), period(Огноо, param.Үе))`)",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:5122"
             },
             "label": {
               "type": "string",
               "description": "Гарчиг",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:5126"
+            },
+            "width": {
+              "description": "Баганын өргөн: px (20–2000) эсвэл «120px», «10%», «8rem», «12ch»",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 2000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,4}(px|%|rem|em|ch)$"
+                }
+              ]
+            },
+            "align": {
+              "type": "string",
+              "description": "Зэрэгцүүлэлт (анхдагч: тоо — right, бусад — left)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск — тоо `[угтвар]#,##0[.00][%][дагавар]` (`# ##0` — зайгаар бүлэглэнэ, `0` — бүлэглэхгүй, `%` — ×100), огноо `YYYY YY MM DD HH mm ss` ба ` .:/-T` (жишээ «#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). Зөвхөн харуулна — утга, эрэмбэ, экспорт өөрчлөгдөхгүй",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+              "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+            },
+            "hidden": {
+              "type": "boolean",
+              "description": "Анхдагчаар нуугдсан — хэрэглэгч «Баганууд» сонгогчоор гаргана (эрх биш: нуух талбарыг roles.csv-д)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "group": {
+              "type": "string",
+              "description": "Толгойн бүлэг — зэрэгцээ ижил бүлэгтэй баганууд нэг гарчгийн доор",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "footer": {
+              "type": "string",
+              "description": "Хөлийн нэгтгэл — сервер бүх шүүсэн мөрөөр (хуудаслалтгүй, мөрийн эрхтэй) тооцно; total (P-WP-24) — нэгтгэсэн тайланд баганын илэрхийллийг бүх мөрөөр (харьцаа sum(A) * 100 / sum(B), share — нийтийн мөрөөр; бусад тайланд sum)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "sum",
+                "avg",
+                "count",
+                "min",
+                "max",
+                "total"
+              ]
+            },
+            "when": {
+              "type": "string",
+              "description": "P-WP-26 (G-DYN): параметрийн нөхцөл — худал бол багана тайлангаас хасагдана (ажиллах үед; бүлэглэх/хэмжүүрийн баганын олонлогийг параметрээр сонгох). Зөвхөн `param.<Нэр> == 'утга'`, `!= null`, `in ('a', 'b')`, and/or/not/хаалт (огнооны токенгүй). Индексээр заасан sort/having/highlight/footer/chart дагаж хасагдана; union-ы ижил байрлалын багана ч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
             }
           }
         },
@@ -404,6 +568,66 @@
                 "count_distinct"
               ],
               "x-enum-source": "cgi/src/report/Report.cpp:31"
+            },
+            "width": {
+              "description": "Баганын өргөн: px (20–2000) эсвэл «120px», «10%», «8rem», «12ch»",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 2000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,4}(px|%|rem|em|ch)$"
+                }
+              ]
+            },
+            "align": {
+              "type": "string",
+              "description": "Зэрэгцүүлэлт (анхдагч: тоо — right, бусад — left)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск — тоо `[угтвар]#,##0[.00][%][дагавар]` (`# ##0` — зайгаар бүлэглэнэ, `0` — бүлэглэхгүй, `%` — ×100), огноо `YYYY YY MM DD HH mm ss` ба ` .:/-T` (жишээ «#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). Зөвхөн харуулна — утга, эрэмбэ, экспорт өөрчлөгдөхгүй",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+              "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+            },
+            "hidden": {
+              "type": "boolean",
+              "description": "Анхдагчаар нуугдсан — хэрэглэгч «Баганууд» сонгогчоор гаргана (эрх биш: нуух талбарыг roles.csv-д)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "group": {
+              "type": "string",
+              "description": "Толгойн бүлэг — зэрэгцээ ижил бүлэгтэй баганууд нэг гарчгийн доор",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "footer": {
+              "type": "string",
+              "description": "Хөлийн нэгтгэл — сервер бүх шүүсэн мөрөөр (хуудаслалтгүй, мөрийн эрхтэй) тооцно; total (P-WP-24) — нэгтгэсэн тайланд баганын илэрхийллийг бүх мөрөөр (харьцаа sum(A) * 100 / sum(B), share — нийтийн мөрөөр; бусад тайланд sum)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "sum",
+                "avg",
+                "count",
+                "min",
+                "max",
+                "total"
+              ]
+            },
+            "when": {
+              "type": "string",
+              "description": "P-WP-26 (G-DYN): параметрийн нөхцөл — худал бол багана тайлангаас хасагдана (ажиллах үед; бүлэглэх/хэмжүүрийн баганын олонлогийг параметрээр сонгох). Зөвхөн `param.<Нэр> == 'утга'`, `!= null`, `in ('a', 'b')`, and/or/not/хаалт (огнооны токенгүй). Индексээр заасан sort/having/highlight/footer/chart дагаж хасагдана; union-ы ижил байрлалын багана ч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
             }
           }
         }
@@ -451,6 +675,57 @@
           "description": "Шүүлт",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5145",
           "x-expr": "filter"
+        },
+        "join": {
+          "type": "array",
+          "description": "Эх бүрийн join (үндсэнтэй ижил дүрэм; T4)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:5213",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "x-ref": "table"
+              },
+              {
+                "type": "object",
+                "description": "FK-гүй тэнцүү join (T3 WP-D): эх хүснэгтийн багана/FK зам == join-ийн хүснэгтийн багана; «<as|Хүснэгт>.<Багана>»-аар лавлана",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:joinEq",
+                "required": [
+                  "table",
+                  "on"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "table": {
+                    "type": "string",
+                    "description": "Join-ийн хүснэгт",
+                    "x-ref": "table",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:joinEq"
+                  },
+                  "on": {
+                    "type": "string",
+                    "description": "\"<Багана|FK зам> == <as|Хүснэгт>.<Багана>\" — текстээр тэнцүү; аль ч талд `date(<Багана>)` — огноо-цагийг огноо болгож (T3b WP-O); байгууллагын хүрээтэй бол ижил байгууллагын мөр",
+                    "x-source": "cgi/src/report/Report.cpp:joins"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "inner",
+                      "left",
+                      "full"
+                    ],
+                    "description": "Join-ийн төрөл (анхдагч left); full — аль ч талд таараагүй мөр орно (coalesce(A, B)-аар нэгтгэнэ)",
+                    "x-source": "cgi/src/report/Report.cpp:joins"
+                  },
+                  "as": {
+                    "type": "string",
+                    "description": "Нэр (нэг хүснэгтийг хоёр удаа join хийхэд); анхдагч — хүснэгтийн нэр",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:joinEq"
+                  }
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -492,7 +767,7 @@
         },
         "where": {
           "type": "object",
-          "description": "Хэмжээс эсвэл «<лавлах хэмжээс>.<Багана>» → загвар ('a|b*' LIKE, '!…' эсрэг), хэмжээс → param.<нэр> (параметрийн утгаар тэнцүү, хоосон бол шүүхгүй), эсвэл {from, to} — хүрээ (хил орно; param.<нэр> | огнооны токен | утга; шинжийн төрлөөр — огноо-цаг огноон параметрээр огноогоор; утгагүй хил хасагдана — T3b WP-O); kind: balance (rollup-гүй)",
+          "description": "Хэмжээс эсвэл «<лавлах хэмжээс>.<Багана>» → загвар ('a|b*' LIKE, '!…' эсрэг), хэмжээс → param.<нэр> (параметрийн утгаар тэнцүү, хоосон бол шүүхгүй), `under(param.<нэр>)` | `under('<id>')` | `under(<түлхүүр>, param.<нэр>)` — модны хэмжээс (эсвэл лавлах мөрийн модны FK шинж — <хэмжээс>.<FK>) сонгосон зангилааны дэд модонд (утгагүй параметр → шүүлтгүй; модны хүснэгтийн мөрийн шүүлтээр — P-WP-30 R-BALTREE), эсвэл {from, to} — хүрээ (хил орно; param.<нэр> | огнооны токен | утга; шинжийн төрлөөр — огноо-цаг огноон параметрээр огноогоор; утгагүй хил хасагдана — T3b WP-O); kind: balance (rollup-гүй)",
           "x-source": "cgi/src/report/Report.cpp:367",
           "additionalProperties": {
             "anyOf": [
@@ -560,6 +835,16 @@
           "type": "string",
           "description": "Огнооны байдлаар (openItems) (огнооны токен — README «Огнооны токен»: today | yesterday | month_start | month_end | next_month_start | year_start | year_end, `(today)` хэлбэрээр ч, ± N; param.<нэр> эсвэл YYYY-MM-DD)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:5222"
+        },
+        "columns": {
+          "type": "array",
+          "description": "Гаралтын багана ба дараалал (P-WP-24; заавал биш — орхивол by + Эхний үлдэгдэл, Орлого, Зарлага, Эцсийн үлдэгдэл). kind: balance, rollup-гүй. sort/having/highlight — эдгээрийн гарчгаар",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/balanceColumn"
+          },
+          "maxItems": 400
         }
       }
     },
@@ -570,6 +855,13 @@
         "rows"
       ],
       "properties": {
+        "limit": {
+          "description": "P-WP-30 (L-LIMIT): мөрийн хязгаар (анхдагч 1000, 1..5000; тайлангийн `maxRows`-тэй ижил) — давбал хариунд `truncated: true`, UI анхааруулна",
+          "x-source": "cgi/src/solution/DeployCalc.inc:layoutReports",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000
+        },
         "scope": {
           "type": "string",
           "description": "Байгууллагын хүрээ (анхдагч subtree)",
@@ -584,6 +876,11 @@
           "type": "boolean",
           "description": "Тэг мөрийг нуух (анхдагч)",
           "x-source": "cgi/src/solution/DeployCalc.inc:579"
+        },
+        "label": {
+          "type": "string",
+          "description": "Мөрийн шошгоны (эхний) баганын толгой (P-WP-24; анхдагч хоосон)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:compileLayout"
         },
         "columns": {
           "type": "array",
@@ -633,6 +930,15 @@
           "description": "Баганын хугацааны төгсгөл (илэрхийлэл)",
           "x-source": "cgi/src/solution/DeployCalc.inc:509",
           "x-expr": "calc"
+        },
+        "type": {
+          "type": "string",
+          "description": "Баганын төрөл (P-WP-24): number (анхдагч) | text — мөрийн текст багана: утга нь мөрийн values.<нэр> (each-д мөрийн илэрхийлэл, жишээ нь FK зам), formula/from/to-гүй, hideZero-д тооцохгүй",
+          "x-source": "cgi/src/solution/DeployCalc.inc:compileLayout",
+          "enum": [
+            "number",
+            "text"
+          ]
         }
       }
     },
@@ -657,7 +963,7 @@
         },
         "values": {
           "type": "object",
-          "description": "Баганын нэр → нүдний илэрхийлэл",
+          "description": "Баганын нэр → нүдний илэрхийлэл (текст баганад — текст илэрхийлэл)",
           "x-source": "cgi/src/solution/DeployCalc.inc:540",
           "additionalProperties": {
             "type": "string",
@@ -943,6 +1249,265 @@
               "x-expr": "x0"
             }
           }
+        }
+      ]
+    },
+    "balanceColumn": {
+      "description": "Үлдэгдлийн тайлангийн гаралтын багана (P-WP-24): by-ийн хэмжээс, хэмжээсийн шинж «<хэмжээс>.<Багана>[.<FK багана>…]» (лавлах хүснэгтээс FK замаар, ≤ 3 алхам), хэмжигдэхүүн (Эхний үлдэгдэл, Орлого, Зарлага, Эцсийн үлдэгдэл), {field, label, …} эсвэл {expr, label, …} — эдгээрийн арифметик, iff, share(…); харагдац format, align, width, hidden, group, footer; {measure: <өөр хэмжигдэхүүн>, value, label} — ижил ledger-ийн 2-р (≤ 8) хэмжигдэхүүний утга (P-WP-37 R-BAL2M)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns",
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "by-ийн хэмжээс, хэмжээсийн шинж (FK зам) эсвэл хэмжигдэхүүн",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns"
+        },
+        {
+          "type": "object",
+          "required": [
+            "expr"
+          ],
+          "properties": {
+            "expr": {
+              "type": "string",
+              "description": "Тооцоолсон багана: хэмжигдэхүүн/шинжийн арифметик (Эцсийн үлдэгдэл * <хэмжээс>.<Багана>), iff, харьцуулалт, share(<x>) — нийтэд эзлэх хувь",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns"
+            },
+            "label": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns"
+            },
+            "width": {
+              "description": "Баганын өргөн: px (20–2000) эсвэл «120px», «10%», «8rem», «12ch»",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 2000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,4}(px|%|rem|em|ch)$"
+                }
+              ]
+            },
+            "align": {
+              "type": "string",
+              "description": "Зэрэгцүүлэлт (анхдагч: тоо — right, бусад — left)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск — тоо `[угтвар]#,##0[.00][%][дагавар]` (`# ##0` — зайгаар бүлэглэнэ, `0` — бүлэглэхгүй, `%` — ×100), огноо `YYYY YY MM DD HH mm ss` ба ` .:/-T` (жишээ «#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). Зөвхөн харуулна — утга, эрэмбэ, экспорт өөрчлөгдөхгүй",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+              "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+            },
+            "hidden": {
+              "type": "boolean",
+              "description": "Анхдагчаар нуугдсан — хэрэглэгч «Баганууд» сонгогчоор гаргана (эрх биш: нуух талбарыг roles.csv-д)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "group": {
+              "type": "string",
+              "description": "Толгойн бүлэг — зэрэгцээ ижил бүлэгтэй баганууд нэг гарчгийн доор",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "footer": {
+              "type": "string",
+              "description": "Хөлийн нэгтгэл — сервер бүх шүүсэн мөрөөр (хуудаслалтгүй, мөрийн эрхтэй) тооцно; total (P-WP-24) — нэгтгэсэн тайланд баганын илэрхийллийг бүх мөрөөр (харьцаа sum(A) * 100 / sum(B), share — нийтийн мөрөөр; бусад тайланд sum)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "sum",
+                "avg",
+                "count",
+                "min",
+                "max",
+                "total"
+              ]
+            },
+            "when": {
+              "type": "string",
+              "description": "P-WP-26 (G-DYN): параметрийн нөхцөл — худал бол багана тайлангаас хасагдана (ажиллах үед; бүлэглэх/хэмжүүрийн баганын олонлогийг параметрээр сонгох). Зөвхөн `param.<Нэр> == 'утга'`, `!= null`, `in ('a', 'b')`, and/or/not/хаалт (огнооны токенгүй). Индексээр заасан sort/having/highlight/footer/chart дагаж хасагдана; union-ы ижил байрлалын багана ч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "field"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "description": "by-ийн хэмжээс, хэмжээсийн шинж (FK зам) эсвэл хэмжигдэхүүн",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns"
+            },
+            "label": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns"
+            },
+            "width": {
+              "description": "Баганын өргөн: px (20–2000) эсвэл «120px», «10%», «8rem», «12ch»",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 2000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,4}(px|%|rem|em|ch)$"
+                }
+              ]
+            },
+            "align": {
+              "type": "string",
+              "description": "Зэрэгцүүлэлт (анхдагч: тоо — right, бусад — left)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск — тоо `[угтвар]#,##0[.00][%][дагавар]` (`# ##0` — зайгаар бүлэглэнэ, `0` — бүлэглэхгүй, `%` — ×100), огноо `YYYY YY MM DD HH mm ss` ба ` .:/-T` (жишээ «#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). Зөвхөн харуулна — утга, эрэмбэ, экспорт өөрчлөгдөхгүй",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+              "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+            },
+            "hidden": {
+              "type": "boolean",
+              "description": "Анхдагчаар нуугдсан — хэрэглэгч «Баганууд» сонгогчоор гаргана (эрх биш: нуух талбарыг roles.csv-д)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "group": {
+              "type": "string",
+              "description": "Толгойн бүлэг — зэрэгцээ ижил бүлэгтэй баганууд нэг гарчгийн доор",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "footer": {
+              "type": "string",
+              "description": "Хөлийн нэгтгэл — сервер бүх шүүсэн мөрөөр (хуудаслалтгүй, мөрийн эрхтэй) тооцно; total (P-WP-24) — нэгтгэсэн тайланд баганын илэрхийллийг бүх мөрөөр (харьцаа sum(A) * 100 / sum(B), share — нийтийн мөрөөр; бусад тайланд sum)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "sum",
+                "avg",
+                "count",
+                "min",
+                "max",
+                "total"
+              ]
+            },
+            "when": {
+              "type": "string",
+              "description": "P-WP-26 (G-DYN): параметрийн нөхцөл — худал бол багана тайлангаас хасагдана (ажиллах үед; бүлэглэх/хэмжүүрийн баганын олонлогийг параметрээр сонгох). Зөвхөн `param.<Нэр> == 'утга'`, `!= null`, `in ('a', 'b')`, and/or/not/хаалт (огнооны токенгүй). Индексээр заасан sort/having/highlight/footer/chart дагаж хасагдана; union-ы ижил байрлалын багана ч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "measure"
+          ],
+          "properties": {
+            "measure": {
+              "type": "string",
+              "description": "P-WP-37 (R-BAL2M): ижил ledger-ийн өөр хэмжигдэхүүн (ledgers.yaml `measures`) — тэр хэмжигдэхүүний утга ижил хэмжээс/огноо/хүрээгээр (мөр — аль нэг хэмжигдэхүүн ≠ 0)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns (extraMeasures), cgi/src/report/Report.cpp"
+            },
+            "value": {
+              "type": "string",
+              "description": "Аль утга (анхдагч Эцсийн үлдэгдэл): эхний/эцсийн үлдэгдэл эсвэл эргэлт (Орлого, Зарлага)",
+              "enum": [
+                "Эхний үлдэгдэл",
+                "Орлого",
+                "Зарлага",
+                "Эцсийн үлдэгдэл"
+              ],
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns"
+            },
+            "label": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:balanceColumns"
+            },
+            "width": {
+              "description": "Баганын өргөн: px (20–2000) эсвэл «120px», «10%», «8rem», «12ch»",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 20,
+                  "maximum": 2000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,4}(px|%|rem|em|ch)$"
+                }
+              ]
+            },
+            "align": {
+              "type": "string",
+              "description": "Зэрэгцүүлэлт (анхдагч: тоо — right, бусад — left)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск — тоо `[угтвар]#,##0[.00][%][дагавар]` (`# ##0` — зайгаар бүлэглэнэ, `0` — бүлэглэхгүй, `%` — ×100), огноо `YYYY YY MM DD HH mm ss` ба ` .:/-T` (жишээ «#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). Зөвхөн харуулна — утга, эрэмбэ, экспорт өөрчлөгдөхгүй",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+              "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+            },
+            "hidden": {
+              "type": "boolean",
+              "description": "Анхдагчаар нуугдсан — хэрэглэгч «Баганууд» сонгогчоор гаргана (эрх биш: нуух талбарыг roles.csv-д)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "group": {
+              "type": "string",
+              "description": "Толгойн бүлэг — зэрэгцээ ижил бүлэгтэй баганууд нэг гарчгийн доор",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+            },
+            "footer": {
+              "type": "string",
+              "description": "Хөлийн нэгтгэл — сервер бүх шүүсэн мөрөөр (хуудаслалтгүй, мөрийн эрхтэй) тооцно; total (P-WP-24) — нэгтгэсэн тайланд баганын илэрхийллийг бүх мөрөөр (харьцаа sum(A) * 100 / sum(B), share — нийтийн мөрөөр; бусад тайланд sum)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+              "enum": [
+                "sum",
+                "avg",
+                "count",
+                "min",
+                "max",
+                "total"
+              ]
+            },
+            "when": {
+              "type": "string",
+              "description": "P-WP-26 (G-DYN): параметрийн нөхцөл — худал бол багана тайлангаас хасагдана (ажиллах үед; бүлэглэх/хэмжүүрийн баганын олонлогийг параметрээр сонгох). Зөвхөн `param.<Нэр> == 'утга'`, `!= null`, `in ('a', 'b')`, and/or/not/хаалт (огнооны токенгүй). Индексээр заасан sort/having/highlight/footer/chart дагаж хасагдана; union-ы ижил байрлалын багана ч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
+            }
+          },
+          "additionalProperties": false
         }
       ]
     }

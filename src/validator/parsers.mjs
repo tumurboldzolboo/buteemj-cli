@@ -184,6 +184,7 @@ export function parseStates(text) {
     }
     let requireComment = false, autoAfter = '', autoWhen = '';
     if (guard === 'тайлбар заавал' || guard === 'comment required') { requireComment = true; guard = ''; }
+    else for (const pre of ['тайлбар заавал and ', 'comment required and ']) if (guard.startsWith(pre)) { requireComment = true; guard = guard.slice(pre.length).trim(); break; } // T4: тайлбар + guard (Package.cpp-тэй ижил)
     if (/^after /i.test(guard)) { autoAfter = guard.slice(6).trim(); if (!isoDuration(autoAfter)) warn(ln, 'states_after', `after хугацаа танигдаагүй: ${guard}`); guard = ''; }
     else if (/^when /i.test(guard)) { autoWhen = guard.slice(5).trim(); guard = ''; }
     let who = '';

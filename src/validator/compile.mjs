@@ -22,7 +22,10 @@ export function makeSchema(tables, ledgers) {
   const ORG = { name: 'Байгууллага', ref: { table: 'Байгууллага', column: 'id' } };
   // T3b WP-L (N-06): системийн баганын нөөц нэр (SolutionDeploy.cpp kSystemNames) — багцын ижил нэртэй багана давуу; org нь байгууллагын хүрээтэйд л.
   // FK: org → Байгууллага (ST0005), createdBy/updatedBy → Хэрэглэгч (ST0032) — DeployCalc.inc schemaLookup
-  const SYS = { org: { table: 'Байгууллага' }, createdBy: { table: 'Хэрэглэгч' }, createdAt: null, updatedBy: { table: 'Хэрэглэгч' }, updatedAt: null };
+  // P-WP-10: аудит баганын монгол нэр (цөмийн caption — DesignerAdmin.cpp createModuleTx) нь англи нэрийн alias — screens.yaml/reports.yaml/илэрхийлэлд
+  const SYS = { org: { table: 'Байгууллага' }, createdBy: { table: 'Хэрэглэгч' }, createdAt: null, updatedBy: { table: 'Хэрэглэгч' }, updatedAt: null,
+    'Бүртгэсэн хүн': { table: 'Хэрэглэгч' }, 'Бүртгэсэн огноо': null, 'Зассан хүн': { table: 'Хэрэглэгч' }, 'Зассан огноо': null };
+  const AUDIT = new Set(Object.keys(SYS).filter((n) => n !== 'org'));
   const sysCol = (t, n) => {
     const tb = tables.get(t);
     if (!tb || !Object.hasOwn(SYS, n) || (n === 'org' && !tb.orgScoped)) return undefined;
@@ -49,7 +52,15 @@ export function makeSchema(tables, ledgers) {
     // T3b WP-K: өөр рүүгээ FK (лавлах багана нь pk/id) — DeployCalc.inc schemaLookup treeParent
     //   цөмийн хүснэгт: Хэрэглэгч (ST0032) мод биш; бусад (Байгууллага ST0005 г.м.) — серверт шийднэ (сул)
     treeParent: (t) => (CORE_TABLES.has(t) ? (t === 'Хэрэглэгч' ? '' : '(цөм)') : tables.get(t)?.columns.find((c) => c.ref?.table === t && S.fk(t, c.name) === t)?.name ?? ''),
+    // P-WP-10: нэр нь системийн аудит баганад (ST000001–4) шийдэгдэх эсэх (багцын ижил нэртэй багана давуу) — зөвхөн унших
+    audit: (t, n) => AUDIT.has(str(n)) && !CORE_TABLES.has(t) && !tables.get(t)?.columns.some((c) => c.name === str(n)) && !!tables.get(t),
+    // P-WP-5: баганын DBML төрөл (жагсаалтын шүүлтийн input/op шалгалт) — цөм/системийн багана ''
+    colType: (t, n) => String(colOf(t, n)?.type ?? '').toLowerCase(),
+    // P-WP-27 (G-LFP): t-ийн target рүү заасан FK баганууд (хүүхдийн шүүлтийн `via` анхдагч) — цөм/алга хүснэгтэд [] биш, сул (['?'])
+    fksTo: (t, target) => (CORE_TABLES.has(t) || !tables.has(t) ? ['?'] : tables.get(t).columns.filter((c) => S.fk(t, c.name) === target).map((c) => c.name)),
     columnsOf: (t) => [...(tables.get(t)?.columns.map((c) => c.name) ?? []), ...(tables.get(t)?.orgScoped ? [ORG.name] : [])],
+    // T4 WP-U: байгууллагын хүрээтэй (ST000501) хүснэгт — цөмийн хүснэгтийг серверт шийднэ (сул: үнэн)
+    hasOrg: (t) => (CORE_TABLES.has(t) ? true : !!tables.get(t)?.orgScoped),
   };
   return S;
 }
@@ -111,7 +122,28 @@ function sourceCheck(S, from, env, refsParams) {
     if (!t) return { err: `from: хүснэгт «${from}» алга` };
     return { env: { ...env, row: scopeT(t) } };
   }
-  if (!isObj(from)) return { err: 'from: хүснэгтийн нэр эсвэл {ledger: …} | {explode: …}' };
+  if (!isObj(from)) return { err: 'from: хүснэгтийн нэр эсвэл {ledger: …} | {explode: …} | {days: …} | {lines: …}' };
+  if (from.days !== undefined) { // P-WP-30 (G-DAYSERIES): огнооны цуваа — map-д date, n, weekday (row.date …) — DeployCalc.inc sourceSql
+    const dy = from.days;
+    if (!isObj(dy) || dy.from === undefined || dy.to === undefined) return { err: 'days: {from: <огноо>, to: <огноо>} (param.<Нэр> | огнооны токен | илэрхийлэл)' };
+    if (Object.keys(from).some((k) => k !== 'days')) return { err: 'days: эх нь өөр түлхүүргүй ({days: {from, to}}) — шүүлт бүлгийн filter-т' };
+    for (const k of ['from', 'to']) {
+      const e = compileExpr(typeof dy[k] === 'string' ? dy[k] : dumpJson(dy[k]), S, env);
+      if (e) return { err: `days.${k}: ${e}` };
+    }
+    if (Object.keys(dy).some((k) => k !== 'from' && k !== 'to')) return { err: 'days: зөвхөн {from, to}' };
+    const row = { fields: new Map([['date', ''], ['n', ''], ['weekday', '']]) };
+    return { env: { ...env, row, scopes: { ...(env.scopes ?? {}), ...(env.scopes?.row ? {} : { row }) } } };
+  }
+  if (from.lines !== undefined) { // P-WP-32 (G-TXTLIST): олон мөрт текст — map-д value, n (row.value …) — DeployCalc.inc sourceSql
+    if (Object.keys(from).some((k) => k !== 'lines' && k !== 'split')) return { err: 'lines: эх нь {lines: <текст>, split: \'<regex>\'} л — шүүлт бүлгийн filter-т' };
+    if (typeof from.lines !== 'string' || !from.lines.trim()) return { err: 'lines: <текст> (param.<Нэр> эсвэл илэрхийлэл)' };
+    const e = compileExpr(from.lines, S, env);
+    if (e) return { err: `lines: ${e}` };
+    if (from.split !== undefined && (typeof from.split !== 'string' || !from.split || from.split.length > 100)) return { err: 'lines.split: хоосон биш regex (≤ 100 тэмдэгт)' };
+    const row = { fields: new Map([['value', ''], ['n', '']]) };
+    return { env: { ...env, row, scopes: { ...(env.scopes ?? {}), ...(env.scopes?.row ? {} : { row }) } } };
+  }
   if (from.ledger !== undefined) {
     const ln = str(from.ledger);
     const li = S.ledger(ln);
@@ -156,7 +188,7 @@ function sourceCheck(S, from, env, refsParams) {
     if (!from.group) { fields.set('root', itemTable); fields.set('src', rootsT); }
     return { env: { ...env, row: { fields } } };
   }
-  return { err: 'from: {ledger: …} эсвэл {explode: …}' };
+  return { err: 'from: {ledger: …}, {explode: …}, {days: …} эсвэл {lines: …}' };
 }
 
 function groupCheck(S, g, outTable, mapKey, update, env0, refsParams) {
@@ -225,13 +257,37 @@ export function generatorError(S, g, tables, contexts = new Map()) {
   const base = { params: new Set(), paramRefs: new Map(), paramLists: new Set(), scopes: userScopes(S, contexts), row: null };
   const refsParams = new Map();
   refsParams.rows = new Map(); // T3b WP-N (N-12): `type: rows` → мөрийн хүрээ
-  const rowsDefs = [];
+  const rowsDefs = [], refsDefs = [];
   for (const p of asList(g.params)) {
     const pn = str(p?.name), ty = p?.type === undefined ? 'text' : p.type;
-    if (!pn || !['date', 'datetime', 'number', 'text', 'ref', 'refs', 'rows'].includes(ty)) return 'params: {name, type: date|datetime|number|text|ref|refs|rows, table (ref, refs), from (rows), default}';
+    if (!pn || !['date', 'datetime', 'number', 'text', 'ref', 'refs', 'rows', 'boolean'].includes(ty)) return 'params: {name, label, type: date|datetime|number|text|boolean|ref|refs|rows, table (ref, refs), from (rows), options (text, number), default}';
     if (pn.includes('.')) return `params: нэр «${pn}»-д цэг байж болохгүй`;
-    if (ty === 'refs') { const rt = S.table(str(p.table)); if (!rt) return `params «${pn}»: type refs — table «${str(p.table)}» алга`; refsParams.set(pn, rt); base.paramLists.add(pn); continue; }
+    // P-WP-35 — DeployCalc.inc compileGenerator-тэй ижил мессеж: G-PARAMLBL (label), G-GENPOPT (options/display, boolean), G-GENTRANS (split)
+    if (p.label !== undefined && (typeof p.label !== 'string' || !p.label.trim())) return `params «${pn}»: label — хоосон биш текст`;
+    if ((p.options !== undefined || p.display !== undefined) && ty !== 'text' && ty !== 'number') return `params «${pn}»: options/display зөвхөн type: text | number-д (checkbox — type: boolean)`;
+    if (p.display !== undefined && (p.options === undefined || !['radio', 'select'].includes(p.display))) return `params «${pn}»: display: radio | select (options-той)`;
+    if (p.split !== undefined && !(ty === 'text' && p.multiline === true)) return `params «${pn}»: split зөвхөн multiline: true текстэд`;
+    if (ty === 'refs') {
+      const rt = S.table(str(p.table)); if (!rt) return `params «${pn}»: type refs — table «${str(p.table)}» алга`; refsParams.set(pn, rt); base.paramLists.add(pn);
+      if (p.where !== undefined || p.default !== undefined) refsDefs.push([p, rt]); // P-WP-35 (G-REFSDEF): doc.* тодорхой болсны дараа
+      continue;
+    }
     if (ty === 'rows') { rowsDefs.push(p); continue; }
+    if (p.multiline !== undefined && (ty !== 'text' || typeof p.multiline !== 'boolean')) return `params «${pn}»: multiline: true зөвхөн type: text-д`; // P-WP-32 (G-TXTLIST)
+    if (p.options !== undefined) {
+      if (!Array.isArray(p.options) || !p.options.length) return `params «${pn}»: options: [<утга> | {value, label}] (хоосон биш жагсаалт)`;
+      const vals = [];
+      for (const o of p.options) {
+        const v = isObj(o) ? o.value : o;
+        if (typeof v !== 'string' && typeof v !== 'number') return `params «${pn}»: options: утга нь текст эсвэл тоо`;
+        if (ty === 'number' && !Number.isFinite(Number(v))) return `params «${pn}»: options: type number — «${v}» тоо биш`;
+        if (vals.some((x) => String(x) === String(v))) return `params «${pn}»: options: «${v}» давхардсан`;
+        vals.push(v);
+      }
+      const dv = p.default;
+      if (dv !== undefined && !(typeof dv === 'string' && dv.trim().startsWith('user.')) && !vals.some((x) => (ty === 'number' ? Number(x) === Number(dv) : String(x) === String(dv)))) return `params «${pn}»: default «${dv}» сонголтод (options) алга`;
+    }
+    if (ty === 'boolean' && p.default !== undefined && ![true, false, 'true', 'false', 'True', 'False', 1, 0, '1', '0', 'yes', 'no', 'on', 'off', 'тийм', 'үгүй', 'Тийм', 'Үгүй'].includes(p.default)) return `params «${pn}»: type boolean — default: true | false`;
     base.params.add(pn);
     if (ty === 'ref') { const rt = S.table(str(p.table)); if (!rt) return `params «${pn}»: type ref — table (лавлах хүснэгт) «${str(p.table)}» алга`; base.paramRefs.set(pn, rt); }
     // T3b WP-L (N-04): `default: user.<Нэр>` — code | name | role | org эсвэл context.yaml-ийн контекст
@@ -240,7 +296,6 @@ export function generatorError(S, g, tables, contexts = new Map()) {
       if (!['code', 'name', 'role', 'org'].includes(un) && !contexts.has(un)) return `params «${pn}»: default user.${un} — code | name | role | org эсвэл context.yaml-ийн контекст`;
     }
   }
-  for (const p of rowsDefs) { const e = rowsParamCheck(S, p, base, refsParams); if (e) return e; }
   let on = '';
   if (g.on !== undefined) {
     on = S.table(str(g.on));
@@ -269,6 +324,18 @@ export function generatorError(S, g, tables, contexts = new Map()) {
       if (raw.length !== 1 || !raw[0]) return { err: 'changed(<Багана>)' };
       return S.column(on, raw[0]) ? { ok: true } : { err: `changed: багана «${raw[0]}» алга` };
     };
+  }
+  // T3b WP-N: `type: rows` — P-WP-32 (R-ROWSDEF): doc.* (on/trigger) тодорхой болсны дараа (from.where/default-д)
+  for (const p of rowsDefs) { const e = rowsParamCheck(S, p, base, refsParams); if (e) return e; }
+  for (const [p, rt] of refsDefs) { // P-WP-35 (G-REFSDEF): where: <X0>, default: all | <X0> — мөр = refs хүснэгт
+    const pn = str(p.name);
+    for (const [x, what] of [[p.where, 'where'], [p.default, 'default']]) {
+      if (x === undefined) continue;
+      if (typeof x !== 'string' || !x.trim()) return `params «${pn}»: type refs — ${what}: ${what === 'where' ? '<нөхцөл (X0)>' : 'all | <нөхцөл (X0)>'}`;
+      if (what === 'default' && x.trim() === 'all') continue;
+      const e = compileExpr(x.trim(), S, { ...base, row: scopeT(rt) });
+      if (e) return `params «${pn}»: ${what}: ${e}`;
+    }
   }
   // N-09: when (trigger.when ба generator when), require: '<X0> «мессеж»' | {if, message}
   const splitMsg = (x) => { const m = /^([\s\S]*?)\s*«([^«»]*)»\s*$/.exec(String(x).trim()); return m ? m[1].trim() : String(x).trim(); };
@@ -333,6 +400,22 @@ export function generatorError(S, g, tables, contexts = new Map()) {
     if (!ut) return `update: хүснэгт «${str(u?.table)}» алга`;
     const e = groupCheck(S, u, ut, 'set', true, base, refsParams);
     if (e) return `update «${str(u?.table)}»: ${e}`;
+    if (u?.transition !== undefined) { // T4; P-WP-35 (G-GENTRANS): {button, as: user | process} — DeployCalc.inc (state/GenParams.h parseTransition)-тэй ижил
+      const t = u.transition;
+      if (typeof t === 'string') { if (!t.trim()) return `update «${str(u?.table)}»: transition: <товчны нэр>`; }
+      else if (!isObj(t)) return `update «${str(u?.table)}»: transition: <товчны нэр> | {button: <товч>, as: user | process}`;
+      else {
+        for (const k of Object.keys(t)) if (!['button', 'as'].includes(k)) return `update «${str(u?.table)}»: transition: {button, as} — «${k}» танигдаагүй`;
+        if (typeof t.button !== 'string' || !t.button.trim()) return `update «${str(u?.table)}»: transition.button: <товчны нэр> заавал`;
+        if (t.as !== undefined && !['user', 'process'].includes(t.as)) return `update «${str(u?.table)}»: transition.as: user | process`;
+      }
+    }
+    // T4 WP-U: шинэчлэх мөрийн байгууллагын хүрээ — DeployCalc.inc groupSql-тэй ижил (self | children | subtree; дээш биш)
+    if (u?.org !== undefined) {
+      const sc = typeof u.org === 'string' ? u.org.trim() : '';
+      if (!['self', 'children', 'subtree'].includes(sc)) return `update «${str(u?.table)}»: org: self | children | subtree (шинэчлэх мөрийн байгууллага — өөрөө, шууд охин, бүх доод)`;
+      if (sc !== 'self' && !S.hasOrg(ut)) return `update «${str(u?.table)}»: org: «${ut}» байгууллагын хүрээгүй хүснэгт`;
+    }
   }
   for (const dg of asList(g.delete)) {
     const dt = S.table(str(dg?.table));
@@ -348,6 +431,11 @@ export function generatorError(S, g, tables, contexts = new Map()) {
       for (const n of cols) if (!S.column(target, n)) return `skipEmpty: багана «${n}» алга`;
       if (!cols.length) return 'skipEmpty: true | [<толгойн багана>]';
     }
+  }
+  if (g.emptyHeader !== undefined) { // T4 (todu-stock S-M03-009/010): мөргүй ч толгой — DeployCalc.inc-тэй ижил
+    if (typeof g.emptyHeader !== 'boolean') return 'emptyHeader: true | false';
+    if (!target || intoDoc || g.rows !== undefined || g.header === undefined) return 'emptyHeader: зөвхөн target + header/lines генераторт';
+    if (g.emptyHeader && g.skipEmpty !== undefined && g.skipEmpty !== false) return 'emptyHeader ба skipEmpty зэрэг болохгүй';
   }
   const hasGroups = g.rows === undefined && target && asList(g.lines).length > 0;
   if (!hasGroups && g.rows === undefined && !asList(g.update).length && !asList(g.delete).length && !(target && g.header !== undefined) && g.require === undefined) return 'lines, rows, update, delete, target + header эсвэл require алга';
@@ -376,18 +464,31 @@ function nestedCheck(S, lines0, parent, base, refsParams, tables, depth) {
 
 // T3b WP-N (N-12): `type: rows` — DeployCalc.inc rowsParam (тайлангийн баганыг сервер л мэднэ — энд {any})
 function rowsParamCheck(S, p, base, refsParams) {
-  const pn = str(p.name), from = p.from;
+  const pn = str(p.name), from0 = p.from;
   let row = null, names = null, key = [];
+  // P-WP-32 (R-ROWSDEF): from.where — X0 (текст) эсвэл {<хэмжээс>: '<загвар>'}; default: all | <X0>
+  const whereX = isObj(from0) && typeof from0.where === 'string' ? from0.where.trim() : '';
+  const from = whereX ? { ...from0, where: undefined } : from0;
+  if (whereX === '' && isObj(from0) && typeof from0.where === 'string') return `params «${pn}»: from.where хоосон`;
+  if (p.default !== undefined && (typeof p.default !== 'string' || !p.default.trim())) return `params «${pn}»: type rows — default: all | <нөхцөл (X0)>`;
+  const defX = typeof p.default === 'string' ? p.default.trim() : '';
   if (isObj(from) && from.ledger !== undefined && from.explode === undefined) {
     const ln = str(from.ledger), li = S.ledger(ln);
     if (!li) return `params «${pn}»: from: ledger «${ln}» алга`;
     const r = sourceCheck(S, from, base, refsParams);
     if (r.err) return `params «${pn}»: ${r.err}`;
     row = r.env.row;
+    for (const [x, what] of [[whereX, 'from.where'], [defX === 'all' ? '' : defX, 'default']]) {
+      if (!x) continue;
+      const e = compileExpr(x, S, r.env);
+      if (e) return `params «${pn}»: ${what}: ${e}`;
+    }
     const by = from.by !== undefined ? listOf(from.by) : li.dims;
     names = new Set([...by, ...li.measures]);
     key = by;
   } else if (isObj(from) && from.report !== undefined) {
+    if (whereX) return `params «${pn}»: from.where (илэрхийлэл) зөвхөн ledger эхэд — тайлангийн filter/params-аар шүүнэ`;
+    if (defX && defX !== 'all') return `params «${pn}»: тайлангийн эхэд default: all л`;
     row = { any: true };
   } else return `params «${pn}»: type rows — from: {ledger: …, by} эсвэл {report: <нэр>}`;
   if (p.key !== undefined) key = listOf(p.key);
@@ -444,8 +545,15 @@ export function layoutError(S, y) {
   if (!Array.isArray(cols) || !cols.length || !Array.isArray(rows) || !rows.length) return 'layout: columns, rows заавал';
   const cs = [];
   for (const cj of cols) {
-    const cl = { name: str(cj?.name), formula: '' };
+    const cl = { name: str(cj?.name), formula: '', text: false };
     if (!cl.name) return 'layout.columns: name заавал';
+    // P-WP-24 (A2-9): type: text — мөрийн текст багана
+    const ty = cj.type === undefined ? 'number' : str(cj.type);
+    if (ty !== 'number' && ty !== 'text') return `layout.columns «${cl.name}» type: number | text`;
+    if (ty === 'text') {
+      if (cj.formula !== undefined || cj.from !== undefined || cj.to !== undefined) return `layout.columns «${cl.name}»: text багана formula/from/to-гүй`;
+      cl.text = true; cs.push(cl); continue;
+    }
     if (cj.formula !== undefined) { cl.formula = str(cj.formula); cs.push(cl); continue; }
     for (const k of ['from', 'to']) {
       if (cj[k] === undefined) continue;
@@ -466,9 +574,9 @@ export function layoutError(S, y) {
     let expr;
     if (cl.formula) {
       expr = cl.formula;
-      env.ident = (n) => { for (let k = 0; k < cs.length; k++) if (cs[k].name === n && k !== ci && !cell(r, k, rowScope)) return true; return false; };
+      env.ident = (n) => { for (let k = 0; k < cs.length; k++) if (cs[k].name === n && k !== ci && !cs[k].text && !cell(r, k, rowScope)) return true; return false; };
     } else {
-      expr = isObj(r.values) && r.values[cl.name] !== undefined ? str(r.values[cl.name]) : str(r.value);
+      expr = isObj(r.values) && r.values[cl.name] !== undefined ? str(r.values[cl.name]) : cl.text ? '' : str(r.value);
       env.ident = (n) => byCode.has(n) && !cell(byCode.get(n), ci, null);
     }
     const res = expr.trim() ? compileExpr(expr, S, env) : '';

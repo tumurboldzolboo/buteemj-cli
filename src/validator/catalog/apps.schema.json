@@ -1,0 +1,405 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/apps",
+  "title": "apps.yaml — апп (үүрэг бүрийн навигацийн багц), breadcrumb (P-WP-2/3)",
+  "description": "Апп = цэсний модны сонголт + нүүр + харагдац, үүргээр сонгогдоно (жишээ нь админ, менежер, ажилтан). Хэрэглэгч олон апп-тай бол толгойд апп сэлгэгч; нэвтрэхэд (эсвэл «/») идэвхтэй аппын `home`. Эрх биш — зөвхөн харагдац (мөр бүрийн эрх хэвээр). `breadcrumbs` — цэсний модонд байхгүй (дэлгэрэнгүй/модал) дэлгэцийн эцэг. ST1950, ST1951; /api/apps, /api/navigation X-Bj-App.",
+  "type": "object",
+  "properties": {
+    "apps": {
+      "type": "array",
+      "description": "Аппууд (дарааллаар; `order` байвал түүгээр)",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp (7g apps)",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,39}$",
+            "x-pattern-hint": "жижиг латин, тоо, зураас; 2–40",
+            "description": "Аппын түлхүүр — суулгалтад давхардахгүй (X-Bj-App, ?app=)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Апп сэлгэгч дэх нэр"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Тэмдэг (emoji/текст)"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Дараалал (бага нь эхэнд; анхдагч — жагсаалтын дараалал)"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "x-ref": "role"
+            },
+            "description": "Аль нэгэнд нь харагдана (хоосон = бүгд; админд бүгд). Эхний харагдах апп — анхдагч"
+          },
+          "home": {
+            "$ref": "#/$defs/target",
+            "description": "Аппын нүүр: дэлгэц/хуудасны id (текст) эсвэл {screen|page|table|report|url}"
+          },
+          "homeLabel": {
+            "type": "string",
+            "description": "Breadcrumb-ийн үндсэн шошго (анхдагч «Эхлэл»)"
+          },
+          "menu": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Цэсний модны сонголт дарааллаар: «Ангилал», «Эцэг/Хүү» (тэр зангилаа), «Эцэг/*» (хүүхдүүдийг дээд түвшинд), «*» (бүгд). Алга бол бүх мод"
+          },
+          "appName": {
+            "type": "string",
+            "description": "Апп идэвхтэй үед толгойн нэр (branding.yaml appName-ийг дарна)"
+          },
+          "logo": {
+            "$ref": "#/$defs/logo"
+          },
+          "colors": {
+            "$ref": "#/$defs/colors"
+          },
+          "userMenu": {
+            "type": "array",
+            "description": "P-WP-43 (APP-USERMENU): толгойн хэрэглэгчийн цэсний (нэр/дүрсний dropdown) холбоосууд, жагсаалтын дарааллаар. Апп идэвхтэй үед харагдана; хоосон/алга бол зөвхөн «Миний бүртгэл», «Гарах». /api/apps userMenu (үүргээр шүүсэн)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp (7g apps userMenu); cgi/src/meta/Apps.cpp routeApps",
+            "items": {
+              "$ref": "#/$defs/userMenuItem"
+            }
+          },
+          "nav": {
+            "enum": [
+              "side",
+              "top",
+              "both",
+              "bottom"
+            ],
+            "description": "P-WP-46 (BRAND-NAV): навигацийн байрлал — side: зөвхөн зүүн цэс (дээд ribbon нуугдана), top: зөвхөн дээд ribbon (зүүн цэс нуугдана), both: хоёулаа, bottom: доод tab bar (дээд түвшний цэсний зангилаа — дүрс + нэр, олон бол хэвтээ гүйлгэнэ; ribbon, зүүн цэс нуугдана — мобайл апп). side/both тохируулсан үед толгойд ☰ (зүүн цэс хураах/дэлгэх; <768px-д анхдагчаар хураагдсан, overlay). Алга бол өмнөх шигээ (both, ☰-гүй)"
+          },
+          "navStyle": {
+            "enum": [
+              "bar",
+              "pill"
+            ],
+            "description": "P-WP-46 (BRAND-SIDENAV): зүүн цэсний идэвхтэй мөрийн хэлбэр — bar: зүүн хүрээтэй (анхдагч), pill: дугуй өнцөгт дүүргэсэн мөр, том мөрийн зай, дүрс (icon) тодорхой"
+          },
+          "showAppName": {
+            "type": "boolean",
+            "description": "P-WP-46 (BRAND-LOGO): толгойд аппын нэрийг харуулах (анхдагч true). Лого зурагт нэр аль хэдийн байвал false"
+          },
+          "gridHeader": {
+            "enum": [
+              "accent",
+              "light"
+            ],
+            "description": "P-WP-46 (BRAND-GRID): хүснэгтийн толгойн загвар — accent: өнгөт дэвсгэр, цагаан текст (анхдагч цэнхэр; colors.gridHead/gridHeadText-аар), light: цагаан дэвсгэр, тод хар текст, доод хүрээ. CSS --bj-grid-head-bg/--bj-grid-head-fg"
+          },
+          "titleSize": {
+            "enum": [
+              "normal",
+              "large"
+            ],
+            "description": "P-WP-46 (PAGE-TITLE): жагсаалт/хуудасны гарчгийн хэмжээ — large: том гарчиг (breadcrumb дээр, үйлдлийн товч баруун талд)"
+          },
+          "boolFilter": {
+            "enum": [
+              "select",
+              "checkbox"
+            ],
+            "description": "P-WP-46 (FILTER-BOOL): Тийм/Үгүй шүүлтийн удирдлага — select: «— Бүгд —/Тийм/Үгүй» (анхдагч), checkbox: тэмдэглээгүй = шүүлтгүй, тэмдэглэсэн = Тийм (анхдагч утга «Үгүй» эсвэл өөрийн options-тэй шүүлт select хэвээр)"
+          },
+          "labelStyle": {
+            "enum": [
+              "above",
+              "floating"
+            ],
+            "description": "P-WP-49 (FORM-LABEL): талбарын шошгоны байрлал — above: талбарын дээр (анхдагч), floating: талбарын хүрээн дотор дээд хэсэгт жижиг, утга доор (APEX «optional-floating»). Форм, жагсаалтын шүүлт, хуудасны параметрт; checkbox/radio (Тийм/Үгүй), зураг/файл хамаарахгүй"
+          },
+          "dateTimeFormat": {
+            "type": "string",
+            "pattern": "^(YYYY|YY|MM|DD|HH24|HH|MI|mm|SS|ss|[ ./:,T-])+$",
+            "x-pattern-hint": "YYYY YY MM DD HH24|HH MI|mm SS|ss ба . / : , - T зай",
+            "description": "P-WP-46 (BRAND-FMT): огноо-цагийн харуулах формат (жишээ «YYYY.MM.DD HH24:MI:SS»; Oracle HH24/MI/SS эсвэл HH/mm/ss). Алга бол dateFormat + « HH:mm[:ss]» (өмнөх шигээ)"
+          },
+          "header": {
+            "$ref": "#/$defs/header"
+          }
+        }
+      }
+    },
+    "breadcrumbs": {
+      "type": "array",
+      "description": "Breadcrumb-ийн эцэг (анхдагч зам — цэсний мод). Зорилт {screen|page|table|report: …}, `parent` — зорилт (текст: дэлгэц/хуудасны id, хүснэгт), `label` — энэ мөрийн шошго (форм дэлгэц бол бичлэг нээсэн үеийн сүүлийн мөр)",
+      "items": {
+        "type": "object",
+        "required": [
+          "parent"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "screen": {
+            "type": "string"
+          },
+          "page": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string",
+            "x-ref": "table"
+          },
+          "report": {
+            "type": "string"
+          },
+          "parent": {
+            "$ref": "#/$defs/target"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "userMenuItem": {
+      "type": "object",
+      "description": "Хэрэглэгчийн цэсний мөр: `label` + яг нэг зорилт (screen|page|table|report|url — `target`-ийн объект хэлбэр), `roles` (аль нэгэнд нь; хоосон = бүгд; системийн админд бүгд; эрх олгохгүй — цэсний `roles`-тэй ижил утга), `icon`",
+      "required": [
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Цэсэнд харагдах нэр"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Тэмдэг (emoji/текст)"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          },
+          "description": "Аль нэгэнд нь харагдана (хоосон = бүгд; системийн админд бүгд). Цэс нуух нь эрх биш — дэлгэц/хүснэгтийн эрх хэвээр"
+        },
+        "screen": {
+          "type": "string"
+        },
+        "page": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string",
+          "x-ref": "table"
+        },
+        "report": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "target": {
+      "description": "Зорилт: текст (дэлгэц эсвэл хуудасны id, эс бөгөөс хүснэгтийн нэр) эсвэл яг нэг түлхүүртэй объект",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "screen": {
+              "type": "string"
+            },
+            "page": {
+              "type": "string"
+            },
+            "table": {
+              "type": "string",
+              "x-ref": "table"
+            },
+            "report": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "logo": {
+      "type": "string",
+      "pattern": "^(none|/uploads/[A-Za-z0-9._/-]+|https://\\S+|[^/:][^:]*\\.[A-Za-z0-9]+)$",
+      "x-pattern-hint": "багцын .svg файл, /uploads/…, https://… эсвэл none",
+      "description": "Лого: багц доторх .svg файл (deploy-д суулгалтад хадгалагдана), /uploads/… эсвэл https://…; P-WP-46: `none` — лого харуулахгүй (доод давхаргын лого ч)"
+    },
+    "colors": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Өнгө #RRGGBB",
+      "properties": {
+        "primary": {
+          "$ref": "#/$defs/color",
+          "description": "Үндсэн товч (header алга бол толгой ч)"
+        },
+        "header": {
+          "$ref": "#/$defs/color",
+          "description": "Толгойн дэвсгэр"
+        },
+        "headerText": {
+          "$ref": "#/$defs/color",
+          "description": "Толгойн текст"
+        },
+        "nav": {
+          "$ref": "#/$defs/color",
+          "description": "Навигацийн (ribbon, зүүн цэс) дэвсгэр"
+        },
+        "navText": {
+          "$ref": "#/$defs/color",
+          "description": "Навигацийн текст"
+        },
+        "navActive": {
+          "$ref": "#/$defs/color",
+          "description": "Идэвхтэй цэсний мөр"
+        },
+        "link": {
+          "$ref": "#/$defs/color",
+          "description": "Холбоос"
+        },
+        "navActiveText": {
+          "$ref": "#/$defs/color",
+          "description": "P-WP-46: идэвхтэй цэсний мөрийн текст (анхдагч navText)"
+        },
+        "gridHead": {
+          "$ref": "#/$defs/color",
+          "description": "P-WP-46 (BRAND-GRID): хүснэгтийн толгойн дэвсгэр (gridHeader accent)"
+        },
+        "gridHeadText": {
+          "$ref": "#/$defs/color",
+          "description": "P-WP-46 (BRAND-GRID): хүснэгтийн толгойн текст"
+        }
+      }
+    },
+    "color": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$",
+      "x-pattern-hint": "#RRGGBB"
+    },
+    "header": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp (7g headerCheck, headerSpec); cgi/src/meta/Apps.cpp routeApps headerLinks; web/src/pages/MainLayout.tsx",
+      "description": "P-WP-48 (HEADER-COMPACT): толгойн агуулга. Алга бол өмнөх шигээ (бүх удирдлага, мөр таслана). Тохируулсан үед (аль нэг түлхүүр) <768px-д толгой НЭГ мөр: ☰ + лого + links (дүрс) + хонх + 👤 — бусад (байгууллага/апп сэлгэгч, контекст, хайлт, хэл, модулиуд, хэрэглэгчийн цэс, Гарах) 👤 popover-д. branding.yaml — анхдагч, apps.yaml аппын header түлхүүр бүрээр дарна",
+      "properties": {
+        "modules": {
+          "description": "Платформын модулийн товчны мөр: false — нуух; [түлхүүр] — зөвхөн эдгээр (эрхийн шүүлт хэвээр). Түлхүүр: track, track-view, tasks, analytics, metrics, generators, ledger-entries, org-admin, org-users, diagram, bpmn, timetable, reports, admin, offline. Трек идэвхтэй үед (ил тод байдал) 📍 дүрс үргэлж үлдэнэ. Алга бол бүгд (өмнөх шигээ)",
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "x-hint": "track|track-view|tasks|analytics|metrics|generators|ledger-entries|org-admin|org-users|diagram|bpmn|timetable|reports|admin|offline"
+              }
+            }
+          ]
+        },
+        "contexts": {
+          "enum": [
+            "inline",
+            "menu"
+          ],
+          "description": "Багцын контекст сонгогчид (context.yaml): inline — толгойд (анхдагч), menu — нэг товч (одоогийн утгуудын товч) → popover"
+        },
+        "search": {
+          "type": "boolean",
+          "description": "Глобал хайлт (false — нуух)"
+        },
+        "lang": {
+          "type": "boolean",
+          "description": "MN/EN хэл сэлгэгч (false — нуух)"
+        },
+        "notifications": {
+          "type": "boolean",
+          "description": "Мэдэгдлийн хонх (false — нуух)"
+        },
+        "account": {
+          "enum": [
+            "inline",
+            "menu"
+          ],
+          "description": "🔑 (Миний бүртгэл), «Гарах»: inline — толгойд (анхдагч), menu — хэрэглэгчийн нэрийн dropdown-д (APEX хэрэглэгч ▾)"
+        },
+        "links": {
+          "type": "array",
+          "description": "Толгойн баруун талын холбоос/дүрс товч, дарааллаар. /api/apps headerLinks (үүргээр шүүсэн, шийдэгдээгүй зорилт алгасагдана)",
+          "items": {
+            "$ref": "#/$defs/headerLink"
+          }
+        }
+      }
+    },
+    "headerLink": {
+      "type": "object",
+      "description": "P-WP-48 (HEADER-COMPACT): толгойн баруун талын холбоос/дүрс товч (APEX navbar list): яг нэг зорилт (screen|page|table|report|url, эсвэл `app: <аппын id>` — тэр апп руу сэлгэж нүүр рүү), `label` (алга бол зорилтын нэр; `icon`-той label-гүй бол зөвхөн дүрс, tooltip = зорилтын нэр), `icon` (emoji/текст эсвэл fa-<нэр>|mdi-<нэр>, P-WP-46), `roles` (P-WP-43 userMenu-тэй ижил: аль нэгэнд нь; системийн админд бүгд; эрх олгохгүй). <768px-д дүрсээр (tooltip = label)",
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Харагдах нэр / tooltip"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Тэмдэг (emoji/текст) эсвэл нэрлэсэн икон fa-<нэр> | mdi-<нэр>"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          },
+          "description": "Аль нэгэнд нь харагдана (хоосон = бүгд; системийн админд бүгд)"
+        },
+        "screen": {
+          "type": "string"
+        },
+        "page": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string",
+          "x-ref": "table"
+        },
+        "report": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "app": {
+          "type": "string",
+          "description": "Аппын id (apps.yaml) — сэлгэх холбоос (жишээ нь «Менежерийн программ»)"
+        }
+      }
+    }
+  }
+}

@@ -4,9 +4,10 @@
 //   ctx: {files, yaml, fileOf, listed, tables: Map<нэр, {orgScoped, columns}>, foreignTables, foreignLedgers, foreignContexts, hasTable, strict, machines, required, add}
 
 import { makeSchema, ledgerInfos, generatorError, metricErrors, layoutError } from './compile.mjs';
-import { ledgerErrors, screenErrors, reportErrors, endpointErrors } from './blocks.mjs';
+import { ledgerErrors, screenErrors, reportErrors, uiErrors, endpointErrors, screenOutline, extensionErrors, extensionAsScreen, listOutline, listExtensionErrors, listExtensionAsScreen, filterName } from './blocks.mjs';
 import { parseRoles } from './parsers.mjs';
 import { x0Parses } from './x0.mjs';
+import { appsErrors } from './apps.mjs';
 
 // T3b WP-R (G-19): нэрээр бичсэн X0 (зайтай кирилл нэр — «Нийт дүн») — нэрийг (литералаас гадна) нэг identifier-ээр орлуулаад задлана
 // (SolutionDeploy.cpp namedParses-тай ижил; нэрийн шийдвэрлэлт серверт apply-д)
@@ -106,6 +107,191 @@ function dataTables(ctx, dir) {
   return out;
 }
 
+// ---- P-WP-1: цэсний мод (SolutionDeploy.cpp namespace menutree-тэй ижил дүрэм, мессеж)
+export const menuItems = (doc) => (Array.isArray(doc?.menu) ? doc.menu : doc?.menu && typeof doc.menu === 'object' && Array.isArray(doc.menu.items) ? doc.menu.items : []);
+export const menuErdHidden = (doc) => !!doc?.menu && typeof doc.menu === 'object' && !Array.isArray(doc.menu) && doc.menu.erdCategory === 'hidden';
+const isNode = (x) => !!x && typeof x === 'object' && !Array.isArray(x) && 'items' in x;
+const nodeName = (x) => str(x?.label) || str(x?.category);
+const underPath = (x) => (Array.isArray(x?.under) ? x.under.map(str) : typeof x?.under === 'string' ? x.under.split('/').map((s) => s.trim()) : []).filter(Boolean);
+const MENU_TARGETS = ['screen', 'table', 'page', 'report', 'url', 'platform']; // P-WP-33 (MENU-ADMPG): platform
+// P-WP-33 (MENU-HOME): «/» — нүүр (AppMenu.cpp urlOk-тэй ижил)
+const urlOk = (u) => (/^https?:\/\//.test(u) ? u.length > 8 && !/[ \t\n"<>]/.test(u) : u === '/' || (u.length > 1 && u[0] === '/' && u[1] !== '/' && !u.includes('\\') && !u.includes(':')));
+// P-WP-33 (MENU-ADMPG): платформын хуудас — cgi/src/meta/AppMenu.cpp platformTarget-тэй ижил
+const PLATFORM_USER = ['account', 'analytics', 'delegations', 'generators', 'ledger-entries', 'metrics', 'reports', 'tasks', 'timetable', 'track'];
+const PLATFORM_ORG_TABS = ['users', 'delegations', 'settings', 'modules', 'connectors', 'api', 'data'];
+const PLATFORM_ADMIN = ['roles', 'permissions', 'impact', 'system-map', 'integrations', 'documents', 'pages', 'screens', 'appearance', 'sso', 'mail', 'organisations', 'packages', 'designer', 'modules', 'states', 'decisions', 'calculations', 'audit'];
+const PLATFORM_PERM_TABS = ['matrix', 'objects', 'fields', 'rows', 'effective']; // P-WP-34: admin/permissions/<таб>
+export const platformOk = (k) => PLATFORM_USER.includes(k) || k === 'org-admin' || (k.startsWith('org-admin/') && PLATFORM_ORG_TABS.includes(k.slice(10))) || k === 'admin'
+  || (k.startsWith('admin/') && PLATFORM_ADMIN.includes(k.slice(6))) || (k.startsWith('admin/permissions/') && PLATFORM_PERM_TABS.includes(k.slice(18)));
+// P-WP-40 (MENU-PLATROLES): навчны `need` — эрх-удирдах маск (AppMenu.cpp needMask/needError-тэй ижил)
+const PLATFORM_PERM_ADMIN = ['admin/permissions', 'admin/audit', 'admin/permissions/matrix', 'admin/permissions/objects', 'admin/permissions/effective'];
+const NEED_BITS = { view: 1, create: 2, edit: 4, Харах: 1, Үүсгэх: 2, Өөрчлөх: 4 };
+export const needMask = (n) => {
+  const parts = typeof n === 'string' ? n.split(',') : Array.isArray(n) && n.every((x) => typeof x === 'string') ? n : null;
+  if (!parts) return 0;
+  let m = 0;
+  for (const p of parts) { const b = NEED_BITS[p.trim()]; if (!b) return 0; m |= b; }
+  return m;
+};
+const needError = (x) => {
+  if (x.need === undefined) return null;
+  if (typeof x.platform !== 'string') return 'need — зөвхөн `platform:` (эрх-удирдах хуудас) навчинд';
+  if (!PLATFORM_PERM_ADMIN.includes(x.platform)) return `need — зөвхөн эрх-удирдах хуудсанд (admin/permissions[/matrix|objects|effective], admin/audit); «${x.platform}»-д биш`;
+  if (!needMask(x.need)) return 'need — view | create | edit (эсвэл Харах | Үүсгэх | Өөрчлөх), нэг эсвэл массив';
+  return null;
+};
+const PLATFORM_TEXT = `${PLATFORM_USER.join(', ')}, org-admin[/${PLATFORM_ORG_TABS.join('|')}], admin[/<хуудас>], admin/permissions/<${PLATFORM_PERM_TABS.join('|')}>`;
+// P-WP-33: platform (мэдэгдэх түлхүүр), view (зөвхөн screen-тэй) — SolutionDeploy.cpp leafExtraError
+const leafExtra = (x, here) => {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  if (x.platform !== undefined && !platformOk(str(x.platform))) return `menu «${here}»: platform «${str(x.platform)}» — мэдэгдэхгүй (боломжит: ${PLATFORM_TEXT})`;
+  if (x.view !== undefined && (x.screen === undefined || !str(x.view))) return `menu «${here}»: view — зөвхөн screen (жагсаалт) зорилттой, хоосон биш`;
+  const ne = needError(x); // P-WP-40
+  if (ne) return `menu «${here}»: ${ne}`;
+  return null;
+};
+// P-WP-41 (MENU-LEAFAPPS): мөрийн `apps` (ба `app`) — AppMenu.cpp appsOf/appsError/appsMeet-тэй ижил
+export const menuAppsOf = (x) => (x && typeof x === 'object' && !Array.isArray(x)
+  ? [...(x.app !== undefined ? [x.app] : []), ...(Array.isArray(x.apps) ? x.apps : [])].map((a) => (typeof a === 'string' ? a.trim() : a)) : []);
+const appsError = (x) => {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  if (x.apps !== undefined && (!Array.isArray(x.apps) || !x.apps.length)) return 'apps — апп id-ийн хоосон биш массив ([mgr, sls])';
+  if (x.app !== undefined && typeof x.app !== 'string') return 'app — апп id (мөр)';
+  for (const a of menuAppsOf(x)) if (typeof a !== 'string' || !/^[a-z0-9-]+$/.test(a)) return `apps — апп id латин [a-z0-9-] («${typeof a === 'string' ? a : JSON.stringify(a)}»)`;
+  return null;
+};
+const appsMeet = (outer, own) => (!outer.length ? own : !own.length ? outer : own.filter((a) => outer.includes(a)));
+const appsCheck = (x, inh, here, out) => {
+  const e = appsError(x);
+  if (e) { out.push(`menu «${here}»: ${e}`); return inh; }
+  const m = appsMeet(inh, menuAppsOf(x));
+  if (inh.length && menuAppsOf(x).length && !m.length) { out.push(`menu «${here}»: apps — эцгийн (зангилаа/under) apps ${JSON.stringify(inh)}-тэй огтлолцолгүй (хэзээ ч харагдахгүй)`); return inh; }
+  return m;
+};
+export function menuIssues(list, at, root, inh = []) {
+  const out = [];
+  if (!Array.isArray(list)) return out;
+  const targets = (x) => MENU_TARGETS.filter((k) => k in x);
+  for (const x of list) {
+    if (isNode(x)) {
+      const under = x.under !== undefined;
+      const name = under ? `under:${underPath(x).join('/')}` : nodeName(x);
+      const here = at ? `${at} › ${name}` : name;
+      const ks = targets(x);
+      if (under && !root) out.push(`menu «${here}»: under зөвхөн дээд түвшинд`);
+      else if (under && !underPath(x).length) out.push(`menu «${here}»: under — зангилааны зам («A/B») заавал`);
+      else if (!under && !name) out.push(`menu «${at || '(дээд түвшин)'}»: зангилаанд label (эсвэл category) заавал`);
+      // P-WP-11: зангилааны өөрийн зорилт (APEX — цэсний мөр өөрөө хуудас бөгөөд дэд мөртэй)
+      if (under && ks.length) out.push(`menu «${here}»: under зангилаанд зорилт (${ks.join(', ')}) хориотой`);
+      else if (ks.length > 1) out.push(`menu «${here}»: зангилаанд screen | table | page | report | url | platform-ийн нэгээс илүүгүй`);
+      else if (ks[0] === 'url' && !urlOk(str(x.url))) out.push(`menu «${here}»: url — http(s)://… эсвэл '/'-ээр эхэлсэн дотоод зам ('//', '\\', ':' хориотой)`);
+      else if (leafExtra(x, here)) out.push(leafExtra(x, here));
+      let nodeApps = inh; // P-WP-41: зангилаа/under-ийн apps — доторх мөрт өвлөгдөнө
+      if (!under && !str(x.label) && x.category !== undefined && (x.apps !== undefined || x.app !== undefined)) out.push(`menu «${here}»: apps — хуучин \`category:\` зангилаанд биш (label: хэлбэрээр)`);
+      else nodeApps = appsCheck(x, inh, here, out);
+      // P-WP-27 (A1-3/A2-6): зангилааны апп/үүргийн зорилт — `targets: [{app|apps, roles, screen|table|page|report|url}]` (under зангилаанд ч)
+      if (x.targets !== undefined) {
+        if (!Array.isArray(x.targets)) out.push(`menu «${here}»: targets массив байх ёстой`);
+        else for (const t of x.targets) {
+          const tk = t && typeof t === 'object' && !Array.isArray(t) ? targets(t) : [];
+          const apps = t && typeof t === 'object' ? [t.app, ...(Array.isArray(t.apps) ? t.apps : [])].filter((a) => a !== undefined) : [];
+          if (tk.length !== 1) out.push(`menu «${here}»: targets — мөр бүрт screen | table | page | report | url | platform-ийн яг нэг нь`);
+          else if (tk[0] === 'url' && !urlOk(str(t.url))) out.push(`menu «${here}»: url — http(s)://… эсвэл '/'-ээр эхэлсэн дотоод зам ('//', '\\', ':' хориотой)`);
+          else if (leafExtra(t, here)) out.push(leafExtra(t, here));
+          else if (!apps.length && !(Array.isArray(t.roles) && t.roles.length)) out.push(`menu «${here}»: targets — app/apps эсвэл roles заавал (анхдагч зорилт — зангилааны өөрийнх)`);
+          else if (apps.some((a) => !/^[a-z0-9-]+$/.test(str(a)))) out.push(`menu «${here}»: targets — app id латин [a-z0-9-]`);
+          else if (nodeApps.length && apps.length && !appsMeet(nodeApps, apps.map(str)).length) out.push(`menu «${here}»: targets apps — зангилааны apps ${JSON.stringify(nodeApps)}-тэй огтлолцолгүй`); // P-WP-41
+        }
+      }
+      if (!Array.isArray(x.items)) out.push(`menu «${here}»: items массив байх ёстой`);
+      else out.push(...menuIssues(x.items, here, false, nodeApps));
+      continue;
+    }
+    // P-WP-11: дээд түвшний навч (зангилаагүй) — зорилттой объект л; мөр (string) хэлбэр дээд түвшинд хориотой хэвээр
+    if (root && (typeof x === 'string' || !x || typeof x !== 'object' || Array.isArray(x) || !targets(x).length)) { out.push('menu: дээд түвшний мөр зангилаа ({label|category|under, items}) эсвэл зорилттой навч ({screen|table|page|report|url|platform, label}) байх ёстой'); continue; }
+    if (typeof x === 'string') continue;
+    if (!x || typeof x !== 'object' || Array.isArray(x)) { out.push(`menu «${at}»: мөр буруу`); continue; }
+    const ks = targets(x);
+    const label = str(x.label);
+    const here = `${at ? `${at} › ` : ''}${label || (ks.length === 1 ? str(x[ks[0]]) : JSON.stringify(x))}`;
+    if (ks.length !== 1) out.push(`menu «${here}»: навчид screen | table | page | report | url | platform-ийн яг нэг нь заавал`);
+    else if (ks[0] === 'url' && !label) out.push(`menu «${here}»: url навчид label заавал`);
+    else if (ks[0] === 'url' && !urlOk(str(x.url))) out.push(`menu «${here}»: url — http(s)://… эсвэл '/'-ээр эхэлсэн дотоод зам ('//', '\\', ':' хориотой)`);
+    else if (ks[0] === 'platform' && !label) out.push(`menu «${here}»: platform навчид label заавал`);
+    else if (leafExtra(x, here)) out.push(leafExtra(x, here));
+    else appsCheck(x, inh, here, out); // P-WP-41 (MENU-LEAFAPPS)
+  }
+  return out;
+}
+// P-WP-33 (MENU-VIEW): `view` — энэ багцын жагсаалтын дэлгэцийн харагдацын нэр (SolutionDeploy.cpp viewIssues-тэй ижил)
+export function menuViewIssues(list, screens, at = '') {
+  const out = [];
+  if (!Array.isArray(list)) return out;
+  const check = (x, here) => {
+    if (!x || typeof x !== 'object' || x.view === undefined || x.screen === undefined) return;
+    const id = str(x.screen), view = str(x.view);
+    const sc = (screens ?? []).find((s) => s && typeof s === 'object' && str(s.id) === id);
+    if (!sc) return;
+    if ((sc.type ?? 'form') !== 'list') { out.push(`menu «${here}»: view — «${id}» жагсаалтын (list) дэлгэц биш`); return; }
+    if (!(Array.isArray(sc.views) ? sc.views : []).some((v) => v && typeof v === 'object' && str(v.name) === view)) out.push(`menu «${here}»: view «${view}» — «${id}» дэлгэцийн views-д алга`);
+  };
+  for (const x of list) {
+    if (!x || typeof x !== 'object' || Array.isArray(x)) continue;
+    const name = x.under !== undefined ? `under:${underPath(x).join('/')}` : nodeName(x);
+    const here = `${at ? `${at} › ` : ''}${name || str(x.label)}`;
+    check(x, here);
+    for (const t of Array.isArray(x.targets) ? x.targets : []) check(t, here);
+    if (Array.isArray(x.items)) out.push(...menuViewIssues(x.items, screens, here));
+  }
+  return out;
+}
+// P-WP-40 (MENU-PLATROLES): цэсний `roles` (зангилаа, навч, targets) — known(нэр) худал бол «үүрэг олдсонгүй» (сервер — menu_skip, мөр бүх хэрэглэгчид)
+export function menuRoleIssues(list, known, at = '') {
+  const out = [];
+  if (!Array.isArray(list)) return out;
+  const check = (x, here) => { for (const r of Array.isArray(x?.roles) ? x.roles : []) if (typeof r === 'string' && !known(r)) out.push(`menu «${here}»: үүрэг «${r}» олдсонгүй (roles.csv / seed groups — энэ эсвэл төслийн өөр багц)`); };
+  for (const x of list) {
+    if (!x || typeof x !== 'object' || Array.isArray(x)) continue;
+    const ks = MENU_TARGETS.filter((k) => k in x);
+    const name = x.under !== undefined ? `under:${underPath(x).join('/')}` : nodeName(x) || str(x.label) || (ks.length === 1 ? str(x[ks[0]]) : '');
+    const here = `${at ? `${at} › ` : ''}${name}`;
+    check(x, here);
+    for (const t of Array.isArray(x.targets) ? x.targets : []) check(t, here);
+    if (Array.isArray(x.items)) out.push(...menuRoleIssues(x.items, known, here));
+  }
+  return out;
+}
+// P-WP-41: цэсний мөр/targets-ийн апп id — known(id) худал бол «апп алга» (SolutionDeploy.cpp plan menu_app-тай ижил мессеж)
+export function menuAppIssues(list, known, at = '') {
+  const out = [];
+  if (!Array.isArray(list)) return out;
+  const seen = new Set();
+  for (const x of list) {
+    if (!x || typeof x !== 'object' || Array.isArray(x)) continue;
+    const here = `${at ? `${at} › ` : ''}${x.under !== undefined ? `under:${underPath(x).join('/')}` : str(x.label)}`;
+    for (const r of [x, ...(Array.isArray(x.targets) ? x.targets : [])])
+      for (const a of menuAppsOf(r)) if (typeof a === 'string' && a && !known(a) && !seen.has(`${here}|${a}`)) {
+        seen.add(`${here}|${a}`);
+        out.push(`menu «${here}»: апп «${a}» — apps.yaml/суусан аппуудад алга (тэр апп суутал энэ мөр аппын цэсэнд харагдахгүй)`);
+      }
+    if (Array.isArray(x.items)) out.push(...menuAppIssues(x.items, known, here));
+  }
+  return out;
+}
+// {name: <багцын нэр — ERD-ийн аппын ангилал>, menu: [дээд түвшний мөр]} — зам (шошгоор) байгаа эсэх
+function menuHasPath(t, path) {
+  if (path.length === 1 && path[0] === str(t.name)) return true;
+  // P-WP-33 (MENU-HOME): дээд түвшний НАВЧ (зангилаа болж хадгалагддаг — `{url: /, label: Эхлэл}`) — шошгоор, ганц алхамтай зам
+  if (path.length === 1 && (t.menu ?? []).some((x) => x && typeof x === 'object' && !Array.isArray(x) && !isNode(x) && MENU_TARGETS.some((k) => k in x) && str(x.label) === path[0])) return true;
+  let level = (t.menu ?? []).filter((x) => isNode(x) && x.under === undefined);
+  for (let i = 0; i < path.length; i++) {
+    const n = level.find((x) => nodeName(x) === path[i]);
+    if (!n) return false;
+    level = (n.items ?? []).filter(isNode);
+  }
+  return true;
+}
+
 export function crossCheck(ctx) {
   const { files, yaml, fileOf, tables, hasTable, strict, machines, add } = ctx;
 
@@ -147,6 +333,15 @@ export function crossCheck(ctx) {
     }
   }
 
+  // ---- WP-T: computed-д user.* — мөрт хадгалагдах тооцоо хэрэглэгчээс хамаарахгүй (SolutionDeploy.cpp annotationSpec, annotation_skip)
+  if (erdFile) for (const [, t] of tables) for (const c of t.columns) for (const g of c.tags ?? []) {
+    if (g.tag !== 'computed') continue;
+    const v = String(g.value ?? '').trim();
+    if (/^calc\s/.test(v)) continue;
+    const bare = v.replace(/'[^']*'|"[^"]*"/g, ' ');
+    if (/(^|[^\p{L}\p{N}_.])user\./u.test(bare)) add('ref', 'error', 'annotation_skip', erdFile, c.line, `computed: «${v}» — user.* (хэрэглэгчийн утга) мөрт хадгалагдах тооцоонд хэрэглэгдэхгүй (дахин бодоход хэрэглэгч алга) — \`default:\` ашиглана уу`);
+  }
+
   // ---- баримтын загвар (document_table, document_paper)
   const docList = asList(ctx.listed.documents).filter((f) => typeof f === 'string' && files[f] !== undefined);
   const docs = docList.length ? docList : Object.keys(files).filter((f) => /\.html$/i.test(f)).sort();
@@ -178,6 +373,18 @@ export function crossCheck(ctx) {
   if (!ctx.required.length) for (const m of machines) for (const tr of m.transitions) for (const a of tr.actions ?? []) {
     if (a.name !== 'generate' || gens.has(str(a.arg))) continue;
     add('ref', 'warning', 'transition_generator', fileOf('states', 'states.mmd'), a.line ?? tr.line, `states.mmd «${m.table}» «${tr.caption}»: generate(${str(a.arg)}) — генератор (generators.yaml) алга`);
+  }
+
+  // ---- T4: states.mmd call(<нэр>) — integrations.yaml outbound (энэ эсвэл төслийн өөр багц — сервер ST1971.ST197115-аас, relinkOutboundCallers) эсвэл
+  // ерөнхий `call(<endpoint> /<зам>)`. Зайтай боловч `/`-гүй нэр (outbound-ийн хэлбэр) аль ч багцад олдохгүй бол сервер «endpoint бүртгэлгүй» болгон
+  // ерөнхий дуудлага болгож хөрвүүлнэ (ажиллахгүй) — transition_call.
+  const igFile0 = fileOf('integrations', 'integrations.yaml');
+  const outs = new Set([...(ctx.projectOutbounds ?? []), ...asList(yaml[igFile0]?.outbound).map((o) => str(o?.name).trim()).filter(Boolean)]);
+  for (const m of machines) for (const tr of m.transitions) for (const a of tr.actions ?? []) {
+    if (a.name !== 'call') continue;
+    const x = str(a.arg).trim(), sp = x.indexOf(' ');
+    if (outs.has(x) || sp < 0 || x.slice(sp + 1).trim().startsWith('/')) continue;
+    add('ref', 'warning', 'transition_call', fileOf('states', 'states.mmd'), a.line ?? tr.line, `states.mmd «${m.table}» «${tr.caption}»: call(${x}) — outbound (integrations.yaml, энэ эсвэл төслийн багц) алга; ерөнхий дуудлага бол call(<endpoint> /<зам>)`);
   }
 
   // ---- reports.yaml эх (report_table, report_ledger, report_layout)
@@ -345,7 +552,7 @@ export function crossCheck(ctx) {
     for (const p of asList(g.params)) if (p && typeof p === 'object' && p.type === 'refs' && (!str(p.table) || (strict && !hasTable(str(p.table))))) blockedGen.add(g);
     for (const gr of [...asList(g.lines), ...(g.rows ? [g.rows] : [])]) if (typeof gr?.from === 'string' && gr.from.trim().startsWith('param.')) {
       const pn = gr.from.trim().slice(6).trim();
-      if (!asList(g.params).some((p) => p?.type === 'refs' && str(p.name) === pn)) blockedGen.add(g);
+      if (!asList(g.params).some((p) => (p?.type === 'refs' || p?.type === 'rows') && str(p.name) === pn)) blockedGen.add(g); // P-WP-32: rows параметр ч (өмнө нь rows-оос эхтэй генератор шалгагдалгүй алгасагддаг байв)
     }
   }
   const metFile = fileOf('metrics', 'metrics.yaml');
@@ -390,6 +597,19 @@ export function crossCheck(ctx) {
   const scrFile = fileOf('screens', 'screens.yaml');
   const scr = yaml[scrFile]?.screens;
   const scrList = Array.isArray(scr) ? scr : scr && typeof scr === 'object' ? Object.entries(scr).map(([id, v]) => ({ id, ...v })) : [];
+  // P-WP-50 (R-PDEFUSER): тайлан/хуудасны params[].default `user.<Нэр>` — code | userCode | org | orgCode | name | role | context.yaml (энэ + requires);
+  // үл мэдэгдэх нэр → анхааруулга (сервер анхдагчгүй болгоно — тайлан null зан төлөвөөр)
+  const userDefOk = (dv) => {
+    let n = dv.trim().slice(5).trim();
+    if (n.length >= 2 && n.startsWith('`') && n.endsWith('`')) n = n.slice(1, -1).trim();
+    return ['code', 'userCode', 'org', 'orgCode', 'name', 'role'].includes(n) || contexts.has(n);
+  };
+  const userDefWarn = (file, where, p) => {
+    if (!p || typeof p !== 'object' || typeof p.default !== 'string' || !p.default.trim().startsWith('user.') || userDefOk(p.default)) return;
+    add('ref', 'warning', 'param_default_user', file, 0, `${where}: параметр «${str(p.name)}»-ийн анхдагч «${p.default.trim()}» — user.code | orgCode | name | role эсвэл context.yaml-ийн контекст (анхдагчгүй болно)`);
+  };
+  for (const r of asList(yaml[repFile]?.reports)) if (r && typeof r === 'object') for (const p of asList(r.params)) userDefWarn(repFile, `reports.yaml «${str(r.name)}»`, p);
+  for (const sc of scrList) if (sc && typeof sc === 'object' && sc.type === 'page') for (const p of asList(sc.params)) userDefWarn(scrFile, `screens.yaml «${str(sc.id)}»`, p);
   // бүлгүүд (SolutionDeploy.cpp §4): roles.csv үүрэг ∪ seed groups ∪ seed хэрэглэгчийн roles ∪ states `хэн` (үүсгэх шилжилтээс бусад)
   const groups = new Set();
   const addG = (n) => { const t = str(n).toLowerCase(); if (t && t !== 'процесс' && t !== 'process') groups.add(t); };
@@ -400,6 +620,111 @@ export function crossCheck(ctx) {
     for (const o of asList(v.organisations)) for (const u of asList(o?.users)) for (const x of asList(u?.roles)) addG(x);
   }
   for (const m of machines) for (const tr of m.transitions) if (!tr.create) for (const w of String(tr.who ?? '').split(',')) addG(w);
-  for (const x of screenErrors(S, scrList, groups)) add('ref', 'error', x.code, scrFile, 0, x.message);
-  for (const x of reportErrors(S, asList(yaml[repFile]?.reports))) add('ref', 'error', x.code, repFile, 0, x.message);
+  // WP-T: `extends: <дэлгэц>` — requires-ийн багцын form дэлгэц; нэр (талбар, хүү grid, үүрэг) эзэмшигчийн хүснэгт + энэ багц + requires-ээр
+  const extScreens = [], extLists = [];
+  const seenExt = new Set();
+  for (const e of scrList.filter((x) => x && typeof x === 'object' && x.extends !== undefined)) {
+    const ref = str(e.extends);
+    const bad = (code, m) => add('ref', 'error', code, scrFile, 0, `screens.yaml extends «${ref}»: ${m}`);
+    if (!asList(e.tabs).length && !asList(e.sections).length && !asList(e.fields).length && !asList(e.actions).length && !asList(e.columns).length && !asList(e.filters).length) { bad('screen_extends', 'tabs, sections, fields, actions (list: columns, filters, actions)-ийн аль нэг заавал'); continue; }
+    const r = ctx.resolveExtends?.(ref, scrList);
+    if (!r) { if (ctx.requiresResolved) bad('screen_extends', 'дэлгэц алга (эзэмшигч багц requires-д, эхлээд суусан байх ёстой)'); continue; }
+    if (r.own) { bad('screen_extends', 'энэ багцын дэлгэц — extends нь өөр (requires-ийн) багцын дэлгэцэд; өөрийнхөө дэлгэцийг шууд засна'); continue; }
+    if (!r.required) { bad('screen_extends', `«${r.key}» багцын дэлгэц — тэр багц requires-д алга`); continue; }
+    const otype = r.screen.type ?? 'form';
+    if (otype !== 'form' && otype !== 'list') { bad('screen_extends', 'зөвхөн form ба list дэлгэцийг өргөтгөнө'); continue; }
+    if (otype === 'form' && (asList(e.columns).length || asList(e.filters).length)) { bad('screen_extends', 'form дэлгэцэд columns/filters биш — tabs, sections, fields, actions'); continue; }
+    if (otype === 'list' && asList(e.fields).length) { bad('screen_extends', 'list дэлгэцэд fields биш — columns, filters, actions, tree, back'); continue; } // P-WP-51
+    const id = str(r.screen.id);
+    if (seenExt.has(id)) { bad('screen_extends', 'нэг дэлгэцийг багц нэг л удаа өргөтгөнө (нэг мөрт нэгтгэнэ үү)'); continue; }
+    seenExt.add(id);
+    if (otype === 'list') { // P-WP-27 (A2-8): list — багана/шүүлт/товч
+      const lo = listOutline(r.screen);
+      for (const f of ctx.foreignScreens ?? []) if (f.required && f.key !== r.key) for (const o of f.screens) if (o && o.extends !== undefined && (str(o.extends) === id || str(o.extends) === str(r.screen.title))) listExtensionErrors(o, lo);
+      for (const x of listExtensionErrors(e, lo)) add('ref', 'error', x.code, scrFile, 0, x.message);
+      extLists.push(listExtensionAsScreen(e, id, str(r.screen.table), asList(r.screen.filters).filter((f) => f && typeof f === 'object').map(filterName).filter(Boolean)));
+      continue;
+    }
+    const outline = screenOutline(r.screen);
+    // requires-ийн бусад багцын ижил дэлгэцийн өргөтгөл (сервер дээр аль хэдийн нийлсэн) — байрлал/давхцалд
+    for (const f of ctx.foreignScreens ?? []) if (f.required && f.key !== r.key) for (const o of f.screens) if (o && o.extends !== undefined && (str(o.extends) === id || str(o.extends) === str(r.screen.title))) extensionErrors(o, outline);
+    for (const x of extensionErrors(e, outline)) add('ref', 'error', x.code, scrFile, 0, x.message);
+    extScreens.push(extensionAsScreen(e, id, str(r.screen.table)));
+  }
+  // P-WP-29: form дэлгэцийн хүснэгт (childGrid/list `form`, G-ALTFORM/G-LISTFORM) ба аппын id (хувилбарын `apps`, G-APPFORM) — энэ + requires багц
+  const formTableOf = (id) => {
+    const isForm = (x) => x && typeof x === 'object' && x.extends === undefined && str(x.id) === id;
+    const o = scrList.find(isForm);
+    if (o) return (o.type ?? 'form') === 'form' ? str(o.table) : null;
+    for (const f of ctx.foreignScreens ?? []) { const x = f.screens.find(isForm); if (x) return f.required && (x.type ?? 'form') === 'form' ? str(x.table) : null; }
+    return ctx.requiresResolved ? null : undefined; // undefined — requires уншигдаагүй (сервер шалгана)
+  };
+  const appIds = new Set([...asList(yaml[fileOf('apps', 'apps.yaml')]?.apps).map((a) => str(a?.id)), ...(ctx.foreignScreens ?? []).flatMap((f) => f.apps ?? [])].filter(Boolean));
+  const appKnown = (id) => appIds.has(id) || (!ctx.requiresResolved ? undefined : false);
+  for (const x of screenErrors(S, [...scrList.filter((x) => !(x && typeof x === 'object' && x.extends !== undefined)), ...extScreens, ...extLists], groups, contexts, { formTableOf, appKnown })) add('ref', x.severity ?? 'error', x.code, scrFile, 0, x.message);
+  for (const x of reportErrors(S, asList(yaml[repFile]?.reports), asList(yaml[ledFile]?.ledgers))) add('ref', 'error', x.code, repFile, 0, x.message);
+  // P-WP-5/6: жагсаалтын filters/tree/actions, хуудасны params ба report блокийн params (SolutionDeploy.cpp translateListUi/translatePageScreen)
+  for (const x of uiErrors(S, [...scrList, ...extLists], asList(yaml[repFile]?.reports), (ctx.foreignScreens ?? []).filter((f) => f.required), asList(yaml[genFile]?.generators))) add('ref', x.severity ?? 'error', x.code, scrFile, 0, x.message);
+
+  // ---- T4: формын таб `block: report` (params-гүй) — тайланд формын хүснэгт рүү заасан ref параметр заавал (SolutionDeploy screens: screen_skip)
+  const ownReports = new Map(asList(yaml[repFile]?.reports).filter((r) => r && typeof r === 'object').map((r) => [str(r.name).trim().toLowerCase(), r]));
+  for (const sc of scrList) {
+    if (!sc || typeof sc !== 'object' || (sc.type !== undefined && sc.type !== 'form')) continue;
+    const tbl = S.table(str(sc.table));
+    if (!tbl) continue;
+    for (const t of asList(sc.layout?.tabs)) {
+      if (!t || typeof t !== 'object' || t.block !== 'report' || t.params !== undefined) continue;
+      const r = ownReports.get(str(t.report).trim().toLowerCase());
+      if (!r) continue; // requires-ийн тайлан — сервер дээр
+      if (!asList(r.params).some((p) => p && p.type === 'ref' && S.table(str(p.table)) === tbl))
+        add('ref', 'error', 'screen_skip', scrFile, 0, `screens.yaml «${str(sc.id)}»: таб «${str(t.title)}»: тайлан «${str(t.report)}»-д «${str(sc.table)}» руу заасан ref параметр алга — шүүлтгүй харагдана`);
+    }
+  }
+  // ---- T4: inbound lookup.where / lookups[].where-ийн түлхүүр — хүснэгтийн багана эсвэл `id` (SolutionDeploy hooks: integration_skip)
+  for (const h of asList(yaml[igFile]?.inbound)) {
+    if (!h || typeof h !== 'object') continue;
+    const parts = [...(h.lookup && typeof h.lookup === 'object' ? [['lookup', h.lookup]] : []), ...asList(h.lookups).filter((l) => l && typeof l === 'object').map((l) => [`lookups «${str(l.as)}»`, l])];
+    for (const [what, l] of parts) {
+      const lt = S.table(str(l.table));
+      if (!lt || S.opaque?.(lt) || !l.where || typeof l.where !== 'object' || Array.isArray(l.where)) continue;
+      for (const k of Object.keys(l.where)) if (k !== 'id' && !S.column(lt, k))
+        add('ref', 'error', 'integration_skip', igFile, 0, `integrations.yaml «${str(h.name)}»: ${what}.where «${k}» — багана алга`);
+    }
+  }
+  // ---- P-WP-2/3/7: apps.yaml (app_id, app_home, breadcrumb_target, branding_logo) ба branding.yaml лого
+  appsErrors({ files, yaml, fileOf, hasTable, strict, screens: scrList, foreignScreens: ctx.foreignScreens, add,
+    knownRole: ctx.requiresResolved !== false ? (r) => groups.has(str(r).toLowerCase()) || (ctx.foreignRoles ?? new Set()).has(str(r).toLowerCase()) : null, // P-WP-43
+    reports: new Set(asList(yaml[fileOf('reports', 'reports.yaml')]?.reports).map((r) => str(r?.name)).filter(Boolean)) });
+
+  // ---- P-WP-1: screens.yaml `menu` — модны бүтэц (menu_item), `under:` (menu_under), erdCategory (menu_erd_hidden) — SolutionDeploy.cpp menutree
+  const scrDoc = yaml[scrFile];
+  if (scrDoc && typeof scrDoc === 'object' && scrDoc.menu !== undefined) {
+    const list = menuItems(scrDoc);
+    for (const m of menuIssues(list, '', true)) add('ref', 'error', 'menu_item', scrFile, 0, `screens.yaml ${m}`);
+    for (const m of menuViewIssues(list, asList(scrDoc.screens))) add('ref', 'error', 'menu_item', scrFile, 0, `screens.yaml ${m}`); // P-WP-33 (MENU-VIEW)
+    // P-WP-41 (MENU-LEAFAPPS): цэсний apps — энэ эсвэл төслийн өөр багцын apps.yaml-д алга бол анхааруулга (сервер: menu_app)
+    for (const m of menuAppIssues(list, (id) => appIds.has(id))) add('ref', 'warning', 'menu_app', scrFile, 0, `screens.yaml ${m}`);
+    // P-WP-40: цэсний үүрэг — энэ багцын бүлгүүд ∪ төслийн бусад багцын roles.csv (сервер суусан бүх бүлгээр шийддэг); requires уншигдаагүй бол алгасна
+    if (ctx.requiresResolved !== false) {
+      const known = (r) => groups.has(str(r).toLowerCase()) || (ctx.foreignRoles ?? new Set()).has(str(r).toLowerCase());
+      for (const m of menuRoleIssues(list, known)) add('ref', 'error', 'menu_skip', scrFile, 0, `screens.yaml ${m}`);
+    }
+    const hidden = menuErdHidden(scrDoc), own = str(ctx.manifest?.name);
+    for (const mc of list) {
+      if (!mc || typeof mc !== 'object' || Array.isArray(mc)) continue;
+      if (mc.under !== undefined) {
+        const path = underPath(mc);
+        if (!path.length || !ctx.requiresResolved) continue; // requires-ийн багц уншигдаагүй — сервер дээр
+        const where = (menus) => menus.some((t) => menuHasPath(t, path));
+        let m = null;
+        if (where([{ name: own, menu: list }])) m = null; // P-WP-11: энэ багцын (label) зангилаа — deploy зангилааг үүсгэсний дараа нэмнэ
+        else {
+          const req = (ctx.foreignMenus ?? []).find((f) => f.required && where([f]));
+          const other = (ctx.foreignMenus ?? []).find((f) => !f.required && where([f]));
+          if (!req) m = other ? `«${other.key}» багцын зангилаа — тэр багц requires-д алга` : 'цэсний зангилаа алга (эзэмшигч багц requires-д, эхлээд суусан байх ёстой)';
+        }
+        if (m) add('ref', 'error', 'menu_under', scrFile, 0, `screens.yaml menu under «${path.join('/')}»: ${m}`);
+      } else if (hidden && nodeName(mc) === own) add('ref', 'error', 'menu_erd_hidden', scrFile, 0, `screens.yaml menu «${nodeName(mc)}»: erdCategory: hidden үед аппын (ERD) ангилал (багцын нэр)-д мөр байршуулахгүй — өөр нэр өгнө үү`);
+    }
+  }
 }

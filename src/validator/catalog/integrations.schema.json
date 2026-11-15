@@ -53,7 +53,7 @@
           },
           "path": {
             "type": "string",
-            "description": "URL-ийн түлхүүрийн дараах замын загвар, жишээ нь /{invoice} → path.invoice (заавал; тохирохгүй бол 404)",
+            "description": "URL-ийн түлхүүрийн дараах замын загвар, жишээ нь /{ref} → path.ref (заавал; тохирохгүй бол 404)",
             "x-source": "cgi/src/integration/Webhook.cpp",
             "pattern": "^(/\\{[A-Za-z_][A-Za-z0-9_]*\\})+$"
           },

@@ -41,9 +41,21 @@
       "properties": {
         "userOverride": {
           "type": "string",
-          "enum": ["merge", "replace"],
+          "enum": [
+            "merge",
+            "replace"
+          ],
           "description": "roles.csv «@<нэвтрэх нэр>» мөр: merge (анхдагч) — бүлгийн эрхтэй нэмэгдэнэ; replace — тухайн хүснэгт/объектод бүлгийн эрхийг бүрэн дарна (0 = хандахгүй)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:2248"
+        },
+        "screenContext": {
+          "type": "string",
+          "enum": [
+            "open",
+            "strict"
+          ],
+          "description": "Дэлгэцийн контекстын горим (P-WP-18): open (анхдагч) — API шууд (X-Bj-Screen-гүй) хүсэлтэд хүснэгтийн эрх л; strict — хатуу горим: идэвхтэй дэлгэцтэй хүснэгтийн бичилт/шилжилтийг (API-д ч) тэр хүснэгтийн аль нэг дэлгэц (шилжилтэд — товч/kanban-аар санал болгосон) эсвэл `api:<хүснэгт>` объект зөвшөөрөх ёстой. Хүснэгтийг эзэмшдэг/тааруулсан эсвэл түүнд дэлгэцтэй аль нэг багц strict бол хүснэгт strict",
+          "x-source": "cgi/src/screen/Screen.cpp strictScreenContext"
         }
       }
     },
@@ -284,6 +296,22 @@
         "bpmn": {
           "description": "BPMN процесс",
           "x-source": "cgi/src/solution/Package.cpp:585",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "apps": {
+          "description": "Апп, breadcrumb (P-WP-2/3)",
+          "x-scalar-or-list": true,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "branding": {
+          "description": "Харагдац (P-WP-7)",
           "x-scalar-or-list": true,
           "type": "array",
           "items": {

@@ -27,16 +27,22 @@
             "required": ["name"],
             "properties": {
               "name": { "type": "string", "description": "Параметрийн нэр", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
-              "type": { "type": "string", "enum": ["date", "datetime", "number", "text", "ref", "refs", "rows"], "description": "Төрөл (анхдагч text); rows — ledger/тайлангийн мөрөөс сонголт (from: {ledger, by} | {report}, key; `from: param.<Нэр>`, `x in (param.<Нэр>.<талбар>)`; утгыг сервер эх мөрөөс дахин гаргана — T3b WP-N); datetime — огноо + цаг (UI огноо-цаг, токен now; T3b WP-L); ref — лавлах хүснэгтийн мөр (param.<Нэр>.<Багана> FK замаар), UI сонгогч; refs — сонгосон олон мөр (жагсаалтын сонголт; `lines.from`/`rows.from: param.<Нэр>`, T3 WP-D)", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
+              "type": { "type": "string", "enum": ["date", "datetime", "number", "text", "boolean", "ref", "refs", "rows"], "description": "boolean — checkbox (true | false; илгээгээгүй бол default эсвэл false — P-WP-35 G-GENPOPT). Төрөл (анхдагч text); rows — ledger/тайлангийн мөрөөс сонголт (from: {ledger, by} | {report}, key; `from: param.<Нэр>`, `x in (param.<Нэр>.<талбар>)`; утгыг сервер эх мөрөөс дахин гаргана — T3b WP-N); datetime — огноо + цаг (UI огноо-цаг, токен now; T3b WP-L); ref — лавлах хүснэгтийн мөр (param.<Нэр>.<Багана> FK замаар), UI сонгогч; refs — сонгосон олон мөр (жагсаалтын сонголт; `lines.from`/`rows.from: param.<Нэр>`, T3 WP-D)", "x-source": "cgi/src/solution/DeployCalc.inc:279" },
               "table": { "type": "string", "x-ref": "table", "description": "type: ref, refs — лавлах/сонгох мөрийн хүснэгт (мөр бүр хэрэглэгчид харагдах ёстой)", "x-source": "cgi/src/solution/DeployCalc.inc:283" },
               "from": {
                 "anyOf": [ { "$ref": "#/$defs/ledgerFrom" }, { "type": "object", "required": ["report"], "additionalProperties": false, "properties": { "report": { "type": "string", "description": "reports.yaml-ийн тайлангийн нэр (хэрэглэгчийн эрхээр ажиллана; баганын шошго = талбар)", "x-source": "cgi/src/solution/DeployCalc.inc:rowsParam" } } } ],
-                "description": "type: rows — сонгох мөрийн эх: {ledger, by, where, from, to, scope} (хэмжээс + хэмжигдэхүүн) эсвэл {report: <нэр>} (T3b WP-N, Тоду G-ST-02)",
+                "description": "type: rows — сонгох мөрийн эх: {ledger, by, where, from, to, scope} (хэмжээс + хэмжигдэхүүн) эсвэл {report: <нэр>} (T3b WP-N)",
                 "x-source": "cgi/src/solution/DeployCalc.inc:rowsParam"
               },
               "key": { "$ref": "#/$defs/strList", "description": "type: rows — сонгосон мөрийг таних талбарууд (ledger-д анхдагч by; тайланд заавал)", "x-source": "cgi/src/solution/DeployCalc.inc:rowsParam" },
               "required": { "type": "boolean", "description": "false — хоосон байж болно (анхдагч true)", "x-source": "cgi/src/state/Generator.cpp:62" },
-              "default": { "type": ["string", "number", "boolean"], "description": "Анхдагч утга (today, last_month_end …); `user.<Нэр>` — ажиллуулсан хэрэглэгчийн code/name/role/org эсвэл сессийн контекст (context.yaml; T3b WP-L)", "x-source": "cgi/src/solution/DeployCalc.inc:defaultUser" }
+              "default": { "type": ["string", "number", "boolean"], "description": "Анхдагч утга (today, last_month_end …); `user.<Нэр>` — ажиллуулсан хэрэглэгчийн code/name/role/org эсвэл сессийн контекст (context.yaml; T3b WP-L). P-WP-32 (R-ROWSDEF) type: rows — `all` (эх мөр бүгд) эсвэл нөхцөл (X0, мөрийн талбараар) — анхдагч сонголт: UI «☑», параметр илгээгээгүй бол сервер ч ([] — сонголтгүй)", "x-source": "cgi/src/solution/DeployCalc.inc:defaultUser" },
+              "multiline": { "type": "boolean", "description": "P-WP-32 (G-TXTLIST): type: text — олон мөрт текст (UI textarea); `from: {lines: param.<Нэр>}`-ээр мөр бүрийг эх мөр болгоно", "x-source": "cgi/src/solution/DeployCalc.inc:compileGenerator" },
+              "label": { "type": "string", "description": "P-WP-35 (G-PARAMLBL): UI-ийн шошго (цонх, бөөн үйлдэл, «Тооцоолол» хуудас); API/`param.<Нэр>` түлхүүр нь name хэвээр", "x-source": "cgi/src/solution/DeployCalc.inc:compileGenerator" },
+              "options": { "type": "array", "description": "P-WP-35 (G-GENPOPT): type text | number — сонголтын утгууд: утга эсвэл {value, label} (APEX radio/select); өөр утга → 400; default нь сонголтын нэг", "items": { "anyOf": [ { "type": ["string", "number"] }, { "type": "object", "required": ["value"], "additionalProperties": false, "properties": { "value": { "type": ["string", "number"] }, "label": { "type": "string" } } } ] }, "x-source": "cgi/src/state/GenParams.h:normalizeOptions" },
+              "display": { "enum": ["radio", "select"], "description": "P-WP-35 (G-GENPOPT): options-ийн харагдац — select (анхдагч) | radio", "x-source": "cgi/src/solution/DeployCalc.inc:compileGenerator" },
+              "split": { "type": "string", "description": "P-WP-35 (G-GENTRANS): multiline: true текстийн `x in (param.<Нэр>)` задлалын regex (анхдагч мөр/таслал/цэгтэй таслал); жишээ '\\s+'", "x-source": "cgi/src/solution/DeployCalc.inc:compileGenerator" },
+              "where": { "type": "string", "description": "P-WP-35 (G-REFSDEF): type refs — сонгох мөрийн нөхцөл (X0: мөрийн талбар, doc.*, param.*, user.*, balance(<ledger>, …)); сонгосон ч тэнцээгүй мөр анхааруулгатай алгасагдана (R-ROWSDEF-тэй ижил); default: all | <X0> — анхдагч сонголт", "x-source": "cgi/src/solution/DeployCalc.inc:refsDefs" }
             }
           }
         },
@@ -72,7 +78,8 @@
         },
         "when": { "type": "string", "description": "T3b WP-M (N-09): нөхцөл (тооцооны хэл) — худал бол генератор юу ч хийхгүй; төгсгөлд «мессеж» — анхааруулга", "x-source": "cgi/src/state/Generator.cpp:when" },
         "require": { "type": ["string", "array", "object"], "description": "T3b WP-M (N-09): шаардлага '<X0> «мессеж»' (жагсаалт эсвэл {if, message}) — худал бол алдаа, дуудагчийн бичилт/шилжилт бүхэлдээ буцна (хаагдсан өдөр/үеийн хориг, guard); require-тэй генератор биегүй байж болно", "x-source": "cgi/src/state/Generator.cpp:require" },
-        "skipEmpty": { "type": ["boolean", "array", "string"], "items": { "type": "string" }, "description": "T3b WP-M (N-09): true — мөргүй бол толгой үүсгэхгүй (чимээгүй); [<толгойн багана>] — тэдгээр бүгд 0/хоосон бол ч (нийлбэр 0)", "x-source": "cgi/src/state/Generator.cpp:skipEmpty" }
+        "skipEmpty": { "type": ["boolean", "array", "string"], "items": { "type": "string" }, "description": "T3b WP-M (N-09): true — мөргүй бол толгой үүсгэхгүй (чимээгүй); [<толгойн багана>] — тэдгээр бүгд 0/хоосон бол ч (нийлбэр 0)", "x-source": "cgi/src/state/Generator.cpp:skipEmpty" },
+        "emptyHeader": { "type": "boolean", "description": "T4: true — мөр олдохгүй ч толгойг (мөргүй) үүсгэнэ (анхдагч: «мөр алга — баримт үүсгэсэнгүй» анхааруулга); skipEmpty-тэй хамт болохгүй", "x-source": "cgi/src/state/Generator.cpp:emptyHeader" }
       }
     },
     "groupCommon": {
@@ -86,7 +93,7 @@
       "type": "object",
       "required": ["from"],
       "additionalProperties": false,
-      "description": "T3b WP-N (N-10, Тоду core G-04): эх мөр бүрийг өөр хүснэгтийн тохирох мөр бүрээр үржүүлнэ (A × B — гишүүн × дэд ангилал); map/order-д нэр нь B, `row.<Багана>` (эсвэл as: нэр) — A; бүлгийн filter нь A-д",
+      "description": "T3b WP-N (N-10): эх мөр бүрийг өөр хүснэгтийн тохирох мөр бүрээр үржүүлнэ (A × B — гишүүн × дэд ангилал); map/order-д нэр нь B, `row.<Багана>` (эсвэл as: нэр) — A; бүлгийн filter нь A-д",
       "x-source": "cgi/src/solution/DeployCalc.inc:groupSql",
       "properties": {
         "from": { "type": "string", "x-ref": "table", "description": "B хүснэгт", "x-source": "cgi/src/solution/DeployCalc.inc:groupSql" },
@@ -145,6 +152,8 @@
         "order": { "$ref": "#/$defs/groupCommon/order" },
         "partition": { "$ref": "#/$defs/groupCommon/partition" },
         "nonzero": { "$ref": "#/$defs/groupCommon/nonzero" },
+        "transition": { "anyOf": [ { "type": "string" }, { "type": "object", "required": ["button"], "additionalProperties": false, "properties": { "button": { "type": "string", "description": "Шилжилтийн товчны нэр/код" }, "as": { "enum": ["user", "process"], "description": "user — дуудагчийн эрхээр (хүснэгтийн Өөрчлөх, мөрийн шүүлт, шилжилтийн `хэн:`), guard; мөрийн алдаа анхааруулга (бусад мөр үргэлжилнэ); process (анхдагч, хуучин) — ProcessOnly шилжилтийг ч зөвшөөрнө (`хэн:`, guard шалгана), мөрийн алдаа бүх ажиллалтыг буцаана" } } } ], "description": "T4: таарсан мөр бүрийг төлөвийн машинаар шилжүүлэх (товчны нэр/код; процессын эрхээр, шилжилтийн action-уудтай; тухайн төлвөөс шилжилтгүй мөрийг алгасна) — төлвийн баганыг set-ээр шууд бичихгүй. P-WP-35 (G-GENTRANS): `{button, as: user}` — задалсан текстээр (`filter: Дугаар in (param.<multiline>)`) олсон БАЙГАА баримтыг хэрэглэгчийн эрхээр шилжүүлэх", "x-source": "cgi/src/state/Generator.cpp:updates.transition" },
+        "org": { "enum": ["self", "children", "subtree"], "description": "T4 WP-U: шинэчлэх мөрийн байгууллагын хүрээ — self (анхдагч; ажиллаж буй байгууллага), children (өөрөө + шууд охин байгууллага, ST0005 мод), subtree (өөрөө + бүх доод байгууллага); хэзээ ч дээш/ах дүү биш; зөвхөн байгууллагын хүрээтэй хүснэгтэд", "x-source": "cgi/src/solution/DeployCalc.inc:groupSql" },
         "set": { "$ref": "#/$defs/colMap", "description": "Шинэ утгууд", "x-source": "cgi/src/solution/DeployCalc.inc:263" }
       }
     },
@@ -152,10 +161,12 @@
       "anyOf": [
         { "$ref": "#/$defs/ledgerFrom" },
         { "$ref": "#/$defs/explodeFrom" },
+        { "$ref": "#/$defs/daysFrom" },
+        { "$ref": "#/$defs/linesFrom" },
         { "type": "string", "pattern": "^param\\.", "description": "Сонгосон мөрүүд: param.<refs параметр> (T3 WP-D) эсвэл param.<rows параметр> — ledger/тайлангийн сонгосон мөр, талбар = хэмжээс/хэмжигдэхүүн/баганын шошго (T3b WP-N)", "x-source": "cgi/src/solution/DeployCalc.inc:refsParams" },
         { "type": "string", "x-ref": "table", "description": "Эх хүснэгт" }
       ],
-      "description": "Мөрийн эх: хүснэгт | param.<refs параметр> | {ledger: …} | {explode: …}",
+      "description": "Мөрийн эх: хүснэгт | param.<refs параметр> | {ledger: …} | {explode: …} | {days: {from, to}} | {lines: <текст>, split}",
       "x-source": "cgi/src/solution/DeployCalc.inc:246"
     },
     "ledgerFrom": {
@@ -167,7 +178,43 @@
         "scope": { "type": "string", "enum": ["exact", "root", "subtree"], "description": "Байгууллагын хүрээ (анхдагч exact)", "x-source": "cgi/src/solution/DeployCalc.inc:151" },
         "from": { "type": ["string", "number"], "x-expr": "x0", "description": "Эхлэх огноо", "x-source": "cgi/src/solution/DeployCalc.inc:154" },
         "to": { "type": ["string", "number"], "x-expr": "x0", "description": "Дуусах огноо", "x-source": "cgi/src/solution/DeployCalc.inc:154" },
-        "where": { "type": "object", "additionalProperties": { "type": "string" }, "description": "<хэмжээс | лавлах хэмжээс.Багана>: '<загвар>' ('11*|12*', '!…') — шинжээр шүүхэд лавлах мөрийн баганаар", "x-source": "cgi/src/solution/DeployCalc.inc:172" }
+        "where": {
+          "anyOf": [
+            { "type": "object", "additionalProperties": { "type": "string" } },
+            { "type": "string", "x-expr": "x0" }
+          ],
+          "description": "<хэмжээс | лавлах хэмжээс.Багана>: '<загвар>' ('11*|12*', '!…') — шинжээр шүүхэд лавлах мөрийн баганаар. P-WP-32 (R-ROWSDEF): `type: rows` параметрийн эхэд текст илэрхийлэл (X0) — бүлэглэсэн мөрийн талбар, doc.*, param.*, user.*, balance(<өөр ledger>, <хэмжигдэхүүн>, <хэмжээс>: <утга>) — тэнцээгүй мөр сонгогчид харагдахгүй, сонгосон ч алгасагдана (анхааруулга)",
+          "x-source": "cgi/src/solution/DeployCalc.inc:172"
+        }
+      }
+    },
+    "linesFrom": {
+      "type": "object",
+      "required": ["lines"],
+      "additionalProperties": false,
+      "description": "P-WP-32 (G-TXTLIST): олон мөрт текстийг (param.<Нэр> — `multiline: true` параметр, эсвэл илэрхийлэл) мөр болгон задлана — хэсэг бүр trim, хоосон алгасагдана, ≤ 1000 мөр (олон бол алдаа); map/filter-т `value` (текст), `n` (1-ээс эхлэх дугаар), `row.value` г.м. ч",
+      "x-source": "cgi/src/solution/DeployCalc.inc:sourceSql",
+      "properties": {
+        "lines": { "type": "string", "x-expr": "x0", "description": "Текст: param.<Нэр> | илэрхийлэл", "x-source": "cgi/src/solution/DeployCalc.inc:sourceSql" },
+        "split": { "type": "string", "description": "Тусгаарлагч regex (анхдагч `[\\r\\n,;]+` — мөр, таслал, цэгтэй таслал; ≤ 100 тэмдэгт)", "x-source": "cgi/src/report/ReportDsl.cpp:textLinesSql" }
+      }
+    },
+    "daysFrom": {
+      "type": "object",
+      "required": ["days"],
+      "additionalProperties": false,
+      "description": "P-WP-30 (G-DAYSERIES): огнооны цуваа — [from, to] өдөр бүр нэг мөр (хил орно, ≤ 1000 өдөр — урт бол алдаа); map/filter-т `date` (огноо), `n` (1-ээс эхлэх дугаар), `weekday` (ISO 1 = Даваа … 7 = Ням), `row.date` г.м. ч; утгагүй хил эсвэл to < from → мөргүй",
+      "x-source": "cgi/src/solution/DeployCalc.inc:sourceSql",
+      "properties": {
+        "days": {
+          "type": "object",
+          "required": ["from", "to"],
+          "additionalProperties": false,
+          "properties": {
+            "from": { "type": ["string", "number"], "x-expr": "x0", "description": "Эхний өдөр: param.<Нэр> | огнооны токен | илэрхийлэл", "x-source": "cgi/src/solution/DeployCalc.inc:sourceSql" },
+            "to": { "type": ["string", "number"], "x-expr": "x0", "description": "Сүүлийн өдөр (орно)", "x-source": "cgi/src/solution/DeployCalc.inc:sourceSql" }
+          }
+        }
       }
     },
     "explodeFrom": {

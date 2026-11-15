@@ -29,5 +29,6 @@
   {"name": "миний даалгавар блок", "source": "cgi/src/solution/SolutionDeploy.cpp:1717", "description": "Хэрэглэгчийн нээлттэй BPMN даалгаврууд"},
   {"name": "grid блок", "source": "cgi/src/solution/SolutionDeploy.cpp:1718", "description": "Хуудсан дээрх хүснэгтийн богино жагсаалт (эрэмбэ, мөрийн тоо)"},
   {"name": "тайлан блок", "source": "cgi/src/solution/SolutionDeploy.cpp:1727", "description": "Тайланг хуудсанд график (bar|line|pie)-тай харуулах"},
-  {"name": "цэс", "source": "cgi/src/solution/SolutionDeploy.cpp:2722", "description": "Ангилал × дэлгэц/хүснэгт/хуудасны цэс, дарааллаар"}
+  {"name": "цэс", "source": "cgi/src/solution/SolutionDeploy.cpp:2722", "description": "Ангилал × дэлгэц/хүснэгт/хуудасны цэс, дарааллаар"},
+  {"name": "дэлгэцийн өргөтгөл", "source": "cgi/src/screen/ScreenExtension.h", "description": "Өөр (requires-ийн) багцын form дэлгэцэд хэсэг/таб/хүү grid/товч нэмэх — screens.yaml `{extends: <дэлгэц>, tabs, sections, actions}`, байрлал `tab`/`after`; purge — зөвхөн өөрийн хэсэг; эзэмшигчийг дахин deploy хийхэд хэвээр (WP-T)"}
 ]

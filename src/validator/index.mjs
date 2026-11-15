@@ -10,7 +10,7 @@ import { parseDbml } from './dbml.mjs';
 import { parseRequirements, parseAcceptance, parseRoles, parseStates } from './parsers.mjs';
 import { validateSchema } from './schema.mjs';
 import { balance } from './expr.mjs';
-import { crossCheck } from './crossref.mjs';
+import { crossCheck, menuItems } from './crossref.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // платформ дотор: docs/brd-standard/catalog; CLI-ийн хуулбарт (cli/src/validator/catalog) sync-validator хамт хуулна
@@ -99,6 +99,55 @@ export function validatePackage(files, opts = {}) {
     for (const [lf, txt] of Object.entries(dep.files)) if (/(^|\/)ledgers\.ya?ml$/i.test(lf)) { const r = loadYaml(txt); if (!r.error) foreignLedgers.push(r.value); }
     for (const [lf, txt] of Object.entries(dep.files)) if (/(^|\/)context\.ya?ml$/i.test(lf)) { const r = loadYaml(txt); if (!r.error) foreignContexts.push(r.value); } // T3b WP-L: user.<контекст>
   }
+  // WP-T: screens.yaml `extends` — өөр багцын form дэлгэц (requires-ийн дамжсан хаалтад байх ёстой; SolutionDeploy.cpp screen_extends)
+  const reqKey = (r) => (typeof r === 'string' ? r.split(/[@\s]/)[0] : r?.key);
+  const closure = new Set();
+  for (const stack = [...required]; stack.length;) {
+    const k = stack.pop();
+    if (!k || closure.has(k)) continue;
+    closure.add(k);
+    const dep = opts.packages?.get(k);
+    const mf = dep && Object.keys(dep.files).find((f) => /^manifest\.ya?ml$/i.test(f));
+    const m = mf ? loadYaml(dep.files[mf]) : null;
+    if (m && !m.error) for (const r of asList(m.value?.requires)) stack.push(reqKey(r));
+  }
+  const screensIn = (fs) => {
+    const f = Object.keys(fs).find((k) => /(^|\/)screens\.ya?ml$/i.test(k));
+    const r = f ? loadYaml(fs[f]) : null;
+    const v = r && !r.error ? r.value?.screens : null;
+    return Array.isArray(v) ? v : v && typeof v === 'object' ? Object.entries(v).map(([id, x]) => ({ id, ...x })) : [];
+  };
+  const foreignScreens = [];
+  // P-WP-29 (G-APPFORM): бусад багцын apps.yaml-ын аппын id (хувилбар маягтын `apps`)
+  const appsIn = (fs) => { const f = Object.keys(fs).find((k) => /(^|\/)apps\.ya?ml$/i.test(k)); const r = f ? loadYaml(fs[f]) : null; return r && !r.error ? asList(r.value?.apps).map((a) => String(a?.id ?? '').trim()).filter(Boolean) : []; };
+  for (const [k, dep] of opts.packages ?? []) if (k !== manifest.key) foreignScreens.push({ key: k, required: closure.has(k), screens: screensIn(dep.files ?? {}), apps: appsIn(dep.files ?? {}) });
+  const requiresResolved = [...closure].every((k) => opts.packages?.has(k));
+  // P-WP-1: screens.yaml `menu` `under:` — бусад багцын мод (нэр = ERD-ийн аппын ангилал)
+  const foreignMenus = [];
+  for (const [k, dep] of opts.packages ?? []) {
+    if (k === manifest.key) continue;
+    const fs = dep.files ?? {};
+    const sf = Object.keys(fs).find((f) => /(^|\/)screens\.ya?ml$/i.test(f)), mf = Object.keys(fs).find((f) => /^manifest\.ya?ml$/i.test(f));
+    const sd = sf ? loadYaml(fs[sf]) : null, md = mf ? loadYaml(fs[mf]) : null;
+    foreignMenus.push({ key: k, required: closure.has(k), name: String(md && !md.error ? md.value?.name ?? '' : '').trim(), menu: sd && !sd.error ? menuItems(sd.value) : [] });
+  }
+  // P-WP-40: төслийн бусад багцын үүрэг (roles.csv) — цэсний `roles` шалгалтад (сервер суусан бүх бүлгээр шийддэг)
+  const foreignRoles = new Set();
+  for (const [k, dep] of opts.packages ?? []) {
+    if (k === manifest.key) continue;
+    for (const [lf, txt] of Object.entries(dep.files ?? {})) if (/(^|\/)roles\.csv$/i.test(lf)) for (const r of parseRoles(txt).roles) { const n = String(r.role ?? '').trim().toLowerCase(); if (n) foreignRoles.add(n); }
+  }
+  const isScr = (x) => x && typeof x === 'object' && x.extends === undefined;
+  // → {own: true, screen} | {key, required, screen} | null — id, эс бөгөөс гарчгаар (сервер ST194302, эс бөгөөс ST194305)
+  const resolveExtends = (ref, own) => {
+    const r = String(ref ?? '').trim();
+    for (const by of ['id', 'title']) {
+      const o = own.find((x) => isScr(x) && String(x[by] ?? '').trim() === r);
+      if (o) return { own: true, screen: o };
+      for (const f of foreignScreens) { const s = f.screens.find((x) => isScr(x) && String(x[by] ?? '').trim() === r); if (s) return { key: f.key, required: f.required, screen: s }; }
+    }
+    return null;
+  };
   const hasTable = (n) => tables.has(n) || foreign.has(n);
   const colsOf = (n) => tables.get(n) ?? foreign.get(n);
   const strict = (tables.size > 0 || resolved > 0) && required.length === resolved; // T3b WP-J: ERD-гүй (зөвхөн дэлгэц) багц requires-ээр
@@ -133,12 +182,23 @@ export function validatePackage(files, opts = {}) {
     // T3 WP-A: «Объект» — дэлгэц/товч/хуудас screens.yaml-д, тайлан reports.yaml-д (SolutionDeploy.cpp role_object)
     const trim = (s) => String(s ?? '').trim();
     const scr = asList(yaml['screens.yaml']?.screens), reps = asList(yaml['reports.yaml']?.reports);
-    const scrOf = (id) => scr.find((x) => x && (x.id === id || (x.type === 'page' && x.slug === id)));
-    const objectError = (obj) => {
+    const scrOf = (id) => scr.find((x) => x && (x.id === id || (x.type === 'page' && x.slug === id)))
+      ?? scr.find((x) => x && x.extends !== undefined && String(resolveExtends(x.extends, scr)?.screen?.id ?? '') === id); // WP-T: өргөтгөсөн дэлгэц, түүний товч
+    const ownRoles = new Set(r.roles.map((x) => trim(x.role)).filter((x) => x && !x.startsWith('@')));
+    const objectError = (obj, role) => {
       const m = /^([^:]+):\s*(.+)$/.exec(obj);
-      const kind = { 'дэлгэц': 'screen', screen: 'screen', 'товч': 'action', action: 'action', 'тайлан': 'report', report: 'report', 'хуудас': 'page', page: 'page', api: 'api' }[trim(m?.[1] ?? '').toLowerCase()];
-      if (!kind) return 'угтвар танигдсангүй (дэлгэц:, товч:, тайлан:, хуудас:, api:)';
+      const kind = { 'дэлгэц': 'screen', screen: 'screen', 'товч': 'action', action: 'action', 'тайлан': 'report', report: 'report', 'хуудас': 'page', page: 'page', api: 'api', 'хэрэглэгч': 'users', users: 'users', 'платформ': 'platform', platform: 'platform' }[trim(m?.[1] ?? '').toLowerCase()];
+      if (!kind) return 'угтвар танигдсангүй (дэлгэц:, товч:, тайлан:, хуудас:, api:, хэрэглэгч:, платформ:)';
       const key = trim(m[2]);
+      if (kind === 'platform') { // P-WP-34: багцын хүрээний эрх удирдлага — SolutionDeploy.cpp role_object (auth/PermScope.h canonicalKey)
+        if (!['эрх-удирдах', 'permissions', 'эрх-удирдах-бүрэн', 'permissions-full'].includes(key)) return `платформын эрх «${key}» танигдсангүй (\`платформ:эрх-удирдах\`, \`платформ:эрх-удирдах-бүрэн\` — P-WP-38)`;
+        if (trim(role).startsWith('@')) return 'хувийн («@…») мөрөөр эрх удирдлага олгохгүй';
+        return '';
+      }
+      if (kind === 'users') { // T4 WP-S: байгууллагын хэрэглэгчийн удирдлага — энэ багцын үүрэг (`*` = бүгд); SolutionDeploy.cpp role_object
+        if (key !== '*' && !ownRoles.has(key)) return `үүрэг «${key}» энэ багцын roles.csv-д алга (\`хэрэглэгч:<Үүрэг>\` — зөвхөн багцын үүрэг, \`*\` = бүгд)`;
+        if (trim(role).startsWith('@')) return 'хувийн («@…») мөрөөр хэрэглэгчийн удирдлага олгохгүй';
+      }
       if (kind === 'screen' && (!scrOf(key) || scrOf(key).type === 'page')) return `дэлгэц «${key}» screens.yaml-д алга`;
       if (kind === 'page' && scrOf(key)?.type !== 'page') return `хуудас «${key}» screens.yaml-д алга`;
       if (kind === 'report' && !reps.some((x) => trim(x?.name ?? '') === key)) return `тайлан «${key}» reports.yaml-д алга`;
@@ -151,7 +211,7 @@ export function validatePackage(files, opts = {}) {
     };
     for (const row of r.roles) {
       names.add(row.role);
-      if (row.object) { const e = objectError(row.object); if (e) add('ref', 'error', 'role_object', rolesFile, row.line, `үүрэг «${row.role}» × «${row.object}» — ${e}`); continue; }
+      if (row.object) { const e = objectError(row.object, row.role); if (e) add('ref', 'error', 'role_object', rolesFile, row.line, `үүрэг «${row.role}» × «${row.object}» — ${e}`); continue; }
       if (strict && row.table !== '*' && !hasTable(row.table)) add('ref', 'error', 'ref_table', rolesFile, row.line, `үүрэг «${row.role}»: хүснэгт «${row.table}» алга`);
       if (strict && hasTable(row.table)) for (const c of [...row.hidden, ...row.readOnly]) if (!colsOf(row.table).has(c)) add('ref', 'error', 'ref_column', rolesFile, row.line, `үүрэг «${row.role}»: «${row.table}.${c}» багана алга`);
     }
@@ -198,7 +258,10 @@ export function validatePackage(files, opts = {}) {
   }
 
   // ---- 2b. хоорондын шалгалт (PLAN14 A5): серверийн plan-ийн DB-ээс үл хамаарах шалгалтууд — crossref.mjs
-  crossCheck({ files, yaml, fileOf, listed, tables: erdTables, foreignTables, foreignLedgers, foreignContexts, hasTable, strict, machines, required, add });
+  // T4: төслийн бүх багцын integrations.yaml outbound нэр — states.mmd `call(<нэр>)` өөр багцын outbound-ийг дуудаж болно (todu-sales → todu-integration; сервер ST1971.ST197115)
+  const projectOutbounds = new Set();
+  for (const dep of opts.packages?.values() ?? []) for (const [lf, txt] of Object.entries(dep.files ?? {})) if (/(^|\/)integrations\.ya?ml$/i.test(lf)) { const r = loadYaml(txt); if (!r.error) for (const o of asList(r.value?.outbound)) if (o?.name) projectOutbounds.add(String(o.name).trim()); }
+  crossCheck({ files, yaml, fileOf, listed, tables: erdTables, foreignTables, foreignLedgers, foreignContexts, hasTable, strict, machines, required, add, projectOutbounds, foreignScreens, requiresResolved, resolveExtends, manifest, foreignMenus, foreignRoles });
 
   // ---- 3. schema: каталогийн хаалттай схем (P12.1)
   if (catalog.available) {

@@ -25,49 +25,38 @@
       }
     },
     "menu": {
-      "type": "array",
-      "description": "Цэс: ангилал × зүйлс",
-      "x-source": "cgi/src/solution/SolutionDeploy.cpp:2722",
-      "items": {
-        "type": "object",
-        "required": [
-          "category"
-        ],
-        "properties": {
-          "category": {
-            "type": "string",
-            "description": "Цэсний ангилал",
-            "x-source": "cgi/src/solution/SolutionDeploy.cpp:2724"
-          },
+      "description": "Цэс: массив (хуучин) эсвэл {erdCategory, items} — P-WP-1 цэсний мод",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+      "anyOf": [
+        {
+          "type": "array",
           "items": {
-            "type": "array",
-            "description": "Дэлгэцийн id эсвэл {table}",
-            "x-source": "cgi/src/solution/SolutionDeploy.cpp:3789",
+            "$ref": "#/$defs/menuTop"
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "items"
+          ],
+          "properties": {
+            "erdCategory": {
+              "enum": [
+                "hidden",
+                "shown"
+              ],
+              "description": "hidden — багцын ERD-ийн аппын ангилал (багцын нэр) цэсэнд харагдахгүй (эрхийн матрицад харагдана)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+            },
             "items": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "x-ref": "screen"
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "table"
-                  ],
-                  "properties": {
-                    "table": {
-                      "type": "string",
-                      "description": "Хүснэгт",
-                      "x-source": "cgi/src/solution/SolutionDeploy.cpp:3789",
-                      "x-ref": "table"
-                    }
-                  }
-                }
-              ]
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/menuTop"
+              }
             }
           }
         }
-      }
+      ]
     }
   },
   "$defs": {
@@ -86,8 +75,12 @@
         },
         {
           "$ref": "#/$defs/page"
+        },
+        {
+          "$ref": "#/$defs/extension"
         }
-      ]
+      ],
+      "x-discriminator-default": "extension"
     },
     "form": {
       "type": "object",
@@ -211,6 +204,38 @@
               }
             }
           ]
+        },
+        "open": {
+          "type": "string",
+          "description": "Бичлэг нээх хэлбэр (P-WP-6): drawer (анхдагч — баруун самбар) | dialog (төвд modal)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+          "enum": [
+            "drawer",
+            "dialog"
+          ]
+        },
+        "dialog": {
+          "$ref": "#/$defs/dialog"
+        },
+        "apps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "P-WP-29 (G-APPFORM): хувилбар маягт (`variant: true`) автоматаар (roles/when) зөвхөн эдгээр апп-д (apps.yaml id; X-Bj-App) сонгогдоно; ?screen=/цэсний ?form= — апп үл хамаарна",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen"
+        },
+        "back": {
+          "description": "P-WP-31 (F-BACK): формын «Буцах» товч — true (анхдагч бичиг) эсвэл товчны бичиг; хөтчийн түүхээр өмнөх дэлгэц",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen"
         }
       }
     },
@@ -247,13 +272,86 @@
         },
         "columns": {
           "type": "array",
-          "description": "Баганууд — нэр эсвэл {label, expr}",
+          "description": "Баганууд — нэр, {column, label, width, align, format, hidden, group, footer} эсвэл тооцоолсон {label, expr, format, …, footer} (FK зам, sum(<Хүүхэд>.<Багана>), iff — серверт; P-WP-12); системийн аудит багана: Бүртгэсэн хүн, Бүртгэсэн огноо, Зассан хүн, Зассан огноо (= createdBy, createdAt, updatedBy, updatedAt; зөвхөн унших, хэрэглэгч — байгууллагын гишүүний нэрээр; P-WP-10)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1606",
           "items": {
             "anyOf": [
               {
                 "type": "string",
                 "x-ref": "column"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "column"
+                ],
+                "properties": {
+                  "column": {
+                    "type": "string",
+                    "description": "Багана",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "x-ref": "column"
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "Баганын гарчиг (талбарын caption-аас үл хамаарна)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "width": {
+                    "description": "Баганын өргөн: px (20–2000) эсвэл «120px», «10%», «8rem», «12ch»",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 20,
+                        "maximum": 2000
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]{1,4}(px|%|rem|em|ch)$"
+                      }
+                    ]
+                  },
+                  "align": {
+                    "type": "string",
+                    "description": "Зэрэгцүүлэлт (анхдагч: тоо — right, бусад — left)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "enum": [
+                      "left",
+                      "center",
+                      "right"
+                    ]
+                  },
+                  "format": {
+                    "type": "string",
+                    "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск — тоо `[угтвар]#,##0[.00][%][дагавар]` (`# ##0` — зайгаар бүлэглэнэ, `0` — бүлэглэхгүй, `%` — ×100), огноо `YYYY YY MM DD HH mm ss` ба ` .:/-T` (жишээ «#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). Зөвхөн харуулна — утга, эрэмбэ, экспорт өөрчлөгдөхгүй",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+                    "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+                  },
+                  "hidden": {
+                    "type": "boolean",
+                    "description": "Анхдагчаар нуугдсан — хэрэглэгч «Баганууд» сонгогчоор гаргана (эрх биш: нуух талбарыг roles.csv-д)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "group": {
+                    "type": "string",
+                    "description": "Толгойн бүлэг — зэрэгцээ ижил бүлэгтэй баганууд нэг гарчгийн доор",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "footer": {
+                    "type": "string",
+                    "description": "Хөлийн нэгтгэл — сервер бүх шүүсэн мөрөөр (хуудаслалтгүй, мөрийн эрхтэй) тооцно",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "enum": [
+                      "sum",
+                      "avg",
+                      "count",
+                      "min",
+                      "max"
+                    ]
+                  }
+                }
               },
               {
                 "type": "object",
@@ -268,13 +366,125 @@
                   },
                   "expr": {
                     "type": "string",
-                    "description": "Тооцоолсон багана",
-                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:1607",
+                    "description": "Тооцоолсон багана: X0 (мөрийн утгаар, клиентэд) эсвэл серверт (P-WP-12) — FK зам (`Харилцагч.Нэр`), хүүхдийн нэгтгэл `sum|count|avg|min|max(<Хүүхэд>.<Багана>)`, `iff(<нөхцөл>, a, b)`, харьцуулалт (`!= null`, `==`, `<` …); эрэмбэлэгдэхгүй",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateListScreen (P-WP-12)",
                     "x-expr": "x0"
+                  },
+                  "width": {
+                    "description": "Баганын өргөн: px (20–2000) эсвэл «120px», «10%», «8rem», «12ch»",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 20,
+                        "maximum": 2000
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]{1,4}(px|%|rem|em|ch)$"
+                      }
+                    ]
+                  },
+                  "align": {
+                    "type": "string",
+                    "description": "Зэрэгцүүлэлт (анхдагч: тоо — right, бусад — left)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "enum": [
+                      "left",
+                      "center",
+                      "right"
+                    ]
+                  },
+                  "format": {
+                    "type": "string",
+                    "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск — тоо `[угтвар]#,##0[.00][%][дагавар]` (`# ##0` — зайгаар бүлэглэнэ, `0` — бүлэглэхгүй, `%` — ×100), огноо `YYYY YY MM DD HH mm ss` ба ` .:/-T` (жишээ «#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). Зөвхөн харуулна — утга, эрэмбэ, экспорт өөрчлөгдөхгүй",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+                    "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+                  },
+                  "hidden": {
+                    "type": "boolean",
+                    "description": "Анхдагчаар нуугдсан — хэрэглэгч «Баганууд» сонгогчоор гаргана (эрх биш: нуух талбарыг roles.csv-д)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "group": {
+                    "type": "string",
+                    "description": "Толгойн бүлэг — зэрэгцээ ижил бүлэгтэй баганууд нэг гарчгийн доор",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "footer": {
+                    "type": "string",
+                    "description": "Хөлийн нэгтгэл (серверт тооцоолсон баганад л — FK зам/нэгтгэл/iff; клиентийн X0 баганад үгүй)",
+                    "x-source": "cgi/src/crud/DataHandler.cpp:present (P-WP-12)",
+                    "enum": [
+                      "sum",
+                      "avg",
+                      "count",
+                      "min",
+                      "max"
+                    ]
                   }
                 }
               }
             ]
+          }
+        },
+        "footer": {
+          "type": "object",
+          "description": "Хөлийн нэгтгэл: багана → функц (сервер бүх шүүсэн мөрөөр)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "sum",
+              "avg",
+              "count",
+              "min",
+              "max"
+            ],
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+          }
+        },
+        "highlight": {
+          "type": "array",
+          "description": "Нөхцөлт өнгө (P-WP-4): мөр (columns-гүй) эсвэл нүд; дүрэм бүрийг сервер мөр бүрт X0-оор үнэлнэ (нуух талбартай дүрмийг тэр хэрэглэгчид алгасна)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+          "items": {
+            "type": "object",
+            "required": [
+              "when",
+              "style"
+            ],
+            "properties": {
+              "when": {
+                "type": "string",
+                "description": "X0 нөхцөл — жагсаалтын хүснэгтийн багана нэрээр (харагдацын шүүлттэй ижил: FK зам, огнооны токен, user.*, төлвийн нэр)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                "x-expr": "x0"
+              },
+              "style": {
+                "type": "string",
+                "description": "Загвар (theme-ийн өнгө)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                "enum": [
+                  "success",
+                  "info",
+                  "warning",
+                  "danger",
+                  "muted",
+                  "strong"
+                ]
+              },
+              "columns": {
+                "type": "array",
+                "description": "Зөвхөн эдгээр нүд (байхгүй бол бүх мөр)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                "items": {
+                  "type": "string",
+                  "x-ref": "column"
+                }
+              }
+            }
           }
         },
         "sort": {
@@ -286,7 +496,7 @@
             "properties": {
               "field": {
                 "type": "string",
-                "description": "Эрэмбийн багана",
+                "description": "Эрэмбийн багана (системийн аудит багана: Бүртгэсэн хүн, Бүртгэсэн огноо, Зассан хүн, Зассан огноо (= createdBy, createdAt, updatedBy, updatedAt; зөвхөн унших, хэрэглэгч — байгууллагын гишүүний нэрээр; P-WP-10))",
                 "x-source": "cgi/src/solution/SolutionDeploy.cpp:1617",
                 "x-ref": "column"
               },
@@ -587,6 +797,329 @@
             "type": "string",
             "x-ref": "role"
           }
+        },
+        "filters": {
+          "type": "array",
+          "description": "Шүүлтийн мөр (P-WP-5)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+          "items": {
+            "type": "object",
+            "description": "Жагсаалтын шүүлтийн мөрийн талбар (P-WP-5) — серверт мөрийн эрхийн дор хэрэгжинэ; P-WP-27 (G-LFP): FK замаар (`column: Харилцагч.Профайл.Бүс`) эсвэл хүүхэд хүснэгтээр (`child`) — ижил child/via/of/where-тэй шүүлтүүд нэг exists()-д; `child`-тай баганагүй шүүлт — Тийм (мөр байгаа) / Үгүй (байхгүй); P-WP-31: `filter.<нэр>` (G-LFPX), `param`, тооцоолсон багана, `op: empty`, `value` (L-FCALC), `treeOnly` (G-EXTTREE); `via: org` — хүүхдийн байгууллагын хүрээний багана (G-LFPORG)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "URL/товчны параметрийн нэр (анхдагч label, эсвэл багана); давтагдахгүй"
+              },
+              "label": {
+                "type": "string",
+                "description": "Шошго (анхдагч баганын нэр)"
+              },
+              "column": {
+                "type": "string",
+                "description": "Энэ хүснэгтийн багана (нэрээр) эсвэл FK зам `<FK>.<лавлахын багана>…` (≤ 5 алхам; замын хүснэгт бүрт Харах эрх, нуух талбар — P-WP-27); `child`-тай бол хүүхэд хүснэгтийн багана/FK зам — төрлөөс input (огноо, FK сонгогч, төлөв, bool, тоо, текст); P-WP-31 (L-FCALC): энэ жагсаалтын тооцоолсон баганын шошго ({label, expr}) — серверт тооцоолсон утгаар"
+              },
+              "op": {
+                "type": "string",
+                "description": "Харьцуулалт (анхдагч ==, текстэд contains); under — модны хүснэгт рүү FK (дэд мод); empty (P-WP-31, L-FCALC) — хоосон эсэх: шүүлт нь Тийм (хоосон) / Үгүй (хоосон биш)",
+                "enum": [
+                  "==",
+                  "!=",
+                  ">=",
+                  "<=",
+                  ">",
+                  "<",
+                  "contains",
+                  "under",
+                  "empty"
+                ]
+              },
+              "default": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ],
+                "description": "Анхдагч утга — литерал эсвэл огнооны токен (today, month_start(today), today - 7 …)"
+              },
+              "options": {
+                "type": "array",
+                "description": "Сонголтын утгууд (текст/тоон багана — enum)",
+                "items": {
+                  "type": [
+                    "string",
+                    "number"
+                  ]
+                }
+              },
+              "child": {
+                "type": "string",
+                "x-ref": "table",
+                "description": "P-WP-27 (G-LFP): хүүхэд хүснэгт — энэ хүснэгтийн мөрд `exists(<хүүхэд> where <via> == <of> and <нөхцөл>)` (хүүхдийн Харах эрх, мөрийн шүүлт/байгууллагын хүрээ хүчинтэй)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "via": {
+                "type": "string",
+                "description": "P-WP-27: хүүхдийн FK (зам ч — `Толгой.Харилцагч`) энэ хүснэгт рүү (эсвэл `of`-ийн лавлах руу); анхдагч — хүүхдээс энэ хүснэгт рүү ганц FK; P-WP-31 (G-LFPORG): `org` — хүүхдийн байгууллагын хүрээний багана (Хэсэг рүү; `of` нь Хэсэг рүү FK эсвэл `org`)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "of": {
+                "type": "string",
+                "description": "P-WP-27: энэ хүснэгтийн багана (анхдагч pk) — `via` түүнтэй тэнцүү (жишээ нь `Профайл` — хүүхэд нь Профайлын хүүхэд)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "where": {
+                "type": "string",
+                "x-expr": "x0",
+                "description": "P-WP-27: хүүхэд мөрийн нэмэлт нөхцөл (X0, хүүхдийн нэрээр; төлвийн нэрээр) — жишээ `Үлдэгдэл > 0`; P-WP-31 (G-LFPX): `filter.<нэр>` — өөр (эсвэл энэ) шүүлтийн утга (хоосон бол null); child-гүй бол энэ хүснэгтийн X0 (баганагүй шүүлт — утгатай үед `where` үйлчилнэ; `exists(<Хүснэгт>, id == filter.<нэр> and inside(row.<цэг>, <полигон>))`)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "roles": {
+                "type": "array",
+                "description": "P-WP-27 (A2-8): шүүлт зөвхөн эдгээр үүрэгт (бусдад байхгүйтэй адил; f.<нэр> илгээвэл 403)",
+                "items": {
+                  "type": "string",
+                  "x-ref": "role"
+                },
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "text",
+                  "number",
+                  "date",
+                  "datetime",
+                  "boolean",
+                  "ref"
+                ],
+                "description": "P-WP-31 (G-LFPX): баганагүй (`where`, `param`, child where) шүүлтийн утгын төрөл (input, filter.<нэр>-ийн литерал); тооцоолсон баганад — харьцуулах төрөл (анхдагч number)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "ref": {
+                "type": "string",
+                "x-ref": "table",
+                "description": "P-WP-31 (G-LFPX): `kind: ref` — сонгох лавлах хүснэгт (Харах эрх)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "param": {
+                "type": "boolean",
+                "description": "P-WP-31 (G-LFPX): зөвхөн утга — өөрөө шүүхгүй, бусад шүүлтийн `where`-д `filter.<нэр>`-ээр",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "value": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ],
+                "description": "P-WP-31 (L-FCALC): тогтмол утга — шүүлт нь Тийм (`<багана> <op> <value>`) / Үгүй (not …)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "treeOnly": {
+                "type": "boolean",
+                "description": "P-WP-31 (G-EXTTREE): зөвхөн модны (`tree`) зангилаа сонгосон үед үйлчилнэ (ижил child-тай бол модтой нэг exists-д)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "expr": {
+                "type": "string",
+                "x-expr": "x0",
+                "description": "P-WP-31 (L-FCALC): тооцоолсон утга (жагсаалтын {label, expr}-тэй ижил — FK зам, sum(<Хүүхэд>.<Багана>) …) — `op`/`value`-тэй",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              }
+            }
+          }
+        },
+        "tree": {
+          "type": "object",
+          "required": [
+            "column"
+          ],
+          "description": "Модны шүүлтийн зүүн самбар (P-WP-5): эцэгтэй лавлах хүснэгт рүү FK; зангилаа = дэд мод, «Бүгд» = шүүлтгүй",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+          "properties": {
+            "column": {
+              "type": [
+                "string",
+                "array"
+              ],
+              "description": "FK багана — өөр рүүгээ FK-тэй (мод) хүснэгт рүү; P-WP-27: FK зам (`Зүйл.Ангилал`) эсвэл `child`-тай бол хүүхдийн багана; P-WP-33 (G-TREE2): массив `[A, B]` — зангилааны дэд модонд аль нэг багана (ижил модны хүснэгт рүү, ≤ 5)",
+              "items": {
+                "type": "string"
+              }
+            },
+            "title": {
+              "type": "string",
+              "description": "Самбарын гарчиг"
+            },
+            "all": {
+              "type": "string",
+              "description": "«Бүх …» мөрийн шошго (анхдагч «Бүгд»)"
+            },
+            "display": {
+              "type": "string",
+              "description": "Зангилааны шошгоны багана (модны хүснэгтийнх; анхдагч эхний текст багана)"
+            },
+            "child": {
+              "type": "string",
+              "x-ref": "table",
+              "description": "P-WP-27 (G-LFP): хүүхэд хүснэгтийн баганаар мод (толгойн жагсаалтыг мөрийн зүйлийн ангиллаар); ижил child/via/of/where-тэй шүүлттэй нэг exists()-д",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+            },
+            "via": {
+              "type": "string",
+              "description": "P-WP-27: хүүхдийн FK (зам ч — `Толгой.Харилцагч`) энэ хүснэгт рүү (эсвэл `of`-ийн лавлах руу); анхдагч — хүүхдээс энэ хүснэгт рүү ганц FK",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+            },
+            "of": {
+              "type": "string",
+              "description": "P-WP-27: энэ хүснэгтийн багана (анхдагч pk) — `via` түүнтэй тэнцүү (жишээ нь `Профайл` — хүүхэд нь Профайлын хүүхэд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+            },
+            "where": {
+              "type": "string",
+              "x-expr": "x0",
+              "description": "P-WP-27: хүүхэд мөрийн нэмэлт нөхцөл (X0, хүүхдийн нэрээр; төлвийн нэрээр) — жишээ `Үлдэгдэл > 0`",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+            }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "description": "Жагсаалтын товчнууд (P-WP-6)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+          "items": {
+            "type": "object",
+            "required": [
+              "label"
+            ],
+            "description": "Жагсаалтын түвшний товч (P-WP-6) — яг нэг зорилт: screen | page | report | form | generate | transition | update | print (P-WP-27)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Товчны бичиг"
+              },
+              "screen": {
+                "type": "string",
+                "description": "list дэлгэцийн id — /data/<хүснэгт>?screen=<id>&f.<шүүлт>=…",
+                "x-ref": "screen"
+              },
+              "page": {
+                "type": "string",
+                "description": "page дэлгэцийн id/slug — /p/<slug>?<параметр>=…"
+              },
+              "report": {
+                "type": "string",
+                "description": "Тайлангийн нэр (reports.yaml)"
+              },
+              "form": {
+                "type": "string",
+                "description": "form дэлгэцийн id — шинэ бичлэг (params = prefill, баганын нэрээр)"
+              },
+              "generate": {
+                "type": "string",
+                "description": "`on`-гүй генераторын нэр (generators.yaml) — товчоор ажиллуулна (P-WP-25): параметрийн цонх (params = анхны утга — генераторын параметрийн нэрээр), дараа нь жагсаалтыг дахин уншина. Сервер X-Bj-Screen + товчны нэрээр товчны үүрэг/эрхийн объектыг шалгана; `runAs: system` генераторыг товчны эрхтэй хэрэглэгч хүснэгтийн үүсгэх эрхгүй ч ажиллуулна",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-25)",
+                "x-ref": "generator"
+              },
+              "params": {
+                "type": "object",
+                "description": "Зорилтын параметр: filter.<шүүлт> | selected.<Багана> | selected.id | selected.ids (P-WP-27: сонгосон бүх мөрийн түлхүүр — generate-ийн refs параметр) | '<литерал>' | тоо (generate — генераторын параметрийн нэр)",
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                }
+              },
+              "open": {
+                "type": "string",
+                "description": "page (анхдагч — шилжинэ) эсвэл dialog (page/report/form-ыг modal-д)",
+                "enum": [
+                  "page",
+                  "dialog"
+                ]
+              },
+              "dialog": {
+                "$ref": "#/$defs/dialog"
+              },
+              "primary": {
+                "type": "boolean",
+                "description": "Үндсэн товч"
+              },
+              "roles": {
+                "type": "array",
+                "description": "Харагдах үүргүүд",
+                "items": {
+                  "type": "string",
+                  "x-ref": "role"
+                }
+              },
+              "bulk": {
+                "type": "boolean",
+                "description": "P-WP-27 (G-BULK): generate-ийг сонгосон (☑) мөр бүрт — selected.<Багана> тухайн мөрөөс; мөр бүрийн үр дүн",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "transition": {
+                "type": "string",
+                "x-ref": "transition",
+                "description": "P-WP-27 (G-BULK): сонгосон мөр бүрт шилжилт (мөрийн төлвөөс, хэрэглэгчид зөвшөөрөгдсөн; X-Bj-Screen = жагсаалт — хатуу горимд энэ товч шилжилтийг санал болгоно)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "update": {
+                "type": "object",
+                "description": "P-WP-27 (G-BULK): сонгосон мөр бүрт талбар солих `{<Багана>: ask | '<литерал>' | тоо | null}` (ask — цонхонд асууна); түлхүүр/аудит/төлвийн багана хориотой; хатуу горимд жагсаалтын контекстоор зөвхөн эдгээр талбар",
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "print": {
+                "type": [
+                  "boolean",
+                  "string"
+                ],
+                "description": "P-WP-27 (PRINT): true — харагдаж буй жагсаалтыг хэвлэх (шүүлт/цэсгүй); <Баримтын загвар> — сонгосон мөрүүдийг тэр загвараар (энэ хүснэгтийн)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "confirm": {
+                "type": "string",
+                "description": "P-WP-27: бөөн товчны цонхны анхааруулга",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "submit": {
+                "type": "string",
+                "minLength": 1,
+                "description": "P-WP-31 (G-GENLBL): параметрийн/асуух цонхны илгээх товчны бичиг (анхдагч — товчны label)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              }
+            }
+          }
+        },
+        "form": {
+          "type": "string",
+          "x-ref": "screen",
+          "description": "P-WP-29 (G-LISTFORM): «+ Шинэ» ба мөр нээх — энэ хүснэгтийн тодорхой form дэлгэц (энэ эсвэл requires багцын)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateListScreen"
+        },
+        "back": {
+          "description": "P-WP-29 (M-BACK): «Буцах» товч — true (анхдагч бичиг) эсвэл товчны бичиг; хөтчийн түүхээр өмнөх дэлгэц",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateListScreen"
         }
       }
     },
@@ -730,7 +1263,7 @@
         },
         "blocks": {
           "type": "array",
-          "description": "Блокууд (30 хүртэл)",
+          "description": "Блокууд (анхдагч 100 хүртэл; орчны BUTEEMJ_PAGE_MAX_BLOCKS 1..500 — P-WP-30 BLK30, өмнө 30)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1698",
           "items": {
             "$ref": "#/$defs/block"
@@ -744,6 +1277,165 @@
             "type": "string",
             "x-ref": "role"
           }
+        },
+        "params": {
+          "type": "array",
+          "description": "Хуудасны хуваалцсан параметр (P-WP-5): нэг мөр сонгогч олон тайлангийн блокийг удирдана; URL ?<нэр>=",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Нэр (report блокийн params-д page.<нэр>; ижил нэртэй тайлангийн параметрт автоматаар)"
+              },
+              "label": {
+                "type": "string",
+                "description": "Шошго (анхдагч нэр)"
+              },
+              "type": {
+                "type": "string",
+                "description": "Төрөл (анхдагч text)",
+                "enum": [
+                  "text",
+                  "number",
+                  "date",
+                  "boolean",
+                  "ref"
+                ]
+              },
+              "table": {
+                "type": "string",
+                "description": "ref — сонгох хүснэгт",
+                "x-ref": "table"
+              },
+              "default": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ],
+                "description": "Анхдагч — литерал, огнооны токен эсвэл `user.<Нэр>` (P-WP-50: хуудас нээсэн хэрэглэгчийн утга — code | orgCode | name | role | context.yaml-ийн контекст; утгагүй бол хоосон)"
+              },
+              "options": {
+                "type": "array",
+                "description": "Сонголтын утгууд: утга эсвэл {value, label} (P-WP-26 — шошготой сонголт: {value: month, label: Сар}; тайланд value дамжина)",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": [
+                        "string",
+                        "number"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "value"
+                      ],
+                      "properties": {
+                        "value": {
+                          "type": [
+                            "string",
+                            "number"
+                          ],
+                          "description": "Утга (тайлангийн параметрт)"
+                        },
+                        "label": {
+                          "type": "string",
+                          "description": "Харагдах шошго"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "group": {
+                "type": "string",
+                "description": "Шүүлтийн самбарын бүлгийн гарчиг (P-WP-22): ижил group-тэй параметрүүд нэг гарчигтай хэсэгт; group/tree-тэй эсвэл filterPanel-тэй хуудас самбараар харагдана",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-22)"
+              },
+              "tree": {
+                "type": "boolean",
+                "description": "Модон сонгогч (P-WP-22): ref + эцэгтэй (өөр рүүгээ FK) хүснэгт; зангилаа дарахад шууд шүүнэ (тайланд under(<багана>, param.<нэр>)); GET /api/pages/<slug>/tree?param=<нэр>",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-22)"
+              },
+              "all": {
+                "type": "string",
+                "description": "«Бүх …» шошго (P-WP-22): утгагүй (шүүлтгүй) сонголт — модон параметрт товч, ref/options-д хоосон сонголт (анхдагч «Бүгд»)"
+              }
+            }
+          }
+        },
+        "filterPanel": {
+          "type": "object",
+          "description": "Хуудасны шүүлтийн самбар (P-WP-22, G-PGF): параметрүүдийг гарчигтай бүлгээр хажуу/дээд самбарт; «Шүүх» — хэрэгжүүлэх, «Анхдагч» — анхдагч утга руу буцаах",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-22)",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Самбарын (бүлэггүй параметрийн хэсгийн) гарчиг"
+            },
+            "position": {
+              "type": "string",
+              "enum": [
+                "left",
+                "right",
+                "top"
+              ],
+              "description": "Байрлал (анхдагч left; гар утсанд дээр)"
+            },
+            "apply": {
+              "type": "string",
+              "description": "Хэрэгжүүлэх товчны шошго (анхдагч «Шүүх»)"
+            },
+            "reset": {
+              "type": [
+                "string",
+                "boolean"
+              ],
+              "description": "Анхдагч руу буцаах товчны шошго (анхдагч «Анхдагч»); false — товчгүй"
+            },
+            "collapsed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Анх хумисан бүлгүүд (параметрийн group)"
+            }
+          }
+        },
+        "toggles": {
+          "type": "object",
+          "description": "P-WP-26 (G-BLK): `toggle`-тэй блокуудыг харуулах/нуух checkbox-ийн бүлэг — шүүлтийн самбартай хуудсанд самбарын хумигддаг бүлэг, эсвэл блокуудын дээр мөр",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Бүлгийн гарчиг (анхдагч «Блокууд»)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
+            },
+            "collapsed": {
+              "type": "boolean",
+              "description": "Анх хумисан",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
+            }
+          }
+        },
+        "back": {
+          "description": "P-WP-29 (M-BACK): «Буцах» товч — true (анхдагч бичиг) эсвэл товчны бичиг; хөтчийн түүхээр өмнөх дэлгэц",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateListScreen"
         }
       }
     },
@@ -753,13 +1445,13 @@
       "properties": {
         "field": {
           "type": "string",
-          "description": "Хүснэгтийн багана (нэрээр)",
+          "description": "Хүснэгтийн багана (нэрээр); системийн аудит багана: Бүртгэсэн хүн, Бүртгэсэн огноо, Зассан хүн, Зассан огноо (= createdBy, createdAt, updatedBy, updatedAt; зөвхөн унших, хэрэглэгч — байгууллагын гишүүний нэрээр; P-WP-10) — readOnly: false/required/requiredWhen/lookup хориотой",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1456",
           "x-ref": "column"
         },
         "expr": {
           "type": "string",
-          "description": "Тооцоолсон талбар (field-гүй үед; хадгалагдахгүй)",
+          "description": "Тооцоолсон талбар (field-гүй үед; хадгалагдахгүй); P-WP-29 (F-AGG): хүүхэд хүснэгтийн нэгтгэл `sum|count|min|max|avg(<Хүүхэд>.<Талбар>[, where <нөхцөл — хүүхдийн нэрээр>])` (арифметиктэй ч) — серверт тооцоолно (эрх, мөрийн хүрээ)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1447",
           "x-expr": "x0"
         },
@@ -841,6 +1533,34 @@
               "description": "Лавлах мөрийн шүүлт (X0): нэр = лавлах хүснэгтийн багана, record.<Нэр> = формын талбар, user.code",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:1528",
               "x-expr": "x0"
+            },
+            "tree": {
+              "description": "P-WP-29 (G-FTREE): модоор сонгох — лавлах хүснэгтийн модны (эцэгтэй) хүснэгт рүү заасан FK багана, эсвэл {column, display}; сонгогчид зангилааны самбар, сонгосон зангилааны дэд модны мөрүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "x-ref": "column"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "column"
+                  ],
+                  "properties": {
+                    "column": {
+                      "type": "string",
+                      "x-ref": "column",
+                      "description": "Лавлахын модны FK"
+                    },
+                    "display": {
+                      "type": "string",
+                      "x-ref": "column",
+                      "description": "Модны зангилааны харуулах багана"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -859,6 +1579,12 @@
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1403",
           "x-ref": "table"
         },
+        "via": {
+          "type": "string",
+          "description": "Эцэг рүү холбох FK багана (P-WP-12): хүү хүснэгт эцэг рүү хоёр+ FK-тай бол (жишээ «Орлогодсон хуваарь»/«Зарлагадсан хуваарь») аль нэгийг — grid-ийн уншилт/бичилт тэр FK-аар эцэгт уягдана (хатуу горим). Орхивол эцэг рүү заасан FK (олон бол сүүлийнх)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:childGrid.via",
+          "x-ref": "column"
+        },
         "editable": {
           "type": "boolean",
           "description": "Засах боломжтой",
@@ -866,17 +1592,166 @@
         },
         "master": {
           "type": "string",
-          "description": "Үүрлэсэн (ач хүү) grid: энэ дэлгэцийн өөр childGrid-ийн хүснэгт — тэр grid-д сонгосон мөрийн хүүхдүүдийг харуулна (table нь master руу FK-тай; T3 WP-D)",
+          "description": "Үүрлэсэн (ач хүү) grid: энэ дэлгэцийн өөр childGrid-ийн хүснэгт — тэр grid-д сонгосон мөрийн хүүхдүүдийг харуулна (table нь master руу FK-тай; T3 WP-D). P-WP-23: эхлээд ИЖИЛ табын тэр хүснэгтийн grid (ижил хүснэгт өөр `via`-тай хоёр табд ялгагдана), ижил табд алга бол дэлгэцийн цорын ганц grid; олон утгатай бол plan-ийн алдаа screen_master. Гүн ≥ 2 (master-тэй grid-ийг master болгож болно)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:master",
           "x-ref": "table"
         },
         "columns": {
           "type": "array",
-          "description": "Харуулах баганууд",
+          "description": "Харуулах баганууд — нэр, {column, label, width, align, format, hidden, group, footer} эсвэл тооцоолсон {label, expr, format, …, footer} (зөвхөн унших, серверт: FK зам `Харилцагч.Нэр`, арифметик `Тоо * Үнэ`, `sum(<Хүүхэд>.<Багана>)`, `iff(…)`, харьцуулалт — P-WP-12); системийн аудит багана: Бүртгэсэн хүн, Бүртгэсэн огноо, Зассан хүн, Зассан огноо (= createdBy, createdAt, updatedBy, updatedAt; зөвхөн унших, хэрэглэгч — байгууллагын гишүүний нэрээр; P-WP-10) — readOnlyColumns-д автоматаар",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1410",
           "items": {
-            "type": "string",
-            "x-ref": "column"
+            "anyOf": [
+              {
+                "type": "string",
+                "x-ref": "column"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "column"
+                ],
+                "properties": {
+                  "column": {
+                    "type": "string",
+                    "description": "Багана",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "x-ref": "column"
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "Баганын гарчиг (талбарын caption-аас үл хамаарна)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "width": {
+                    "description": "Баганын өргөн: px (20–2000) эсвэл «120px», «10%», «8rem», «12ch»",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 20,
+                        "maximum": 2000
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]{1,4}(px|%|rem|em|ch)$"
+                      }
+                    ]
+                  },
+                  "align": {
+                    "type": "string",
+                    "description": "Зэрэгцүүлэлт (анхдагч: тоо — right, бусад — left)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "enum": [
+                      "left",
+                      "center",
+                      "right"
+                    ]
+                  },
+                  "format": {
+                    "type": "string",
+                    "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск — тоо `[угтвар]#,##0[.00][%][дагавар]` (`# ##0` — зайгаар бүлэглэнэ, `0` — бүлэглэхгүй, `%` — ×100), огноо `YYYY YY MM DD HH mm ss` ба ` .:/-T` (жишээ «#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). Зөвхөн харуулна — утга, эрэмбэ, экспорт өөрчлөгдөхгүй",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+                    "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+                  },
+                  "hidden": {
+                    "type": "boolean",
+                    "description": "Анхдагчаар нуугдсан — хэрэглэгч «Баганууд» сонгогчоор гаргана (эрх биш: нуух талбарыг roles.csv-д)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "group": {
+                    "type": "string",
+                    "description": "Толгойн бүлэг — зэрэгцээ ижил бүлэгтэй баганууд нэг гарчгийн доор",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "footer": {
+                    "type": "string",
+                    "description": "Хөлийн нэгтгэл — сервер бүх шүүсэн мөрөөр (хуудаслалтгүй, мөрийн эрхтэй) тооцно",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "enum": [
+                      "sum",
+                      "avg",
+                      "count",
+                      "min",
+                      "max"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "expr"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Баганын гарчиг",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:childGrid (P-WP-12)"
+                  },
+                  "expr": {
+                    "type": "string",
+                    "description": "Тооцоолсон багана (серверт, мөр бүрт; тайлангийн илэрхийллийн хэлтэй ижил): FK зам, `+ - * /`, `sum|count|avg|min|max(<Хүүхэд>.<Багана>)`, `iff(<нөхцөл>, a, b)`, `== != < <= > >=` (`!= null`), `and or not`, `coalesce`, `days(A - B)` …; эрхгүй хүснэгт/нуух талбар бол хоосон",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:childGrid (P-WP-12)"
+                  },
+                  "width": {
+                    "description": "Баганын өргөн: px (20–2000) эсвэл «120px», «10%», «8rem», «12ch»",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 20,
+                        "maximum": 2000
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]{1,4}(px|%|rem|em|ch)$"
+                      }
+                    ]
+                  },
+                  "align": {
+                    "type": "string",
+                    "description": "Зэрэгцүүлэлт (анхдагч: тоо — right, бусад — left)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "enum": [
+                      "left",
+                      "center",
+                      "right"
+                    ]
+                  },
+                  "format": {
+                    "type": "string",
+                    "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск — тоо `[угтвар]#,##0[.00][%][дагавар]` (`# ##0` — зайгаар бүлэглэнэ, `0` — бүлэглэхгүй, `%` — ×100), огноо `YYYY YY MM DD HH mm ss` ба ` .:/-T` (жишээ «#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). Зөвхөн харуулна — утга, эрэмбэ, экспорт өөрчлөгдөхгүй",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+                    "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+                  },
+                  "hidden": {
+                    "type": "boolean",
+                    "description": "Анхдагчаар нуугдсан — хэрэглэгч «Баганууд» сонгогчоор гаргана (эрх биш: нуух талбарыг roles.csv-д)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "group": {
+                    "type": "string",
+                    "description": "Толгойн бүлэг — зэрэгцээ ижил бүлэгтэй баганууд нэг гарчгийн доор",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation"
+                  },
+                  "footer": {
+                    "type": "string",
+                    "description": "Хөлийн нэгтгэл — сервер бүх шүүсэн мөрөөр (хуудаслалтгүй, мөрийн эрхтэй) тооцно",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                    "enum": [
+                      "sum",
+                      "avg",
+                      "count",
+                      "min",
+                      "max"
+                    ]
+                  }
+                }
+              }
+            ]
           }
         },
         "readOnlyColumns": {
@@ -935,6 +1810,169 @@
               }
             }
           }
+        },
+        "editableWhen": {
+          "type": "string",
+          "description": "ЭЦЭГ бичлэгийн нөхцөл (T4, X0 — эцэг хүснэгтийн багана нэрээр, төлвийн нэр): таарахгүй бол grid зөвхөн унших; эцэг дэлгэцийн контекстоор нэмэх/засах/устгах 403 (сервер). master-тэй grid-д үгүй",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:childGrid.editableWhen",
+          "x-expr": "x0"
+        },
+        "lookups": {
+          "type": "object",
+          "description": "FK баганын сонгогч (T4): {<Багана>: {display, filter}} — filter-т лавлах хүснэгтийн багана, record.<Нэр> = эцэг формын талбар (сервер /api/screens/lookup?grid=)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:childGrid.lookups",
+          "additionalProperties": {
+            "type": "object",
+            "description": "FK сонгогч (PLAN13 S1): харуулах багана, шүүлт — сервер /api/screens/lookup-д хүчилнэ",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp:1518",
+            "properties": {
+              "display": {
+                "type": "string",
+                "description": "Лавлах хүснэгтийн харуулах багана",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:1525",
+                "x-ref": "column"
+              },
+              "filter": {
+                "type": "string",
+                "description": "Лавлах мөрийн шүүлт (X0): нэр = лавлах хүснэгтийн багана, record.<Нэр> = формын талбар, user.code",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:1528",
+                "x-expr": "x0"
+              },
+              "tree": {
+                "description": "P-WP-29 (G-FTREE): модоор сонгох — лавлах хүснэгтийн модны (эцэгтэй) хүснэгт рүү заасан FK багана, эсвэл {column, display}; сонгогчид зангилааны самбар, сонгосон зангилааны дэд модны мөрүүд",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "x-ref": "column"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "column"
+                    ],
+                    "properties": {
+                      "column": {
+                        "type": "string",
+                        "x-ref": "column",
+                        "description": "Лавлахын модны FK"
+                      },
+                      "display": {
+                        "type": "string",
+                        "x-ref": "column",
+                        "description": "Модны зангилааны харуулах багана"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "highlight": {
+          "type": "array",
+          "description": "Нөхцөлт өнгө (P-WP-4): мөр (columns-гүй) эсвэл нүд; дүрэм бүрийг сервер мөр бүрт X0-оор үнэлнэ (нуух талбартай дүрмийг тэр хэрэглэгчид алгасна)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+          "items": {
+            "type": "object",
+            "required": [
+              "when",
+              "style"
+            ],
+            "properties": {
+              "when": {
+                "type": "string",
+                "description": "X0 нөхцөл — хүү хүснэгтийн багана нэрээр (харагдацын шүүлттэй ижил: FK зам, огнооны токен, user.*, төлвийн нэр)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                "x-expr": "x0"
+              },
+              "style": {
+                "type": "string",
+                "description": "Загвар (theme-ийн өнгө)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                "enum": [
+                  "success",
+                  "info",
+                  "warning",
+                  "danger",
+                  "muted",
+                  "strong"
+                ]
+              },
+              "columns": {
+                "type": "array",
+                "description": "Зөвхөн эдгээр нүд (байхгүй бол бүх мөр)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp:columnPresentation",
+                "items": {
+                  "type": "string",
+                  "x-ref": "column"
+                }
+              }
+            }
+          }
+        },
+        "form": {
+          "type": "string",
+          "x-ref": "screen",
+          "description": "P-WP-29 (G-ALTFORM): мөрийг энэ (хувилбар) маягтаар нээх — хүү хүснэгтийн form дэлгэц (энэ эсвэл requires багцын)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen"
+        },
+        "quickAdd": {
+          "type": "object",
+          "required": [
+            "column"
+          ],
+          "description": "P-WP-33 (G-POSADD, касс/POS маягт): хүү мөр хурдан нэмэх — оролтын бүс (бар кодоор — Enter, эсвэл сонгогчоор; FK баганын `lookups`-тэй) → сонгосон мөрийн бүс (нэр + тоо) → «Нэмэх»: шинэ хүү мөр (`merge: true` — ижил FK-тай мөрийн тоог нэмнэ). editable grid-д (мөр/lines grid — локал, формын хадгалалтаар; бусад — шууд API-аар, эрх/дүрэм хэвээр)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp childGrid.quickAdd (P-WP-33)",
+          "properties": {
+            "column": {
+              "type": "string",
+              "x-ref": "column",
+              "description": "Хүү хүснэгтийн FK багана (лавлах хүснэгт рүү)"
+            },
+            "qty": {
+              "type": "string",
+              "x-ref": "column",
+              "description": "Хүү хүснэгтийн тоон багана (анхдагч утга 1)"
+            },
+            "barcode": {
+              "type": "string",
+              "description": "Лавлах хүснэгтийн багана — бар код (яг таарах мөр; эцэг дэлгэцийн контекстоор)"
+            },
+            "merge": {
+              "type": "boolean",
+              "description": "Ижил FK-тай мөр байвал тоог нэмнэ (шинэ мөр үүсгэхгүй)"
+            },
+            "title": {
+              "type": "string",
+              "description": "Оролтын бүсийн гарчиг (анхдагч «Мөр нэмэх») — APEX POS-ийн оролтын бүс"
+            },
+            "selectedTitle": {
+              "type": "string",
+              "description": "Сонгосон мөрийн бүсийн гарчиг — APEX POS-ийн сонгосон мөрийн бүс"
+            },
+            "labels": {
+              "type": "object",
+              "description": "Шошго: barcode, pick, item, qty, add",
+              "properties": {
+                "barcode": {
+                  "type": "string"
+                },
+                "pick": {
+                  "type": "string"
+                },
+                "item": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "string"
+                },
+                "add": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -983,6 +2021,28 @@
             "type": "string",
             "x-ref": "role"
           }
+        },
+        "span": {
+          "type": "integer",
+          "description": "Хэсгийн өргөн 12 баганын мөрөнд (P-WP-6; анхдагч 12) — span-ууд нийлбэр ≤ 12 бол хажуу хажуудаа",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "collapsible": {
+          "description": "Эвхэгддэг хэсэг (P-WP-6): true — нээлттэй, collapsed — анхдагчаар эвхсэн",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "collapsed"
+              ]
+            }
+          ]
         }
       }
     },
@@ -1002,6 +2062,11 @@
           "items": {
             "$ref": "#/$defs/section"
           }
+        },
+        "stacked": {
+          "type": "boolean",
+          "description": "P-WP-23 (A3-1): true — табын хэсгүүдийн childGrid тусдаа таб болохгүй, нэг табд дараалан (хэсэг шиг; master-detail: эцэг grid + түүний сонгосон мөрийн хүү grid). Нийтэлсэн табуудад `stack: <гарчиг>`",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:stacked"
         },
         "childGrid": {
           "$ref": "#/$defs/childGrid",
@@ -1025,9 +2090,17 @@
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1473",
           "x-ref": "report"
         },
+        "reload": {
+          "type": [
+            "string",
+            "boolean"
+          ],
+          "description": "block: report — тайланг дахин ачаалах товч (P-WP-25): товчны бичиг эсвэл true (анхдагч бичиг «Ачаалах»)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateFormScreen (P-WP-25)"
+        },
         "params": {
           "type": "object",
-          "description": "block: report — {<параметр>: id | <талбар>} (анхдагч: ref параметр = бичлэг)",
+          "description": "block: report — {<параметр>: id | <талбар> | <өөр бичлэгийн нэгтгэл: maxof(<Хүснэгт>, <Талбар>, <нөхцөл record.>) эсвэл max(<Хүснэгт>.<Талбар>, where … row.…)>} (анхдагч: ref параметр = бичлэг; нэгтгэл — серверт, P-WP-36 R-PREV)",
           "x-source": "cgi/src/solution/SolutionDeploy.cpp:1479",
           "additionalProperties": {
             "type": "string"
@@ -1304,8 +2377,26 @@
             },
             "generator": {
               "type": "string",
-              "description": "Генератор (generators.yaml `on: <энэ хүснэгт>`) — энэ бичлэгээр (doc.*), параметрийг хэрэглэгчээс асууна",
+              "description": "Генератор (generators.yaml `on: <энэ хүснэгт>`) — энэ бичлэгээр (doc.*), параметрийг хэрэглэгчээс асууна; P-WP-31 (F-GENBTN): `on`-гүй генератор ч — параметрийн цонх (params — анхны утга), X-Bj-Screen = энэ форм (товчны roles, `товч:<дэлгэц>/<нэр>`)",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:1640"
+            },
+            "params": {
+              "type": "object",
+              "description": "P-WP-31 (F-GENBTN): `on`-гүй генераторын параметрийн анхны утга — `id` (энэ бичлэг), `record.<Талбар>` | `<Талбар>`, '<литерал>', тоо; цонхонд засагдана",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateFormScreen (P-WP-31)"
+            },
+            "submit": {
+              "type": "string",
+              "minLength": 1,
+              "description": "P-WP-31 (G-GENLBL): параметрийн/асуух цонхны илгээх товчны бичиг (анхдагч — товчны label)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
             }
           }
         },
@@ -1402,6 +2493,183 @@
               "x-ref": "screen"
             }
           }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "screen"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "screen"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "screen": {
+              "type": "string",
+              "x-ref": "screen",
+              "description": "P-WP-27 (A1-2): list дэлгэцийн id (энэ багц эсвэл суусан) — /data/<хүснэгт>?screen=<id>&f.<шүүлт>=<утга>",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateFormScreen (P-WP-27)"
+            },
+            "filter": {
+              "type": "object",
+              "description": "P-WP-27 (A1-2): {<зорилтын шүүлтийн нэр>: id | record.<Талбар> | <Талбар> | '<литерал>'} — бичлэгийн утгаар",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateFormScreen (P-WP-27)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "delete"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "confirm": {
+              "type": "string",
+              "description": "Баталгаажуулах асуулт (анхдагч «Энэ бичлэгийг устгах уу?»)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen"
+            }
+          },
+          "description": "P-WP-29 (F-DEL): формын «Устгах» товч (label анхдагч «Устгах») — roles.csv Устгах эрх, товчны roles/`товч:` объект; хатуу горимд формын контекстоор устгахад энэ товч хэрэглэгчид харагдах ёстой; states.mmd `locked` төлөвт харагдахгүй (сервер 400)"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "set"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "set"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "set": {
+              "type": "object",
+              "description": "P-WP-29 (G-SETBTN): талбар → утга: X0 илэрхийлэл (формын утгаар: '<текст>', тоо, null, <Талбар>, user.code, today …) эсвэл FK талбарт {where: <лавлах хүснэгтийн X0 — нэрээр>} (серверт: Харах эрх, мөрийн хүрээ, эхний мөр)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen",
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "x-expr": "x0"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "where"
+                    ],
+                    "properties": {
+                      "where": {
+                        "type": "string",
+                        "description": "Лавлах хүснэгтийн мөрийн нөхцөл (X0, лавлахын баганын нэрээр)",
+                        "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "save": {
+              "type": "boolean",
+              "description": "Утга онооод бичлэгийг шууд хадгалах (байгаа бичлэгт; талбарын эрхийг сервер хүчилнэ)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen"
+            }
+          },
+          "description": "P-WP-29 (G-SETBTN): товчоор талбар(ууд)-д утга оноох — товчны roles/visibleWhen, Өөрчлөх эрх; зөвхөн унших талбарыг алгасна"
         }
       ]
     },
@@ -1561,6 +2829,9 @@
                 "prev",
                 "none"
               ]
+            },
+            "toggle": {
+              "$ref": "#/$defs/blockToggle"
             }
           },
           "description": "KPI блок: source (хүснэгтийн count|sum|avg|min|max) эсвэл metric (metrics.yaml үзүүлэлт) — аль нэг"
@@ -1597,6 +2868,9 @@
                 "type": "string",
                 "x-ref": "role"
               }
+            },
+            "toggle": {
+              "$ref": "#/$defs/blockToggle"
             }
           }
         },
@@ -1642,11 +2916,47 @@
             },
             "columns": {
               "type": "array",
-              "description": "Баганууд",
-              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1723",
+              "description": "Баганууд: нэр эсвэл P-WP-49 (PAGE-GRID-FMT) `{column, format, label, align}` — жагсаалтын баганын харагдацтай ижил (format: integer | number | money | percent | date | datetime | time эсвэл маск)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (page grid columnMeta); web/src/pages/PageView.tsx GridBlock",
               "items": {
-                "type": "string",
-                "x-ref": "column"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "x-ref": "column"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "column"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "column": {
+                        "type": "string",
+                        "x-ref": "column",
+                        "description": "Багана"
+                      },
+                      "label": {
+                        "type": "string",
+                        "description": "Толгойн нэр (анхдагч — баганын нэр)"
+                      },
+                      "align": {
+                        "enum": [
+                          "left",
+                          "center",
+                          "right"
+                        ],
+                        "description": "Зэрэгцүүлэлт (анхдагч — тоо баруун)"
+                      },
+                      "format": {
+                        "type": "string",
+                        "description": "Харагдацын формат (P-WP-4): integer | number | money | percent | date | datetime | time эсвэл маск («#,##0.00 ₮», «0.0%», «YYYY.MM.DD»). date/datetime — branding dateFormat/dateTimeFormat",
+                        "pattern": "^(integer|number|money|percent|date|datetime|time|[^#0]*(#[, ]##0|0)(\\.0{1,6})?%?[^#0]*|(YYYY|YY|MM|DD|HH|mm|ss|[ .:/T-])+)$",
+                        "x-pattern-hint": "integer|number|money|percent|date|datetime|time, «#,##0.00 ₮», «0.0%», «YYYY.MM.DD HH:mm»"
+                      }
+                    }
+                  }
+                ]
               }
             },
             "sort": {
@@ -1683,6 +2993,9 @@
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:1726",
               "minimum": 1,
               "maximum": 100
+            },
+            "toggle": {
+              "$ref": "#/$defs/blockToggle"
             }
           }
         },
@@ -1727,7 +3040,7 @@
               "x-ref": "report"
             },
             "chart": {
-              "description": "График: төрөл эсвэл {type}",
+              "description": "График: төрөл эсвэл {type, only} (P-WP-26: donut, only — зөвхөн график)",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:1731",
               "anyOf": [
                 {
@@ -1736,7 +3049,8 @@
                     "none",
                     "bar",
                     "line",
-                    "pie"
+                    "pie",
+                    "donut"
                   ]
                 },
                 {
@@ -1748,14 +3062,35 @@
                         "none",
                         "bar",
                         "line",
-                        "pie"
+                        "pie",
+                        "donut"
                       ],
                       "description": "График төрөл",
                       "x-source": "web/src/api/reports.ts:7"
+                    },
+                    "only": {
+                      "type": "boolean",
+                      "description": "P-WP-26: зөвхөн график (хүснэгтгүй)",
+                      "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
                     }
                   }
                 }
               ]
+            },
+            "params": {
+              "type": "object",
+              "description": "Тайлангийн параметр: page.<хуудасны параметр> | литерал (P-WP-5; анхдагч — ижил нэртэй хуудасны параметр)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            },
+            "toggle": {
+              "$ref": "#/$defs/blockToggle"
             }
           }
         },
@@ -1803,9 +3138,1945 @@
               "type": "string",
               "description": "Товчны бичиг",
               "x-source": "cgi/src/solution/SolutionDeploy.cpp:1738"
+            },
+            "toggle": {
+              "$ref": "#/$defs/blockToggle"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "items"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Блокийн төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1699",
+              "const": "links"
+            },
+            "title": {
+              "type": "string",
+              "description": "Гарчиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1701"
+            },
+            "span": {
+              "type": "integer",
+              "description": "Өргөн (1–12)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1700",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "roles": {
+              "type": "array",
+              "description": "Блокийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1740",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "items": {
+              "type": "array",
+              "description": "Холбоос/товчнууд — screen | page | report | table | url-ийн яг нэг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": [
+                  "label"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Товчны бичиг",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)"
+                  },
+                  "screen": {
+                    "type": "string",
+                    "description": "Дэлгэц (list → /data/<t>?screen=, form → ?form=) — энэ эсвэл суусан багцын",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)",
+                    "x-ref": "screen"
+                  },
+                  "page": {
+                    "type": "string",
+                    "description": "Хуудас (slug эсвэл id)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)"
+                  },
+                  "report": {
+                    "type": "string",
+                    "description": "Тайлан",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)",
+                    "x-ref": "report"
+                  },
+                  "table": {
+                    "type": "string",
+                    "description": "Хүснэгт (/data/<t>)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)",
+                    "x-ref": "table"
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "Холбоос: http(s)://… (шинэ таб) эсвэл '/'-ээр эхэлсэн дотоод зам",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)",
+                    "pattern": "^(https?://\\S+|/[^/\\\\:][^\\\\:]*|/)$"
+                  },
+                  "generate": {
+                    "type": "string",
+                    "description": "`on`-гүй генераторын нэр — товчоор ажиллуулна (P-WP-25; params — генераторын параметр: page.<хуудасны параметр> | '<литерал>' | тоо); дараа нь хуудасны блокуудыг дахин уншина",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-25)",
+                    "x-ref": "generator"
+                  },
+                  "params": {
+                    "type": "object",
+                    "description": "Зорилтын параметр: list дэлгэц — шүүлтийн нэр (f.<нэр>), хуудас — параметр, тайлан — параметр; утга page.<хуудасны параметр> | '<литерал>' | тоо",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)",
+                    "additionalProperties": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                      ]
+                    }
+                  },
+                  "primary": {
+                    "type": "boolean",
+                    "description": "Үндсэн (тодруулсан) товч",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)"
+                  },
+                  "roles": {
+                    "type": "array",
+                    "description": "Харах үүргүүд (бусад — зорилтын эрхээр: хүснэгт/дэлгэц/хуудас/тайлан харах эрхгүй бол товч харагдахгүй)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp:links (P-WP-12)",
+                    "items": {
+                      "type": "string",
+                      "x-ref": "role"
+                    }
+                  },
+                  "print": {
+                    "type": "boolean",
+                    "const": true,
+                    "description": "P-WP-27 (PRINT): хуудсыг хэвлэх товч (браузерын хэвлэх — шүүлтийн самбар/товчгүй)",
+                    "x-source": "cgi/src/solution/SolutionDeploy.cpp translatePageScreen (P-WP-27)"
+                  }
+                }
+              }
+            },
+            "toggle": {
+              "$ref": "#/$defs/blockToggle"
+            }
+          },
+          "description": "Холбоос/товчны мөр (P-WP-12): дэлгэц, хуудас, тайлан, хүснэгт, URL руу — хэрэглэгчийн эрхээр шүүгдэнэ"
+        }
+      ]
+    },
+    "extensionTab": {
+      "type": "object",
+      "description": "Өргөтгөлийн таб (эзэмшигчийн табын ард нэмэгдэнэ): sections, childGrid, block-ийн яг нэг нь",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Табын гарчиг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1437"
+        },
+        "sections": {
+          "type": "array",
+          "description": "Хэсгүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1442",
+          "items": {
+            "$ref": "#/$defs/section"
+          }
+        },
+        "stacked": {
+          "type": "boolean",
+          "description": "P-WP-23 (A3-1): true — табын хэсгүүдийн childGrid тусдаа таб болохгүй, нэг табд дараалан (хэсэг шиг; master-detail: эцэг grid + түүний сонгосон мөрийн хүү grid). Нийтэлсэн табуудад `stack: <гарчиг>`",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:stacked"
+        },
+        "childGrid": {
+          "$ref": "#/$defs/childGrid",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1438"
+        },
+        "block": {
+          "type": "string",
+          "description": "Платформын блок",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1439",
+          "enum": [
+            "history",
+            "attachments",
+            "documents",
+            "report",
+            "track"
+          ]
+        },
+        "report": {
+          "type": "string",
+          "description": "block: report — бичлэгээр шүүсэн тайлан (PLAN13 S6; энэ хүснэгт рүү заасан ref параметр = бичлэгийн түлхүүр)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1473",
+          "x-ref": "report"
+        },
+        "reload": {
+          "type": [
+            "string",
+            "boolean"
+          ],
+          "description": "block: report — тайланг дахин ачаалах товч (P-WP-25): товчны бичиг эсвэл true (анхдагч бичиг «Ачаалах»)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateFormScreen (P-WP-25)"
+        },
+        "params": {
+          "type": "object",
+          "description": "block: report — {<параметр>: id | <талбар> | <өөр бичлэгийн нэгтгэл: maxof(<Хүснэгт>, <Талбар>, <нөхцөл record.>) эсвэл max(<Хүснэгт>.<Талбар>, where … row.…)>} (анхдагч: ref параметр = бичлэг; нэгтгэл — серверт, P-WP-36 R-PREV)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1479",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tracking": {
+          "type": "string",
+          "description": "block: track — context.yaml `tracking:` нэр (T3 WP-F): бичлэгийн хугацааны явсан зам (зам, эхлэл/төгсгөл, тоглуулах, нийт зай)"
+        },
+        "user": {
+          "type": "string",
+          "x-ref": "column",
+          "description": "block: track — хэрэглэгчийн код (ST0032) талбар; хоосон бол одоогийн хэрэглэгч"
+        },
+        "from": {
+          "type": "string",
+          "x-ref": "column",
+          "description": "block: track — эхлэх огноо/цаг талбар"
+        },
+        "to": {
+          "type": "string",
+          "x-ref": "column",
+          "description": "block: track — дуусах огноо/цаг талбар (огноо бол тэр өдрийг бүтнээр)"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Табыг харах үүргүүд (аль нэг) — бусад үүрэгт таб бүхэлдээ (хэсэг, хүү grid, блок) харагдахгүй; сервер хүчилнэ (PLAN14 A3.9)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1582",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "after": {
+          "type": "string",
+          "description": "Байрлал: энэ гарчигтай табын ард (анхдагч — төгсгөлд); эзэмшигчийн эсвэл өмнө нэмэгдсэн өргөтгөлийн таб",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+        }
+      }
+    },
+    "extensionSection": {
+      "type": "object",
+      "description": "Өргөтгөлийн хэсэг: талбартай бол `tab` табын `after` хэсгийн ард; childGrid-тэй бол шинэ таб болж `after` табын ард",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Гарчиг",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1474"
+        },
+        "columns": {
+          "type": "integer",
+          "description": "Баганын тоо (1–4)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1474",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "fields": {
+          "type": "array",
+          "description": "Талбарууд — нэр эсвэл объект",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1445",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/field"
+              },
+              {
+                "type": "string",
+                "x-ref": "column"
+              }
+            ],
+            "description": "талбарын нэр эсвэл {field, …}"
+          }
+        },
+        "childGrid": {
+          "$ref": "#/$defs/childGrid",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1443"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Хэсгийг харах үүргүүд (PLAN13 S3)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1548",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "tab": {
+          "type": "string",
+          "description": "Талбартай хэсэг нэмэгдэх эзэмшигчийн таб (гарчиг; анхдагч — хэсэгтэй эхний таб)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+        },
+        "after": {
+          "type": "string",
+          "description": "Байрлал: талбартай хэсэгт — энэ гарчигтай хэсгийн ард; childGrid-тэй хэсэгт — энэ гарчигтай табын ард (анхдагч — төгсгөлд)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+        },
+        "span": {
+          "type": "integer",
+          "description": "Хэсгийн өргөн 12 баганын мөрөнд (P-WP-6; анхдагч 12) — span-ууд нийлбэр ≤ 12 бол хажуу хажуудаа",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "collapsible": {
+          "description": "Эвхэгддэг хэсэг (P-WP-6): true — нээлттэй, collapsed — анхдагчаар эвхсэн",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "collapsed"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "extensionAction": {
+      "description": "Өргөтгөлийн товч (эзэмшигчийн товчны ард)",
+      "x-discriminator": "type",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "transition"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "transition": {
+              "type": "string",
+              "description": "Шилжилтийн нэр (анхдагч label)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1486",
+              "x-ref": "transition"
+            },
+            "after": {
+              "type": "string",
+              "description": "Байрлал: энэ нэртэй товчны ард (анхдагч — төгсгөлд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "document"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "document"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "document": {
+              "type": "string",
+              "description": "Баримтын загвар",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1491",
+              "x-ref": "document"
+            },
+            "after": {
+              "type": "string",
+              "description": "Байрлал: энэ нэртэй товчны ард (анхдагч — төгсгөлд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "table"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "create"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "table": {
+              "type": "string",
+              "description": "Үүсгэх хүснэгт",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1493",
+              "x-ref": "table"
+            },
+            "prefill": {
+              "type": "object",
+              "description": "Шинэ мөрийн багана → энэ мөрийн багана (эсвэл id)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1496",
+              "additionalProperties": {
+                "type": "string",
+                "x-ref": "column"
+              }
+            },
+            "after": {
+              "type": "string",
+              "description": "Байрлал: энэ нэртэй товчны ард (анхдагч — төгсгөлд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "process"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "process"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "process": {
+              "type": "string",
+              "description": "BPMN процесс (нэр/id)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1504",
+              "x-ref": "process"
+            },
+            "after": {
+              "type": "string",
+              "description": "Байрлал: энэ нэртэй товчны ард (анхдагч — төгсгөлд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "generator"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "generate"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "generator": {
+              "type": "string",
+              "description": "Генератор (generators.yaml `on: <энэ хүснэгт>`) — энэ бичлэгээр (doc.*), параметрийг хэрэглэгчээс асууна; P-WP-31 (F-GENBTN): `on`-гүй генератор ч — параметрийн цонх (params — анхны утга), X-Bj-Screen = энэ форм (товчны roles, `товч:<дэлгэц>/<нэр>`)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1640"
+            },
+            "after": {
+              "type": "string",
+              "description": "Байрлал: энэ нэртэй товчны ард (анхдагч — төгсгөлд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+            },
+            "params": {
+              "type": "object",
+              "description": "P-WP-31 (F-GENBTN): `on`-гүй генераторын параметрийн анхны утга — `id` (энэ бичлэг), `record.<Талбар>` | `<Талбар>`, '<литерал>', тоо; цонхонд засагдана",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateFormScreen (P-WP-31)"
+            },
+            "submit": {
+              "type": "string",
+              "minLength": 1,
+              "description": "P-WP-31 (G-GENLBL): параметрийн/асуух цонхны илгээх товчны бичиг (анхдагч — товчны label)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "report"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "report"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "report": {
+              "type": "string",
+              "description": "Нээх тайлан",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1508",
+              "x-ref": "report"
+            },
+            "after": {
+              "type": "string",
+              "description": "Байрлал: энэ нэртэй товчны ард (анхдагч — төгсгөлд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "page"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "page"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "page": {
+              "type": "string",
+              "description": "Шилжих дэлгэц (PLAN13 S5): page дэлгэцийн slug/id → /p/<slug>; form дэлгэцийн id → тэр формоор (энэ бичлэг эсвэл FK-аар холбогдсон бичлэг)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1588",
+              "x-ref": "screen"
+            },
+            "after": {
+              "type": "string",
+              "description": "Байрлал: энэ нэртэй товчны ард (анхдагч — төгсгөлд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "delete"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "confirm": {
+              "type": "string",
+              "description": "Баталгаажуулах асуулт (анхдагч «Энэ бичлэгийг устгах уу?»)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen"
+            },
+            "after": {
+              "type": "string",
+              "description": "Байрлал: энэ нэртэй товчны ард (анхдагч — төгсгөлд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+            }
+          },
+          "description": "P-WP-29 (F-DEL): формын «Устгах» товч (label анхдагч «Устгах») — roles.csv Устгах эрх, товчны roles/`товч:` объект; хатуу горимд формын контекстоор устгахад энэ товч хэрэглэгчид харагдах ёстой; states.mmd `locked` төлөвт харагдахгүй (сервер 400)"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "label",
+            "set"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Товчны төрөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1480",
+              "const": "set"
+            },
+            "label": {
+              "type": "string",
+              "description": "Товчны бичиг",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1481"
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Үндсэн товч",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1482"
+            },
+            "visibleWhen": {
+              "type": "string",
+              "description": "Харагдах нөхцөл",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1483",
+              "x-expr": "x0"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Товчийг харах үүргүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1484",
+              "items": {
+                "type": "string",
+                "x-ref": "role"
+              }
+            },
+            "set": {
+              "type": "object",
+              "description": "P-WP-29 (G-SETBTN): талбар → утга: X0 илэрхийлэл (формын утгаар: '<текст>', тоо, null, <Талбар>, user.code, today …) эсвэл FK талбарт {where: <лавлах хүснэгтийн X0 — нэрээр>} (серверт: Харах эрх, мөрийн хүрээ, эхний мөр)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen",
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "x-expr": "x0"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "where"
+                    ],
+                    "properties": {
+                      "where": {
+                        "type": "string",
+                        "description": "Лавлах хүснэгтийн мөрийн нөхцөл (X0, лавлахын баганын нэрээр)",
+                        "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "save": {
+              "type": "boolean",
+              "description": "Утга онооод бичлэгийг шууд хадгалах (байгаа бичлэгт; талбарын эрхийг сервер хүчилнэ)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen"
+            },
+            "after": {
+              "type": "string",
+              "description": "Байрлал: энэ нэртэй товчны ард (анхдагч — төгсгөлд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+            }
+          },
+          "description": "P-WP-29 (G-SETBTN): товчоор талбар(ууд)-д утга оноох — товчны roles/visibleWhen, Өөрчлөх эрх; зөвхөн унших талбарыг алгасна"
+        }
+      ]
+    },
+    "extension": {
+      "type": "object",
+      "required": [
+        "extends"
+      ],
+      "description": "WP-T: requires-ийн (эсвэл өмнө суусан) багцын form дэлгэцэд хэсэг/таб/хүү grid/товч НЭМНЭ (ledgers.yaml `extends`-ийн загвар). Эзэмшигчийн хэсгийг хасах, дахин тодорхойлох боломжгүй; эзэмшигчийн таб/хэсэг/товчтой ижил нэр — алдаа. Хэсэг тус бүр өөрийн `roles`-той; товч нь эзэмшигчийн товчтой адил (`товч:<дэлгэц>/<нэр>`, хатуу горим). purge — зөвхөн энэ багцын хэсгүүд; эзэмшигчийг дахин deploy хийхэд өргөтгөл хэвээр. P-WP-27 (A2-8): list дэлгэцэд `columns`, `filters`, `actions` (байрлал `after` — баганы нэр/шошго, шүүлтийн нэр, товчны нэр; шүүлт/товчны нэр давхцвал алдаа; тооцоолсон баганын түлхүүр давхцахгүй). P-WP-31: list-д `tree` (G-EXTTREE), `back` (E-BACK). P-WP-51: form-д `fields` (эзэмшигчийн хэсэгт талбар — section, after).",
+      "properties": {
+        "extends": {
+          "type": "string",
+          "x-ref": "screen",
+          "description": "Өргөтгөх дэлгэц — id эсвэл гарчиг (requires-ийн багцын form эсвэл list дэлгэц — P-WP-27)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+        },
+        "type": {
+          "type": "string",
+          "const": "extension",
+          "description": "(сонголттой) — `extends`-тэй мөр",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension"
+        },
+        "tabs": {
+          "type": "array",
+          "description": "Нэмэх табууд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension",
+          "items": {
+            "$ref": "#/$defs/extensionTab"
+          }
+        },
+        "sections": {
+          "type": "array",
+          "description": "Нэмэх хэсгүүд (талбартай — эзэмшигчийн табд; childGrid-тэй — шинэ таб)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension",
+          "items": {
+            "$ref": "#/$defs/extensionSection"
+          }
+        },
+        "fields": {
+          "type": "array",
+          "description": "P-WP-51 (EXT-FIELDS): эзэмшигчийн (form) дэлгэцийн байгаа хэсэгт талбар нэмэх — `section` (хэсгийн гарчиг), `after` (тэр хэсгийн талбарын нэр; анхдагч — хэсгийн төгсгөлд). Талбарын хэлбэр нь формын талбартай ижил (field | expr, label, readOnly …)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension (P-WP-51)",
+          "items": {
+            "$ref": "#/$defs/extensionField"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "description": "Нэмэх товчнууд (form — товчны хэлбэр `type`; list — жагсаалтын товчны хэлбэр, P-WP-27)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/extensionAction"
+              },
+              {
+                "$ref": "#/$defs/extensionListAction"
+              }
+            ]
+          }
+        },
+        "columns": {
+          "type": "array",
+          "description": "P-WP-27 (A2-8): list-д нэмэх багана — `Багана` | {column, label, …} | {label, expr} (FK зам, sum(Хүү.Багана) …), `after`, харагдац (width, align, format, group, hidden, footer)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListExtension",
+          "items": {
+            "type": [
+              "string",
+              "object"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "filters": {
+          "type": "array",
+          "description": "P-WP-27 (A2-8): list-д нэмэх шүүлт (filters-ийн хэлбэр + `after`, `roles`)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListExtension",
+          "items": {
+            "type": "object",
+            "description": "Жагсаалтын шүүлтийн мөрийн талбар (P-WP-5) — серверт мөрийн эрхийн дор хэрэгжинэ; P-WP-27 (G-LFP): FK замаар (`column: Харилцагч.Профайл.Бүс`) эсвэл хүүхэд хүснэгтээр (`child`) — ижил child/via/of/where-тэй шүүлтүүд нэг exists()-д; `child`-тай баганагүй шүүлт — Тийм (мөр байгаа) / Үгүй (байхгүй); P-WP-31: `filter.<нэр>` (G-LFPX), `param`, тооцоолсон багана, `op: empty`, `value` (L-FCALC), `treeOnly` (G-EXTTREE); `via: org` — хүүхдийн байгууллагын хүрээний багана (G-LFPORG)",
+            "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "URL/товчны параметрийн нэр (анхдагч label, эсвэл багана); давтагдахгүй"
+              },
+              "label": {
+                "type": "string",
+                "description": "Шошго (анхдагч баганын нэр)"
+              },
+              "column": {
+                "type": "string",
+                "description": "Энэ хүснэгтийн багана (нэрээр) эсвэл FK зам `<FK>.<лавлахын багана>…` (≤ 5 алхам; замын хүснэгт бүрт Харах эрх, нуух талбар — P-WP-27); `child`-тай бол хүүхэд хүснэгтийн багана/FK зам — төрлөөс input (огноо, FK сонгогч, төлөв, bool, тоо, текст); P-WP-31 (L-FCALC): энэ жагсаалтын тооцоолсон баганын шошго ({label, expr}) — серверт тооцоолсон утгаар"
+              },
+              "op": {
+                "type": "string",
+                "description": "Харьцуулалт (анхдагч ==, текстэд contains); under — модны хүснэгт рүү FK (дэд мод); empty (P-WP-31, L-FCALC) — хоосон эсэх: шүүлт нь Тийм (хоосон) / Үгүй (хоосон биш)",
+                "enum": [
+                  "==",
+                  "!=",
+                  ">=",
+                  "<=",
+                  ">",
+                  "<",
+                  "contains",
+                  "under",
+                  "empty"
+                ]
+              },
+              "default": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ],
+                "description": "Анхдагч утга — литерал эсвэл огнооны токен (today, month_start(today), today - 7 …)"
+              },
+              "options": {
+                "type": "array",
+                "description": "Сонголтын утгууд (текст/тоон багана — enum)",
+                "items": {
+                  "type": [
+                    "string",
+                    "number"
+                  ]
+                }
+              },
+              "child": {
+                "type": "string",
+                "x-ref": "table",
+                "description": "P-WP-27 (G-LFP): хүүхэд хүснэгт — энэ хүснэгтийн мөрд `exists(<хүүхэд> where <via> == <of> and <нөхцөл>)` (хүүхдийн Харах эрх, мөрийн шүүлт/байгууллагын хүрээ хүчинтэй)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "via": {
+                "type": "string",
+                "description": "P-WP-27: хүүхдийн FK (зам ч — `Толгой.Харилцагч`) энэ хүснэгт рүү (эсвэл `of`-ийн лавлах руу); анхдагч — хүүхдээс энэ хүснэгт рүү ганц FK; P-WP-31 (G-LFPORG): `org` — хүүхдийн байгууллагын хүрээний багана (Хэсэг рүү; `of` нь Хэсэг рүү FK эсвэл `org`)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "of": {
+                "type": "string",
+                "description": "P-WP-27: энэ хүснэгтийн багана (анхдагч pk) — `via` түүнтэй тэнцүү (жишээ нь `Профайл` — хүүхэд нь Профайлын хүүхэд)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "where": {
+                "type": "string",
+                "x-expr": "x0",
+                "description": "P-WP-27: хүүхэд мөрийн нэмэлт нөхцөл (X0, хүүхдийн нэрээр; төлвийн нэрээр) — жишээ `Үлдэгдэл > 0`; P-WP-31 (G-LFPX): `filter.<нэр>` — өөр (эсвэл энэ) шүүлтийн утга (хоосон бол null); child-гүй бол энэ хүснэгтийн X0 (баганагүй шүүлт — утгатай үед `where` үйлчилнэ; `exists(<Хүснэгт>, id == filter.<нэр> and inside(row.<цэг>, <полигон>))`)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "roles": {
+                "type": "array",
+                "description": "P-WP-27 (A2-8): шүүлт зөвхөн эдгээр үүрэгт (бусдад байхгүйтэй адил; f.<нэр> илгээвэл 403)",
+                "items": {
+                  "type": "string",
+                  "x-ref": "role"
+                },
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "text",
+                  "number",
+                  "date",
+                  "datetime",
+                  "boolean",
+                  "ref"
+                ],
+                "description": "P-WP-31 (G-LFPX): баганагүй (`where`, `param`, child where) шүүлтийн утгын төрөл (input, filter.<нэр>-ийн литерал); тооцоолсон баганад — харьцуулах төрөл (анхдагч number)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "ref": {
+                "type": "string",
+                "x-ref": "table",
+                "description": "P-WP-31 (G-LFPX): `kind: ref` — сонгох лавлах хүснэгт (Харах эрх)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "param": {
+                "type": "boolean",
+                "description": "P-WP-31 (G-LFPX): зөвхөн утга — өөрөө шүүхгүй, бусад шүүлтийн `where`-д `filter.<нэр>`-ээр",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "value": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ],
+                "description": "P-WP-31 (L-FCALC): тогтмол утга — шүүлт нь Тийм (`<багана> <op> <value>`) / Үгүй (not …)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "treeOnly": {
+                "type": "boolean",
+                "description": "P-WP-31 (G-EXTTREE): зөвхөн модны (`tree`) зангилаа сонгосон үед үйлчилнэ (ижил child-тай бол модтой нэг exists-д)",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "expr": {
+                "type": "string",
+                "x-expr": "x0",
+                "description": "P-WP-31 (L-FCALC): тооцоолсон утга (жагсаалтын {label, expr}-тэй ижил — FK зам, sum(<Хүүхэд>.<Багана>) …) — `op`/`value`-тэй",
+                "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+              },
+              "after": {
+                "type": "string",
+                "description": "Байрлал — эзэмшигчийн шүүлтийн нэр (дараа нь)"
+              }
+            }
+          }
+        },
+        "tree": {
+          "type": "object",
+          "required": [
+            "column"
+          ],
+          "description": "P-WP-31 (G-EXTTREE): list-д модны самбар нэмэх (эзэмшигч модгүй бол; хүүхдээр ч — энэ багцын хүснэгт)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListExtension",
+          "properties": {
+            "column": {
+              "type": [
+                "string",
+                "array"
+              ],
+              "description": "FK багана — өөр рүүгээ FK-тэй (мод) хүснэгт рүү; P-WP-27: FK зам (`Зүйл.Ангилал`) эсвэл `child`-тай бол хүүхдийн багана; P-WP-33 (G-TREE2): массив `[A, B]` — зангилааны дэд модонд аль нэг багана (ижил модны хүснэгт рүү, ≤ 5)",
+              "items": {
+                "type": "string"
+              }
+            },
+            "title": {
+              "type": "string",
+              "description": "Самбарын гарчиг"
+            },
+            "all": {
+              "type": "string",
+              "description": "«Бүх …» мөрийн шошго (анхдагч «Бүгд»)"
+            },
+            "display": {
+              "type": "string",
+              "description": "Зангилааны шошгоны багана (модны хүснэгтийнх; анхдагч эхний текст багана)"
+            },
+            "child": {
+              "type": "string",
+              "x-ref": "table",
+              "description": "P-WP-27 (G-LFP): хүүхэд хүснэгтийн баганаар мод (толгойн жагсаалтыг мөрийн зүйлийн ангиллаар); ижил child/via/of/where-тэй шүүлттэй нэг exists()-д",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+            },
+            "via": {
+              "type": "string",
+              "description": "P-WP-27: хүүхдийн FK (зам ч — `Толгой.Харилцагч`) энэ хүснэгт рүү (эсвэл `of`-ийн лавлах руу); анхдагч — хүүхдээс энэ хүснэгт рүү ганц FK",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+            },
+            "of": {
+              "type": "string",
+              "description": "P-WP-27: энэ хүснэгтийн багана (анхдагч pk) — `via` түүнтэй тэнцүү (жишээ нь `Профайл` — хүүхэд нь Профайлын хүүхэд)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+            },
+            "where": {
+              "type": "string",
+              "x-expr": "x0",
+              "description": "P-WP-27: хүүхэд мөрийн нэмэлт нөхцөл (X0, хүүхдийн нэрээр; төлвийн нэрээр) — жишээ `Үлдэгдэл > 0`",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+            }
+          }
+        },
+        "back": {
+          "description": "P-WP-31 (E-BACK): list-д «Буцах» товч — true эсвэл бичиг",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListExtension"
+        }
+      }
+    },
+    "menuTop": {
+      "type": "object",
+      "description": "Дээд түвшний мөр: category (хуучин — хүснэгтийг ERD ангиллаас зөөнө) | label (мод) | under (requires-ийн эсвэл энэ багцын өмнө зарласан зангилаа «A/B»); P-WP-11: зангилаа screen|table|page|report|url зорилттой байж болно (өөрөө холбоос + дэд мөр), items-гүй бол дээд түвшний навч",
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "Цэсний ангилал (хуучин хэлбэр)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:2724"
+        },
+        "label": {
+          "type": "string",
+          "description": "Зангилааны нэр (мод)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "under": {
+          "type": [
+            "string",
+            "array"
+          ],
+          "description": "requires-ийн (дамжсан) багцын зангилааны зам «Үйл ажиллагаа/Тайлан» (эсвэл [..]) — тэнд items нэмнэ (эзэмшигчийн мөрүүдийн дараа)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon (emoji эсвэл богино тэмдэгт) — P-WP-1",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "order": {
+          "type": "integer",
+          "description": "Дараалал (анхдагч — бичсэн байрлал ×10) — P-WP-1",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Харах үүргүүд (аль нэгэнд нь; зорилтын эрхтэй AND) — P-WP-1",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "apps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "description": "P-WP-41 (MENU-LEAFAPPS): зөвхөн эдгээр аппын цэсэнд (apps.yaml id; `/api/navigation?app=<id>` | X-Bj-App) — roles/need-тэй AND. Зангилаа ба `under:` мөрөнд — доторх (энэ багцын) бүх навч/дэд зангилаа/targets-д өвлөгдөнө (навчны өөрийн apps-тай огтлолцол; огтлолцолгүй бол menu_item). Апп контекстгүй (`?app=*`, `?all=1`, апп суугаагүй) бол шүүлтгүй. Хуучин `category:` зангилаанд биш",
+          "x-source": "cgi/src/meta/AppMenu.cpp (appsOf/appsMeet/pruneByApp)"
+        },
+        "items": {
+          "type": "array",
+          "description": "Навч ба дэд зангилаа (бичсэн дарааллаар)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "items": {
+            "$ref": "#/$defs/menuEntry"
+          }
+        },
+        "screen": {
+          "type": "string",
+          "description": "list/form дэлгэцийн id (list → /data/<хүснэгт>?screen=<id>, form → ?form=<id>); page дэлгэцийн id → хуудас — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "screen"
+        },
+        "table": {
+          "type": "string",
+          "description": "Хүснэгт — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "table"
+        },
+        "page": {
+          "type": "string",
+          "description": "Хуудас (page дэлгэцийн id/slug эсвэл суусан хуудасны slug) → /p/<slug> (P8) — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "page"
+        },
+        "report": {
+          "type": "string",
+          "description": "Тайлан (reports.yaml name) → /analytics/<код> — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "report"
+        },
+        "url": {
+          "type": "string",
+          "description": "http(s)://… эсвэл '/'-ээр эхэлсэн дотоод зам (label заавал) — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "targets": {
+          "type": "array",
+          "description": "P-WP-27 (A1-3/A2-6): зангилааны апп/үүргийн зорилт — `[{app|apps, roles, screen|table|page|report|url, label}]`: тэр апп-ын цэсэнд (`X-Bj-App`) эсвэл тэр үүрэгт зангилаа өөр зорилт руу (эхний таарсан; эс бөгөөс зангилааны өөрийн зорилт). under зангилаанд ч (өөр багцын зангилаанд апп-ын зорилт нэмнэ)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree targets)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "app": {
+                "type": "string",
+                "description": "apps.yaml апп id"
+              },
+              "apps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "апп id-ууд"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "x-ref": "role"
+                },
+                "description": "Үүргүүд (аль нэгэнд)"
+              },
+              "screen": {
+                "type": "string",
+                "x-ref": "screen"
+              },
+              "table": {
+                "type": "string",
+                "x-ref": "table"
+              },
+              "page": {
+                "type": "string",
+                "x-ref": "page"
+              },
+              "report": {
+                "type": "string",
+                "x-ref": "report"
+              },
+              "url": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string"
+              },
+              "view": {
+                "type": "string",
+                "description": "P-WP-33: screen-ийн харагдац"
+              },
+              "platform": {
+                "type": "string",
+                "description": "P-WP-33: платформын хуудас (menuLeaf.platform)"
+              },
+              "need": {
+                "description": "P-WP-40 (MENU-PLATROLES): эрх-удирдах хуудасны (`platform: admin/permissions[/matrix|objects|effective]`, `admin/audit`) навчинд шаардлагатай `платформ:эрх-удирдах[-бүрэн]` маск — view | create | edit (эсвэл roles.csv-ийн Харах | Үүсгэх | Өөрчлөх); массив/«a,b» — бүгд. Тэр битгүй хэрэглэгчид навч харагдахгүй (системийн админд үл хамаарна). Зөвхөн цэсний шүүлт — эрх олгохгүй, хуудасны URL-ийн хандалт серверийн эрхээр",
+                "x-source": "cgi/src/meta/AppMenu.cpp (needMask/needError)",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "view",
+                        "create",
+                        "edit",
+                        "Харах",
+                        "Үүсгэх",
+                        "Өөрчлөх"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "view": {
+          "type": "string",
+          "description": "P-WP-33 (MENU-VIEW): `screen` (жагсаалтын дэлгэц)-ийн харагдацын нэр (`views[].name`) — /data/<хүснэгт>?screen=<id>&view=<нэр>, тэр харагдацаар нээгдэнэ; харагдацын `roles` таараагүй хэрэглэгчид навч харагдахгүй",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree, P-WP-33)"
+        },
+        "platform": {
+          "type": "string",
+          "description": "P-WP-33 (MENU-ADMPG): платформын хуудас — generators | ledger-entries | metrics | analytics | reports | tasks | delegations | track | timetable | account (бүгд); org-admin, org-admin/<users|delegations|settings|modules|connectors|api|data> (байгууллагын админд); admin, admin/<roles|permissions|impact|system-map|integrations|documents|pages|screens|appearance|sso|mail|organisations|packages|designer|modules|states|decisions|calculations|audit>, admin/permissions/<matrix|objects|fields|rows|effective> (системийн админд; P-WP-34: admin/permissions[/matrix|objects|effective] ба admin/audit — roles.csv `платформ:эрх-удирдах` (P-WP-38: эсвэл `платформ:эрх-удирдах-бүрэн` — хүрээнд хязгааргүй) эрхтэй бизнес үүрэгт ч, багцын хүрээгээр). Хуудасны өөрийн эрхээр — хэрэглэгчид харагдахгүй бол цэсэнд ч алга (label заавал). P-WP-40: навчны `roles` (бусад навчтай ижил — аль нэг үүрэгтэйд л) ба `need` (эрх-удирдах маск) — нэмэлт шүүлт, эрх олгохгүй",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree, P-WP-33)"
+        },
+        "need": {
+          "description": "P-WP-40 (MENU-PLATROLES): эрх-удирдах хуудасны (`platform: admin/permissions[/matrix|objects|effective]`, `admin/audit`) навчинд шаардлагатай `платформ:эрх-удирдах[-бүрэн]` маск — view | create | edit (эсвэл roles.csv-ийн Харах | Үүсгэх | Өөрчлөх); массив/«a,b» — бүгд. Тэр битгүй хэрэглэгчид навч харагдахгүй (системийн админд үл хамаарна). Зөвхөн цэсний шүүлт — эрх олгохгүй, хуудасны URL-ийн хандалт серверийн эрхээр",
+          "x-source": "cgi/src/meta/AppMenu.cpp (needMask/needError)",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "view",
+                  "create",
+                  "edit",
+                  "Харах",
+                  "Үүсгэх",
+                  "Өөрчлөх"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "menuEntry": {
+      "description": "Цэсний мөр: дэлгэц/хуудасны id эсвэл хүснэгтийн нэр (мөр), навч эсвэл дэд зангилаа",
+      "anyOf": [
+        {
+          "type": "string",
+          "x-ref": "screen"
+        },
+        {
+          "$ref": "#/$defs/menuNode"
+        },
+        {
+          "$ref": "#/$defs/menuLeaf"
+        }
+      ]
+    },
+    "menuNode": {
+      "type": "object",
+      "description": "Дэд зангилаа (P-WP-11: screen|table|page|report|url — зангилааны өөрийн зорилт)",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Зангилааны нэр",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "category": {
+          "type": "string",
+          "description": "label-ийн ижил утгатай нэр"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon (emoji эсвэл богино тэмдэгт) — P-WP-1",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "order": {
+          "type": "integer",
+          "description": "Дараалал (анхдагч — бичсэн байрлал ×10) — P-WP-1",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Харах үүргүүд (аль нэгэнд нь; зорилтын эрхтэй AND) — P-WP-1",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "apps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "description": "P-WP-41 (MENU-LEAFAPPS): зөвхөн эдгээр аппын цэсэнд (apps.yaml id; `/api/navigation?app=<id>` | X-Bj-App) — roles/need-тэй AND. Зангилаа ба `under:` мөрөнд — доторх (энэ багцын) бүх навч/дэд зангилаа/targets-д өвлөгдөнө (навчны өөрийн apps-тай огтлолцол; огтлолцолгүй бол menu_item). Апп контекстгүй (`?app=*`, `?all=1`, апп суугаагүй) бол шүүлтгүй. Хуучин `category:` зангилаанд биш",
+          "x-source": "cgi/src/meta/AppMenu.cpp (appsOf/appsMeet/pruneByApp)"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/menuEntry"
+          }
+        },
+        "screen": {
+          "type": "string",
+          "description": "list/form дэлгэцийн id (list → /data/<хүснэгт>?screen=<id>, form → ?form=<id>); page дэлгэцийн id → хуудас — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "screen"
+        },
+        "table": {
+          "type": "string",
+          "description": "Хүснэгт — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "table"
+        },
+        "page": {
+          "type": "string",
+          "description": "Хуудас (page дэлгэцийн id/slug эсвэл суусан хуудасны slug) → /p/<slug> (P8) — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "page"
+        },
+        "report": {
+          "type": "string",
+          "description": "Тайлан (reports.yaml name) → /analytics/<код> — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "report"
+        },
+        "url": {
+          "type": "string",
+          "description": "http(s)://… эсвэл '/'-ээр эхэлсэн дотоод зам (label заавал) — P-WP-11: зангилааны өөрийн зорилт (зангилаа нь өөрөө холбоос, items-тэй ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "targets": {
+          "type": "array",
+          "description": "P-WP-27 (A1-3/A2-6): зангилааны апп/үүргийн зорилт — `[{app|apps, roles, screen|table|page|report|url, label}]`: тэр апп-ын цэсэнд (`X-Bj-App`) эсвэл тэр үүрэгт зангилаа өөр зорилт руу (эхний таарсан; эс бөгөөс зангилааны өөрийн зорилт). under зангилаанд ч (өөр багцын зангилаанд апп-ын зорилт нэмнэ)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree targets)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "app": {
+                "type": "string",
+                "description": "apps.yaml апп id"
+              },
+              "apps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "апп id-ууд"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "x-ref": "role"
+                },
+                "description": "Үүргүүд (аль нэгэнд)"
+              },
+              "screen": {
+                "type": "string",
+                "x-ref": "screen"
+              },
+              "table": {
+                "type": "string",
+                "x-ref": "table"
+              },
+              "page": {
+                "type": "string",
+                "x-ref": "page"
+              },
+              "report": {
+                "type": "string",
+                "x-ref": "report"
+              },
+              "url": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string"
+              },
+              "view": {
+                "type": "string",
+                "description": "P-WP-33: screen-ийн харагдац"
+              },
+              "platform": {
+                "type": "string",
+                "description": "P-WP-33: платформын хуудас (menuLeaf.platform)"
+              },
+              "need": {
+                "description": "P-WP-40 (MENU-PLATROLES): эрх-удирдах хуудасны (`platform: admin/permissions[/matrix|objects|effective]`, `admin/audit`) навчинд шаардлагатай `платформ:эрх-удирдах[-бүрэн]` маск — view | create | edit (эсвэл roles.csv-ийн Харах | Үүсгэх | Өөрчлөх); массив/«a,b» — бүгд. Тэр битгүй хэрэглэгчид навч харагдахгүй (системийн админд үл хамаарна). Зөвхөн цэсний шүүлт — эрх олгохгүй, хуудасны URL-ийн хандалт серверийн эрхээр",
+                "x-source": "cgi/src/meta/AppMenu.cpp (needMask/needError)",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "view",
+                        "create",
+                        "edit",
+                        "Харах",
+                        "Үүсгэх",
+                        "Өөрчлөх"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "view": {
+          "type": "string",
+          "description": "P-WP-33 (MENU-VIEW): `screen` (жагсаалтын дэлгэц)-ийн харагдацын нэр (`views[].name`) — /data/<хүснэгт>?screen=<id>&view=<нэр>, тэр харагдацаар нээгдэнэ; харагдацын `roles` таараагүй хэрэглэгчид навч харагдахгүй",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree, P-WP-33)"
+        },
+        "platform": {
+          "type": "string",
+          "description": "P-WP-33 (MENU-ADMPG): платформын хуудас — generators | ledger-entries | metrics | analytics | reports | tasks | delegations | track | timetable | account (бүгд); org-admin, org-admin/<users|delegations|settings|modules|connectors|api|data> (байгууллагын админд); admin, admin/<roles|permissions|impact|system-map|integrations|documents|pages|screens|appearance|sso|mail|organisations|packages|designer|modules|states|decisions|calculations|audit>, admin/permissions/<matrix|objects|fields|rows|effective> (системийн админд; P-WP-34: admin/permissions[/matrix|objects|effective] ба admin/audit — roles.csv `платформ:эрх-удирдах` (P-WP-38: эсвэл `платформ:эрх-удирдах-бүрэн` — хүрээнд хязгааргүй) эрхтэй бизнес үүрэгт ч, багцын хүрээгээр). Хуудасны өөрийн эрхээр — хэрэглэгчид харагдахгүй бол цэсэнд ч алга (label заавал). P-WP-40: навчны `roles` (бусад навчтай ижил — аль нэг үүрэгтэйд л) ба `need` (эрх-удирдах маск) — нэмэлт шүүлт, эрх олгохгүй",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree, P-WP-33)"
+        },
+        "need": {
+          "description": "P-WP-40 (MENU-PLATROLES): эрх-удирдах хуудасны (`platform: admin/permissions[/matrix|objects|effective]`, `admin/audit`) навчинд шаардлагатай `платформ:эрх-удирдах[-бүрэн]` маск — view | create | edit (эсвэл roles.csv-ийн Харах | Үүсгэх | Өөрчлөх); массив/«a,b» — бүгд. Тэр битгүй хэрэглэгчид навч харагдахгүй (системийн админд үл хамаарна). Зөвхөн цэсний шүүлт — эрх олгохгүй, хуудасны URL-ийн хандалт серверийн эрхээр",
+          "x-source": "cgi/src/meta/AppMenu.cpp (needMask/needError)",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "view",
+                  "create",
+                  "edit",
+                  "Харах",
+                  "Үүсгэх",
+                  "Өөрчлөх"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "menuLeaf": {
+      "type": "object",
+      "description": "Навч — screen | table | page | report | url-ийн яг нэг нь (menu_item)",
+      "properties": {
+        "screen": {
+          "type": "string",
+          "description": "list/form дэлгэцийн id (list → /data/<хүснэгт>?screen=<id>, form → ?form=<id>); page дэлгэцийн id → хуудас",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "screen"
+        },
+        "table": {
+          "type": "string",
+          "description": "Хүснэгт",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:3789",
+          "x-ref": "table"
+        },
+        "page": {
+          "type": "string",
+          "description": "Хуудас (page дэлгэцийн id/slug эсвэл суусан хуудасны slug) → /p/<slug> (P8)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "page"
+        },
+        "report": {
+          "type": "string",
+          "description": "Тайлан (reports.yaml name) → /analytics/<код>",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "x-ref": "report"
+        },
+        "url": {
+          "type": "string",
+          "description": "http(s)://… эсвэл '/'-ээр эхэлсэн дотоод зам (label заавал); P-WP-33 (MENU-HOME): «/» — нүүр (аппын home)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "label": {
+          "type": "string",
+          "description": "Шошго (анхдагч — зорилтын нэр)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon (emoji эсвэл богино тэмдэгт) — P-WP-1",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "order": {
+          "type": "integer",
+          "description": "Дараалал (анхдагч — бичсэн байрлал ×10) — P-WP-1",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Харах үүргүүд (аль нэгэнд нь; зорилтын эрхтэй AND) — P-WP-1",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree)",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "apps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "description": "P-WP-41 (MENU-LEAFAPPS): зөвхөн эдгээр аппын цэсэнд (apps.yaml id; `/api/navigation?app=<id>` | X-Bj-App) — roles/need-тэй AND. Зангилаа ба `under:` мөрөнд — доторх (энэ багцын) бүх навч/дэд зангилаа/targets-д өвлөгдөнө (навчны өөрийн apps-тай огтлолцол; огтлолцолгүй бол menu_item). Апп контекстгүй (`?app=*`, `?all=1`, апп суугаагүй) бол шүүлтгүй. Хуучин `category:` зангилаанд биш",
+          "x-source": "cgi/src/meta/AppMenu.cpp (appsOf/appsMeet/pruneByApp)"
+        },
+        "view": {
+          "type": "string",
+          "description": "P-WP-33 (MENU-VIEW): `screen` (жагсаалтын дэлгэц)-ийн харагдацын нэр (`views[].name`) — /data/<хүснэгт>?screen=<id>&view=<нэр>, тэр харагдацаар нээгдэнэ; харагдацын `roles` таараагүй хэрэглэгчид навч харагдахгүй",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree, P-WP-33)"
+        },
+        "platform": {
+          "type": "string",
+          "description": "P-WP-33 (MENU-ADMPG): платформын хуудас — generators | ledger-entries | metrics | analytics | reports | tasks | delegations | track | timetable | account (бүгд); org-admin, org-admin/<users|delegations|settings|modules|connectors|api|data> (байгууллагын админд); admin, admin/<roles|permissions|impact|system-map|integrations|documents|pages|screens|appearance|sso|mail|organisations|packages|designer|modules|states|decisions|calculations|audit>, admin/permissions/<matrix|objects|fields|rows|effective> (системийн админд; P-WP-34: admin/permissions[/matrix|objects|effective] ба admin/audit — roles.csv `платформ:эрх-удирдах` (P-WP-38: эсвэл `платформ:эрх-удирдах-бүрэн` — хүрээнд хязгааргүй) эрхтэй бизнес үүрэгт ч, багцын хүрээгээр). Хуудасны өөрийн эрхээр — хэрэглэгчид харагдахгүй бол цэсэнд ч алга (label заавал). P-WP-40: навчны `roles` (бусад навчтай ижил — аль нэг үүрэгтэйд л) ба `need` (эрх-удирдах маск) — нэмэлт шүүлт, эрх олгохгүй",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp (menutree, P-WP-33)"
+        },
+        "need": {
+          "description": "P-WP-40 (MENU-PLATROLES): эрх-удирдах хуудасны (`platform: admin/permissions[/matrix|objects|effective]`, `admin/audit`) навчинд шаардлагатай `платформ:эрх-удирдах[-бүрэн]` маск — view | create | edit (эсвэл roles.csv-ийн Харах | Үүсгэх | Өөрчлөх); массив/«a,b» — бүгд. Тэр битгүй хэрэглэгчид навч харагдахгүй (системийн админд үл хамаарна). Зөвхөн цэсний шүүлт — эрх олгохгүй, хуудасны URL-ийн хандалт серверийн эрхээр",
+          "x-source": "cgi/src/meta/AppMenu.cpp (needMask/needError)",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "view",
+                  "create",
+                  "edit",
+                  "Харах",
+                  "Үүсгэх",
+                  "Өөрчлөх"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "dialog": {
+      "type": "object",
+      "description": "Modal цонхны хэмжээ (P-WP-6)",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "description": "Өргөн (px)",
+          "minimum": 240,
+          "maximum": 2400
+        }
+      }
+    },
+    "blockToggle": {
+      "description": "P-WP-26 (G-BLK): хэрэглэгч блокийг харуулах/нуух (хуудасны «toggles» сонгогчид checkbox; эрх биш — харагдац; сонголт хэрэглэгчийн браузерт хадгалагдана). shown — анх харагдана, hidden — анх нуугдана",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "shown",
+            "hidden"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "description": "Checkbox-ийн шошго (анхдагч блокийн гарчиг)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
+            },
+            "default": {
+              "type": "string",
+              "enum": [
+                "shown",
+                "hidden"
+              ],
+              "description": "Анхны төлөв (анхдагч shown)",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-26)"
             }
           }
         }
+      ]
+    },
+    "extensionListAction": {
+      "type": "object",
+      "required": [
+        "label"
+      ],
+      "description": "P-WP-27 (A2-8): list дэлгэцийн өргөтгөлийн товч — жагсаалтын товчны хэлбэр + after",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp (P-WP-5/6)",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Товчны бичиг"
+        },
+        "screen": {
+          "type": "string",
+          "description": "list дэлгэцийн id — /data/<хүснэгт>?screen=<id>&f.<шүүлт>=…",
+          "x-ref": "screen"
+        },
+        "page": {
+          "type": "string",
+          "description": "page дэлгэцийн id/slug — /p/<slug>?<параметр>=…"
+        },
+        "report": {
+          "type": "string",
+          "description": "Тайлангийн нэр (reports.yaml)"
+        },
+        "form": {
+          "type": "string",
+          "description": "form дэлгэцийн id — шинэ бичлэг (params = prefill, баганын нэрээр)"
+        },
+        "generate": {
+          "type": "string",
+          "description": "`on`-гүй генераторын нэр (generators.yaml) — товчоор ажиллуулна (P-WP-25): параметрийн цонх (params = анхны утга — генераторын параметрийн нэрээр), дараа нь жагсаалтыг дахин уншина. Сервер X-Bj-Screen + товчны нэрээр товчны үүрэг/эрхийн объектыг шалгана; `runAs: system` генераторыг товчны эрхтэй хэрэглэгч хүснэгтийн үүсгэх эрхгүй ч ажиллуулна",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-25)",
+          "x-ref": "generator"
+        },
+        "params": {
+          "type": "object",
+          "description": "Зорилтын параметр: filter.<шүүлт> | selected.<Багана> | selected.id | selected.ids (P-WP-27: сонгосон бүх мөрийн түлхүүр — generate-ийн refs параметр) | '<литерал>' | тоо (generate — генераторын параметрийн нэр)",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "open": {
+          "type": "string",
+          "description": "page (анхдагч — шилжинэ) эсвэл dialog (page/report/form-ыг modal-д)",
+          "enum": [
+            "page",
+            "dialog"
+          ]
+        },
+        "dialog": {
+          "$ref": "#/$defs/dialog"
+        },
+        "primary": {
+          "type": "boolean",
+          "description": "Үндсэн товч"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Харагдах үүргүүд",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "bulk": {
+          "type": "boolean",
+          "description": "P-WP-27 (G-BULK): generate-ийг сонгосон (☑) мөр бүрт — selected.<Багана> тухайн мөрөөс; мөр бүрийн үр дүн",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+        },
+        "transition": {
+          "type": "string",
+          "x-ref": "transition",
+          "description": "P-WP-27 (G-BULK): сонгосон мөр бүрт шилжилт (мөрийн төлвөөс, хэрэглэгчид зөвшөөрөгдсөн; X-Bj-Screen = жагсаалт — хатуу горимд энэ товч шилжилтийг санал болгоно)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+        },
+        "update": {
+          "type": "object",
+          "description": "P-WP-27 (G-BULK): сонгосон мөр бүрт талбар солих `{<Багана>: ask | '<литерал>' | тоо | null}` (ask — цонхонд асууна); түлхүүр/аудит/төлвийн багана хориотой; хатуу горимд жагсаалтын контекстоор зөвхөн эдгээр талбар",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+        },
+        "print": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "description": "P-WP-27 (PRINT): true — харагдаж буй жагсаалтыг хэвлэх (шүүлт/цэсгүй); <Баримтын загвар> — сонгосон мөрүүдийг тэр загвараар (энэ хүснэгтийн)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+        },
+        "confirm": {
+          "type": "string",
+          "description": "P-WP-27: бөөн товчны цонхны анхааруулга",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-27)"
+        },
+        "after": {
+          "type": "string",
+          "description": "Эзэмшигчийн товчны нэр — түүний ард (анхдагч төгсгөлд)"
+        },
+        "submit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "P-WP-31 (G-GENLBL): параметрийн/асуух цонхны илгээх товчны бичиг (анхдагч — товчны label)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateListUi (P-WP-31)"
+        }
+      }
+    },
+    "extensionField": {
+      "type": "object",
+      "description": "P-WP-51 (EXT-FIELDS): өргөтгөлийн талбар — формын талбар + эзэмшигчийн хэсэг (section) ба байрлал (after)",
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Хүснэгтийн багана (нэрээр); системийн аудит багана: Бүртгэсэн хүн, Бүртгэсэн огноо, Зассан хүн, Зассан огноо (= createdBy, createdAt, updatedBy, updatedAt; зөвхөн унших, хэрэглэгч — байгууллагын гишүүний нэрээр; P-WP-10) — readOnly: false/required/requiredWhen/lookup хориотой",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1456",
+          "x-ref": "column"
+        },
+        "expr": {
+          "type": "string",
+          "description": "Тооцоолсон талбар (field-гүй үед; хадгалагдахгүй); P-WP-29 (F-AGG): хүүхэд хүснэгтийн нэгтгэл `sum|count|min|max|avg(<Хүүхэд>.<Талбар>[, where <нөхцөл — хүүхдийн нэрээр>])` (арифметиктэй ч) — серверт тооцоолно (эрх, мөрийн хүрээ)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1447",
+          "x-expr": "x0"
+        },
+        "label": {
+          "type": "string",
+          "description": "Шошго (тооцоолсон талбарт ч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1461"
+        },
+        "widget": {
+          "type": "string",
+          "description": "Харагдах хэлбэр (qr — текст баганын утгыг QR зураг (SVG) болгон харуулна: зөвхөн унших бол зураг л, засах бол input + QR; T3 G-T3-23; polygon — GeoJSON бүсийг газрын зураг дээр зурж засна (longtext), X0 `inside(<цэг>, <бүс>)` — T3 WP-F G-T3-14; gps — «Газрын зураг» дээр дарж/чирж цэг сонгоно — T3 WP-F G-T3-13)",
+          "x-source": "cgi/src/meta/PropertyRegistry.inc:20",
+          "enum": [
+            "longtext",
+            "badge",
+            "boolean",
+            "rating",
+            "gps",
+            "qr",
+            "polygon"
+          ]
+        },
+        "span": {
+          "type": "integer",
+          "description": "12 баганын grid-ийн өргөн (1–12)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1460",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "readOnly": {
+          "type": "boolean",
+          "description": "Зөвхөн унших",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1462"
+        },
+        "emphasis": {
+          "type": "boolean",
+          "description": "Онцлох",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1462"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Талбарыг харах үүргүүд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1463",
+          "items": {
+            "type": "string",
+            "x-ref": "role"
+          }
+        },
+        "visibleWhen": {
+          "type": "string",
+          "description": "Харагдах нөхцөл",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1464",
+          "x-expr": "x0"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Заавал (form → хүснэгтийн requiredWhen; task → процессын хувьсагч)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1469"
+        },
+        "requiredWhen": {
+          "type": "string",
+          "description": "Заавал болох нөхцөл",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1470",
+          "x-expr": "x0"
+        },
+        "lookup": {
+          "type": "object",
+          "description": "FK сонгогч (PLAN13 S1): харуулах багана, шүүлт — сервер /api/screens/lookup-д хүчилнэ",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp:1518",
+          "properties": {
+            "display": {
+              "type": "string",
+              "description": "Лавлах хүснэгтийн харуулах багана",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1525",
+              "x-ref": "column"
+            },
+            "filter": {
+              "type": "string",
+              "description": "Лавлах мөрийн шүүлт (X0): нэр = лавлах хүснэгтийн багана, record.<Нэр> = формын талбар, user.code",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:1528",
+              "x-expr": "x0"
+            },
+            "tree": {
+              "description": "P-WP-29 (G-FTREE): модоор сонгох — лавлах хүснэгтийн модны (эцэгтэй) хүснэгт рүү заасан FK багана, эсвэл {column, display}; сонгогчид зангилааны самбар, сонгосон зангилааны дэд модны мөрүүд",
+              "x-source": "cgi/src/solution/SolutionDeploy.cpp:translateFormScreen",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "x-ref": "column"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "column"
+                  ],
+                  "properties": {
+                    "column": {
+                      "type": "string",
+                      "x-ref": "column",
+                      "description": "Лавлахын модны FK"
+                    },
+                    "display": {
+                      "type": "string",
+                      "x-ref": "column",
+                      "description": "Модны зангилааны харуулах багана"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "section": {
+          "type": "string",
+          "description": "Эзэмшигчийн хэсгийн гарчиг (заавал)",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension (P-WP-51)"
+        },
+        "after": {
+          "type": "string",
+          "description": "Байрлал: энэ нэртэй (эзэмшигчийн) талбарын ард; анхдагч — хэсгийн төгсгөлд",
+          "x-source": "cgi/src/solution/SolutionDeploy.cpp translateScreenExtension (P-WP-51)"
+        }
+      },
+      "required": [
+        "section"
       ]
     }
   }
