@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
 import { initProject } from '../src/init.js';
 import { readPackageFiles, validatePackage } from '../src/validate.js';
 import { ButeemjClient } from '../src/api.js';
@@ -243,8 +243,13 @@ async function main() {
     const key = files['manifest.yaml']?.match(/^key:\s*["']?([A-Za-z0-9_.-]+)["']?/m)?.[1];
     console.log(`Серверээс татаж байна (${key})...`);
     const exp = await client.exportSolution(key);
+    const root = resolve(dir);
     for (const [path, content] of Object.entries(exp.files || {})) {
-      writeFileSync(join(dir, path), content, 'utf8');
+      // серверээс ирсэн зам төслийн хавтаснаас гарахгүй (.., үнэмлэхүй зам)
+      const target = resolve(root, path);
+      if (!target.startsWith(root + sep)) { console.error(`✗ Аюултай зам алгасав: ${path}`); continue; }
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, content, 'utf8');
     }
     console.log(`✓ Серверийн загвар амжилттай татагдаж хадгалагдлаа.`);
     process.exit(0);
