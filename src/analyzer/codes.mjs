@@ -51,6 +51,15 @@ export const CODES = {
   'IR-ASSUMED': { severity: 'advisory', layer: 'E2', title: 'IR-ийн таамаг', why: 'Эх баримтад шууд байхгүй, агент эсвэл шинжээч таамагласан шаардлага — эзэн батлах хүртэл асуулт' },
   'IR-ELEMENT-UNKNOWN': { severity: 'important', layer: 'E1', title: 'IR-ийн элемент загварт алга', why: 'IR элемент заасан загварын элемент (хүснэгт, багана, төлөв …) загварт байхгүй' },
   'IR-PARA-UNCOVERED': { severity: 'advisory', layer: 'E3', title: 'Хамрагдаагүй догол мөр', why: 'Эх баримтын догол мөр нэг ч IR элементэд буугаагүй, ignored-д ч ороогүй — шаардлага алдагдсан байж болно' },
+  // H3 — бодит засвараас ерөнхийлсөн статик шалгалт (docs/analysis/real-gap-eval.md)
+  'SM-CREATE-IGNORED': { severity: 'important', layer: 'H3', title: 'Үүсгэх шилжилтийн guard/action ажилладаггүй', why: 'Үүсгэх шилжилт ([*] → төлөв)-ийн guard ба action-ыг платформ гүйцэтгэдэггүй — бичсэн дүрэм чимээгүй алга болно' },
+  'SM-GUARD-VACUOUS': { severity: 'advisory', layer: 'H3', title: '«мөр бүрт» мөргүйд үнэн', why: '«мөр бүрт <нөхцөл>» нь мөргүй баримтад үнэн тул хоосон баримт шилжинэ' },
+  'FK-DEFAULT-LITERAL': { severity: 'important', layer: 'H3', title: 'FK-ийн анхдагч тоон литерал', why: 'FK баганын анхдагч нь тоон id — id суулгалт ба байгууллага бүрт өөр тул буруу мөр эсвэл FK зөрчил' },
+  'COL-PROCESSONLY-NOTNULL': { severity: 'important', layer: 'H3', title: 'processOnly NOT NULL анхдагчгүй', why: 'Хэрэглэгч бөглөж чадахгүй (processOnly), анхдагчгүй NOT NULL, ямар ч генератор/процесс бичдэггүй — мөр үүсгэх боломжгүй' },
+  'RPT-GROUP-ROWCALC': { severity: 'important', layer: 'H3', title: 'Бүлэглэсэн тайланд мөрийн тооцоо', why: 'Бүлэглэлтэй тайлангийн багана мөр бүрийн calc — бүлэгт нэг утга биш тул гүйцэтгэлд алдаа' },
+  'DOC-HELPER-UNKNOWN': { severity: 'important', layer: 'H3', title: 'Баримтын танихгүй туслах', why: 'Баримтын загварын {{org.<x>}} танигдахгүй — хоосон хэвлэгдэнэ' },
+  'DOC-HELPER-DEPRECATED': { severity: 'advisory', layer: 'H3', title: 'Баримтын хуучирсан туслах', why: '{{money}} / {{moneywords}} хуучирсан — {{number}} / {{words}}' },
+  'BPMN-DATASTATE-AMBIG': { severity: 'advisory', layer: 'H3', title: 'BPMN dataState хоёрдмол', why: 'buteemj:transition-тэй serviceTask-ийн dataOutput төлөвт хэд хэдэн товч хүрдэг — аль шилжилт болох нь хоёрдмол' },
 };
 
 export const SEVERITIES = ['blocking', 'important', 'advisory'];

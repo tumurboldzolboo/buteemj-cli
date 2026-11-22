@@ -19,11 +19,12 @@ import { slotsCheck, completeness } from './checks/slots.mjs';
 import { cnlCheck } from './checks/cnl.mjs';
 import { reqtextCheck } from './checks/reqtext.mjs';
 import { irCheck } from './checks/ir.mjs';
+import { staticCheck } from './checks/static.mjs';
 import { irCoverage } from './ir.mjs';
 export { loadX0, setX0Evaluate } from './x0eval.mjs';
 
 // PLAN15 A1–A5 — дарааллаар ажиллана (гаралт эрэмбэлэгддэг тул дараалал үр дүнд нөлөөлөхгүй)
-export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck, slotsCheck, cnlCheck, reqtextCheck, irCheck];
+export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck, slotsCheck, cnlCheck, reqtextCheck, irCheck, staticCheck];
 export { completeness };
 
 export const findingId = (code, element, discriminator = '') =>

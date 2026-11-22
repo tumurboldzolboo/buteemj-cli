@@ -120,6 +120,14 @@ node scripts/analyze/test.mjs
 | `IR-ASSUMED` | advisory | E2 | IR-ийн таамаг |
 | `IR-ELEMENT-UNKNOWN` | important | E1 | IR-ийн элемент загварт алга |
 | `IR-PARA-UNCOVERED` | advisory | E3 | Хамрагдаагүй догол мөр |
+| `SM-CREATE-IGNORED` | important | H3 | Үүсгэх шилжилтийн guard/action ажилладаггүй |
+| `SM-GUARD-VACUOUS` | advisory | H3 | «мөр бүрт» мөргүйд үнэн |
+| `FK-DEFAULT-LITERAL` | important | H3 | FK-ийн анхдагч тоон литерал |
+| `COL-PROCESSONLY-NOTNULL` | important | H3 | processOnly NOT NULL анхдагчгүй |
+| `RPT-GROUP-ROWCALC` | important | H3 | Бүлэглэсэн тайланд мөрийн тооцоо |
+| `DOC-HELPER-UNKNOWN` | important | H3 | Баримтын танихгүй туслах |
+| `DOC-HELPER-DEPRECATED` | advisory | H3 | Баримтын хуучирсан туслах |
+| `BPMN-DATASTATE-AMBIG` | advisory | H3 | BPMN dataState хоёрдмол |
 <!-- codes:end -->
 
 ## A1 — төлөвийн машин (`checks/states.mjs`)
