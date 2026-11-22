@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { initProject } from '../src/init.js';
 import { readPackageFiles, validatePackage } from '../src/validate.js';
+import { analyzePackage, loadX0, SEVERITIES, severityRank } from '../src/analyze.js';
 import { ButeemjClient } from '../src/api.js';
 import { serverCommand } from '../src/server.js';
 
@@ -29,6 +30,8 @@ function showHelp() {
 КОМАНДУУД:
   init <нэр>              Шинэ BRD+PRD багцын загвар үүсгэх
   validate [хавтас]       Багцын загваруудыг локалд (сервергүй) шалгах
+  analyze [хавтас]        Загварын шинжилгээ: зөрчил, цоорхой, хамралт (сервергүй, LLM-гүй)
+                          --min=<түвшин> (харуулах доод түвшин), --fail-on=<түвшин> (код 1); blocking|important|advisory
   server start|stop|status|logs  Локал сервер (бэлэн Docker image): --port 8080, --project buteemj,
                           --registry <R/>, stop --purge (өгөгдөл устгана), logs [сервис] --follow
   status                  Бүтээмжийн серверийн холболтын төлөвийг шалгах
@@ -69,7 +72,7 @@ async function main() {
       const eq = a.indexOf('=');
       if (eq !== -1) {
         flags[a.slice(2, eq)] = a.slice(eq + 1);
-      } else if (['key', 'url', 'user', 'pass', 'port', 'project', 'registry', 'dir', 'service', 'tail', 'timeout', 'bind', 'org'].includes(a.slice(2))) {
+      } else if (['key', 'url', 'user', 'pass', 'port', 'project', 'registry', 'dir', 'service', 'tail', 'timeout', 'bind', 'org', 'min', 'fail-on'].includes(a.slice(2))) {
         flags[a.slice(2)] = args[++i];
       } else {
         flags[a.slice(2)] = true;
@@ -147,6 +150,28 @@ async function main() {
       console.error(`\n✗ Баталгаажуулалт уналаа: ${res.errors} алдаа байна. Засаад дахин ажиллуулна уу.`);
       process.exit(1);
     }
+  }
+
+  // PLAN15 A6: ANALYZE — анхдагчаар зөвлөмж (код 0); --fail-on түвшний олдвор байвал код 1
+  if (cmd === 'analyze') {
+    const min = flags.min ?? 'advisory', failOn = flags['fail-on'] ?? null;
+    for (const [n, v] of [['min', min], ['fail-on', failOn]]) if (v !== null && !SEVERITIES.includes(v)) { console.error(`✗ --${n}=${v}: ${SEVERITIES.join(' | ')}`); process.exit(2); }
+    await loadX0();
+    const { files } = readPackageFiles(dir);
+    const res = analyzePackage(files);
+    const shown = res.findings.filter((f) => severityRank(f.severity) <= severityRank(min));
+    const fail = !!failOn && res.findings.some((f) => severityRank(f.severity) <= severityRank(failOn));
+    if (flags.json) {
+      console.log(JSON.stringify({ ...res, findings: shown }, null, 2));
+      process.exit(fail ? 1 : 0);
+    }
+    const icon = { blocking: '✗', important: '!', advisory: '·' };
+    for (const f of shown) {
+      console.log(`${icon[f.severity]} ${f.severity.padEnd(9)} [${f.code} ${f.file}${f.line ? `:${f.line}` : ''}] ${f.message}`);
+      if (f.fix) console.log(`             → ${f.fix}`);
+    }
+    console.log(`${fail ? '✗' : '✓'} Шинжилгээ: ${SEVERITIES.map((s) => `${res.stats[s]} ${s}`).join(', ')}${res.partial ? ' (хэсэгчилсэн — эхлээд bj validate-ийн алдааг засна)' : ''}`);
+    process.exit(fail ? 1 : 0);
   }
 
   // Server commands: lint, plan, apply, deploy, pull

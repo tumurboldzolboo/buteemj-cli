@@ -1,6 +1,7 @@
 // PLAN13 N3 — BRD+PRD validator-ын цорын ганц эх нь платформын `scripts/validate/`. Энэ скрипт түүнийг `src/validator/`-д хуулна
 // (CLI нь платформын кодгүй тараагддаг тул импортлохгүй, хуулбарлана). Гараар засахгүй: `npm run sync-validator`.
 import { cpSync, existsSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,3 +15,9 @@ const catalog = join(src, '..', '..', 'docs', 'brd-standard', 'catalog');
 if (existsSync(catalog)) cpSync(catalog, join(dst, 'catalog'), { recursive: true });
 writeFileSync(join(dst, 'README.md'), '# validator (хуулбар)\n\nПлатформын `scripts/validate/`-ийн хуулбар — гараар засахгүй. Шинэчлэх: `npm run sync-validator`.\n');
 console.log(`✓ ${src} → ${dst}`);
+// PLAN15 A6: шинжилгээ (platform scripts/analyze → src/analyzer, X0 үнэлэгч vendor/-д)
+const analyzeSync = join(src, '..', 'analyze', 'sync.mjs');
+if (existsSync(analyzeSync)) {
+  const r = spawnSync(process.execPath, ['--no-warnings', analyzeSync, join(here, '..', 'src', 'analyzer')], { stdio: 'inherit' });
+  if (r.status !== 0) process.exit(r.status ?? 2);
+} else console.warn(`! шинжилгээ олдсонгүй: ${analyzeSync} — src/analyzer шинэчлэгдсэнгүй`);

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:analyze/finding",
+  "title": "BRD+PRD шинжилгээний олдвор (PLAN15 A0)",
+  "type": "object",
+  "required": ["id", "code", "severity", "layer", "element", "file", "line", "message", "evidence"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^F-[0-9a-f]{12}$", "description": "sha256(code, element, discriminator) — мөрийн дугаараас үл хамаарна; асуулт (PLAN15 C1) үүнийг тогтвортой түлхүүр болгоно" },
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*(-[A-Z0-9]+)+$", "description": "codes.mjs-д бүртгэлтэй тогтвортой код" },
+    "severity": { "enum": ["blocking", "important", "advisory"] },
+    "layer": { "type": "string", "pattern": "^(A[0-9]|B[0-9]|D[0-9]|E[0-9])$", "description": "PLAN15-ийн ажлын ID" },
+    "element": { "type": "string", "pattern": "^(package|table|column|machine|state|transition|role|requirement|scenario|screen|report|decision|process|file):.+$", "description": "Элементийн лавлагаа, жишээ: `state:Захиалгын явц [Ноорог]`" },
+    "file": { "type": "string", "minLength": 1, "description": "Багцын түвшний олдворт manifest-ийн файл" },
+    "line": { "type": "integer", "minimum": 0 },
+    "message": { "type": "string", "minLength": 1 },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "text"],
+        "additionalProperties": false,
+        "properties": {
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 0 },
+          "text": { "type": "string" }
+        }
+      }
+    },
+    "fix": { "type": "string", "description": "Засах санал (хүнд уншигдах)" },
+    "discriminator": { "type": "string", "description": "Нэг элемент дээрх ижил кодын олон олдворыг ялгана (жишээ: хоёр дахь элемент)" }
+  }
+}
