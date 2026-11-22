@@ -5,12 +5,14 @@
 //   answer  <Q-id> <хариулт> [--by=<нэвтрэх нэр>] [--agent] — answered (хүн) | assumed (агент)
 //   confirm <Q-id> --by=<нэвтрэх нэр> — assumed → answered
 //   dismiss <Q-id> [--note=<шалтгаан>]
+//   apply   [--dry-run] [--only=Q-…,Q-…] — answered асуултыг BRD-д буулгана (C3, patch.mjs), дараа нь дахин шинжилж sync (засагдсан → resolved)
 // Гаралтын код: 0 — амжилттай, 1 — `list --fail-open`-д нээлттэй blocking/important асуулт байна, 2 — ажиллаж чадсангүй.
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { analyzePackage, loadX0, buildModel } from './index.mjs';
 import { loadCatalog } from '../validator/index.mjs';
 import { loadRegexpCanonical } from '../validator/regexp-loader.mjs';
+import { applyAnswers } from './patch.mjs';
 import { QUESTIONS_FILE, questionsFrom, mergeQuestions, parseQuestions, renderQuestions, answerQuestion, confirmQuestion, dismissQuestion, STATUSES } from './questions.mjs';
 
 const TEXT = /\.(ya?ml|md|csv|mmd|dbml|dmn|bpmn|html|json|txt|sql|svg)$/i;
@@ -19,7 +21,7 @@ const flag = (n) => { const a = args.find((x) => x.startsWith(`--${n}=`)); retur
 const pos = args.filter((a) => !a.startsWith('--'));
 const [sub, dirArg, ...rest] = pos;
 const die = (m) => { console.error(m); process.exit(2); };
-if (!['list', 'sync', 'answer', 'confirm', 'dismiss'].includes(sub) || !dirArg) die('хэрэглээ: questions-cli.mjs <list|sync|answer|confirm|dismiss> <багцын хавтас> [...]');
+if (!['list', 'sync', 'answer', 'confirm', 'dismiss', 'apply'].includes(sub) || !dirArg) die('хэрэглээ: questions-cli.mjs <list|sync|answer|confirm|dismiss|apply> <багцын хавтас> [...]');
 const dir = resolve(dirArg);
 if (!existsSync(join(dir, 'manifest.yaml'))) die(`${dir}: manifest.yaml алга`);
 
@@ -48,6 +50,29 @@ try {
   }
   await loadRegexpCanonical();
   await loadX0();
+  if (sub === 'apply') {
+    const doc = existing();
+    if (!doc) die(`${QUESTIONS_FILE} алга — эхлээд sync`);
+    const files = read(dir);
+    const only = typeof flag('only') === 'string' ? flag('only').split(',').map((x) => x.trim()) : null;
+    const r = applyAnswers(files, doc, buildModel(files), { only });
+    for (const a of r.applied) console.log(`  ${a.note ? '·' : '✓'} ${a.id}: ${a.summary}`);
+    for (const k of r.skipped) console.log(`  ! ${k.id}: ${k.reason}`);
+    const changed = Object.keys(r.files).filter((f) => r.files[f] !== files[f]);
+    if (flag('dry-run')) { console.log(`(dry-run) ${r.applied.length} хариулт, ${changed.length} файл өөрчлөгдөнө: ${changed.join(', ') || '—'}`); process.exit(0); }
+    for (const f of changed) {
+      const target = resolve(dir, f);
+      if (!target.startsWith(dir + '/')) die(`багцаас гадуурх зам: ${f}`);
+      writeFileSync(target, r.files[f]);
+    }
+    // дахин шинжилж нэгтгэнэ — patch хийгдсэн олдвор алга болж resolved
+    const after = read(dir);
+    const analysis2 = analyzePackage(after, { catalog: loadCatalog(), completeness: false });
+    const merged = mergeQuestions(r.doc, questionsFrom(analysis2, buildModel(after)));
+    write(merged.doc);
+    console.log(`✓ ${r.applied.length} хариулт буулгав (${changed.join(', ') || 'файл өөрчлөгдөөгүй'}); шийдэгдсэн ${merged.changes.resolved.length}, шинэ асуулт ${merged.changes.added.length}`);
+    process.exit(0);
+  }
   const files = read(dir);
   const analysis = analyzePackage(files, { catalog: loadCatalog(), completeness: false });
   const { doc, changes } = mergeQuestions(existing(), questionsFrom(analysis, buildModel(files)));

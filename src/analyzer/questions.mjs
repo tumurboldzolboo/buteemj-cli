@@ -94,6 +94,9 @@ export function questionFor(f, model) {
   const out = { id: `Q-${f.id.slice(2)}`, code: f.code };
   if (slot) out.slot = slot.id;
   Object.assign(out, { element: f.element, severity: f.severity, ask: q.ask });
+  // subject — patch (C3)-ийн тодорхой зорилт: эрхийн кодод үүрэг, enum-д «багана=буруу утга»
+  if (/^PERM-(TRANSITION|CREATE|TASK|SCREEN)-/.test(f.code) && f.discriminator) out.subject = roleCase(model, f.discriminator);
+  if (f.code === 'X0-ENUM-LITERAL') { const m = /^[^:]+:(.+=.*)$/.exec(f.discriminator ?? ''); if (m) out.subject = m[1]; }
   const options = uniq(q.options ?? []);
   if (options.length) out.options = options;
   out.impact = slot ? `${slot.title} BRD-д шийдэгдээгүй — ${CODES[f.code].why}` : CODES[f.code].why;
@@ -107,7 +110,7 @@ export function questionFor(f, model) {
 export const questionsFrom = (analysis, model) => analysis.findings.filter((f) => !SKIP.has(f.code)).map((f) => questionFor(f, model));
 
 const order = (a, b) => severityRank(a.severity) - severityRank(b.severity) || a.element.localeCompare(b.element) || a.id.localeCompare(b.id);
-const KEYS = ['id', 'code', 'slot', 'element', 'severity', 'ask', 'options', 'impact', 'audience', 'file', 'line', 'status', 'answer', 'answered_by', 'confirmed_by', 'at', 'resolved_at', 'note'];
+const KEYS = ['id', 'code', 'slot', 'element', 'subject', 'severity', 'ask', 'options', 'impact', 'audience', 'file', 'line', 'status', 'answer', 'answered_by', 'confirmed_by', 'at', 'resolved_at', 'applied_at', 'patch', 'note'];
 const ordered = (q) => Object.fromEntries(KEYS.filter((k) => q[k] !== undefined && q[k] !== null && !(Array.isArray(q[k]) && !q[k].length)).map((k) => [k, q[k]]));
 
 // existing: questions.yaml-ийн утга (эсвэл null), generated: questionsFrom(...) → {doc, changes}
@@ -120,7 +123,7 @@ export function mergeQuestions(existing, generated, { now = new Date().toISOStri
     seen.add(g.id);
     const o = old.get(g.id);
     if (!o) { out.push({ ...g, status: 'open' }); changes.added.push(g.id); continue; }
-    const keep = Object.fromEntries(['status', 'answer', 'answered_by', 'confirmed_by', 'at', 'resolved_at', 'note'].filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
+    const keep = Object.fromEntries(['status', 'answer', 'answered_by', 'confirmed_by', 'at', 'resolved_at', 'applied_at', 'patch', 'note'].filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
     if (keep.status === 'resolved') { keep.status = keep.answer !== undefined ? 'answered' : 'open'; delete keep.resolved_at; changes.reopened.push(g.id); } else changes.kept++;
     out.push({ ...g, ...keep });
   }

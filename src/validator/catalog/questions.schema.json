@@ -18,6 +18,7 @@
           "code": { "type": "string", "description": "Шинжилгээний олдворын код (scripts/analyze/codes.mjs)" },
           "slot": { "type": "string", "description": "SLOT-MISSING бол слотын id (docs/brd-standard/slots.yaml)" },
           "element": { "type": "string", "description": "Элементийн лавлагаа (`state:Машин [Төлөв]` г.м.)" },
+          "subject": { "type": "string", "description": "Асуултын тодорхой зорилт (эрхийн кодод үүрэг, enum-д «багана=утга») — C3 patch уншина" },
           "severity": { "enum": ["blocking", "important", "advisory"] },
           "ask": { "type": "string", "description": "Бизнесийн асуулт" },
           "options": { "type": "array", "items": { "type": "string" }, "description": "Хариултын сонголт (загвараас — үүрэг, төлөв, багана …); хоосон бол чөлөөт хариулт" },
@@ -31,6 +32,8 @@
           "confirmed_by": { "type": "string", "description": "assumed хариултыг баталсан хүн" },
           "at": { "type": "string", "description": "Хариулсан/өөрчилсөн огноо (ISO 8601)" },
           "resolved_at": { "type": "string", "description": "resolved болсон огноо" },
+          "applied_at": { "type": "string", "description": "Хариултыг BRD-д буулгасан огноо (C3, `bj questions apply`)" },
+          "patch": { "type": "string", "description": "Юуг өөрчилсөн (файл: тайлбар) эсвэл шийдвэрийн мөр" },
           "note": { "type": "string", "description": "Тайлбар (dismiss-ийн шалтгаан г.м.)" }
         }
       }
