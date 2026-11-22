@@ -115,3 +115,42 @@ bj server stop                  # зогсооно, өгөгдөл хадгал�
 ```bash
 npm test
 ```
+
+## AI-тай ажиллах: `bj mcp` (MCP сервер)
+
+`bj mcp [хавтас]` нь [Model Context Protocol](https://modelcontextprotocol.io)-ийн stdio сервер. Таны сонгосон AI (Claude Desktop, Claude Code, Cursor,
+VS Code, локал загвар …) BRD+PRD багцын **ноорог** бэлтгэхэд ашиглана. Платформ өөрөө LLM дууддаггүй.
+
+**Хэрэгслүүд:** `list_packages`, `get_standard`, `get_schema`, `create_package`, `read_file`, `list_files`, `write_file`, `delete_file`, `validate`, `analyze`,
+`list_questions`, `propose_answer`, `get_plan` (сервер тохируулсан бол; lint — ROLLBACK, юу ч хадгалахгүй).
+
+**AI хийж чадахгүй зүйл:** apply, deploy, purge, хариулт батлах, хариултыг BRD-д буулгах, хэрэглэгч/нууц үг/байгууллага (`seed/organisations.yaml`),
+`integrations.yaml`, `questions.yaml`/`resolutions.yaml`-ийг шууд бичих, manifest-ийн `key` солих, YAML anchor/alias. Ийм хэрэгсэл байхгүй, эсвэл бичих хил татгалзана.
+AI-ийн хариулт `propose_answer`-аар **санал** (`assumed`) л болно — хүн Studio-гийн «Асуултууд» эсвэл `bj questions confirm`-оор батлах хүртэл BRD-д буухгүй,
+`manifest.questions: enforce` бол plan-ийг ч нээхгүй.
+
+**Аудит:** дуудлага бүр `~/.buteemj/mcp.log` (эсвэл `BUTEEMJ_MCP_LOG`) — JSONL `{ts, trace, client, tool, args_sha256, ok, ms}`; файлын агуулга логт орохгүй. Минутад ≤ 120 дуудлага.
+
+**Анхаар:** BRD-ийн агуулга (файлууд) таны сонгосон AI нийлүүлэгч рүү очно. Нууцлалын шаардлагатай бол байгууллагын гэрээтэй эсвэл локал загвар сонгоно.
+
+Тохиргооны жишээ (`/path/to/project` — багцуудын хавтас):
+
+Claude Code:
+```bash
+claude mcp add buteemj -- bj mcp /path/to/project
+```
+
+Claude Desktop (`claude_desktop_config.json`), Cursor (`.cursor/mcp.json`):
+```json
+{ "mcpServers": { "buteemj": { "command": "bj", "args": ["mcp", "/path/to/project"] } } }
+```
+
+VS Code (`.vscode/mcp.json`):
+```json
+{ "servers": { "buteemj": { "type": "stdio", "command": "bj", "args": ["mcp", "${workspaceFolder}"] } } }
+```
+
+`get_plan`-д сервер хэрэгтэй бол клиентийн тохиргооны `env`-д `BUTEEMJ_URL`, `BUTEEMJ_USER`, `BUTEEMJ_PASS` (нууц үг AI-д харагдахгүй — зөвхөн процессын орчинд).
+
+Санал болгох ажлын урсгал (AI-д): `get_standard` → эх баримтаас `create_package`/`write_file` → `validate` (алдааг засна) → `analyze` → `list_questions` →
+мэдэхгүй асуултыг хэрэглэгчээс асууна (таамаглахгүй), мэдэж байгааг `propose_answer` → хүн батална → `bj questions apply`.

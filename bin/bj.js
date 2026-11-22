@@ -7,6 +7,7 @@ import { readPackageFiles, validatePackage } from '../src/validate.js';
 import { analyzePackage, loadX0, SEVERITIES, severityRank, completenessLine, completenessDetail } from '../src/analyze.js';
 import { ButeemjClient } from '../src/api.js';
 import { serverCommand } from '../src/server.js';
+import { serve as serveMcp } from '../src/mcp.js';
 
 const VERSION = '0.1.0';
 
@@ -30,6 +31,7 @@ function showHelp() {
 КОМАНДУУД:
   init <нэр>              Шинэ BRD+PRD багцын загвар үүсгэх
   validate [хавтас]       Багцын загваруудыг локалд (сервергүй) шалгах
+  mcp [хавтас]            MCP сервер (stdio) — дурын AI-аас ноорог бэлтгэх хэрэгслүүд (apply/deploy-гүй)
   analyze [хавтас]        Загварын шинжилгээ: зөрчил, цоорхой, хамралт (сервергүй, LLM-гүй)
                           --min=<түвшин> (харуулах доод түвшин), --fail-on=<түвшин> (код 1); blocking|important|advisory
                           --completeness (бүрэн гүйцэд байдал слотоор: хэн үүсгэх/харах, түлхүүр, татгалзах зам …)
@@ -101,6 +103,12 @@ async function main() {
       console.error(`✗ Алдаа: ${e.message}`);
       process.exit(1);
     }
+  }
+
+  // PLAN15 F: MCP сервер (stdio) — stdout-д зөвхөн JSON-RPC; хавтас = ажлын үндэс (анхдагч одоогийн)
+  if (cmd === 'mcp') {
+    await serveMcp(targetArg ? resolve(targetArg) : process.cwd());
+    process.exit(0);
   }
 
   // ARCH 4.2: локал сервер (бэлэн image + docker compose)

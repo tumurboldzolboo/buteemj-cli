@@ -15,6 +15,15 @@ const catalog = join(src, '..', '..', 'docs', 'brd-standard', 'catalog');
 if (existsSync(catalog)) cpSync(catalog, join(dst, 'catalog'), { recursive: true });
 writeFileSync(join(dst, 'README.md'), '# validator (хуулбар)\n\nПлатформын `scripts/validate/`-ийн хуулбар — гараар засахгүй. Шинэчлэх: `npm run sync-validator`.\n');
 console.log(`✓ ${src} → ${dst}`);
+// PLAN15 F: MCP-ийн get_standard — стандартын README ба слотын мета-загвар (src/standard/)
+const std = join(src, '..', '..', 'docs', 'brd-standard');
+if (existsSync(join(std, 'README.md'))) {
+  const out = join(here, '..', 'src', 'standard');
+  rmSync(out, { recursive: true, force: true });
+  cpSync(join(std, 'README.md'), join(out, 'README.md'));
+  if (existsSync(join(std, 'slots.yaml'))) cpSync(join(std, 'slots.yaml'), join(out, 'slots.yaml'));
+  console.log(`✓ ${std}/README.md → ${out}`);
+}
 // PLAN15 A6: шинжилгээ (platform scripts/analyze → src/analyzer, X0 үнэлэгч vendor/-д)
 const analyzeSync = join(src, '..', 'analyze', 'sync.mjs');
 if (existsSync(analyzeSync)) {
