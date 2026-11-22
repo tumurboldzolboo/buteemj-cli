@@ -52,6 +52,8 @@ export function toSimple(text, cols) {
     if (!re.test(t)) continue;
     t = t.replace(nameRe(c), () => { if (!vars.includes(c)) vars.push(c); return ` v${vars.indexOf(c)} `; });
   }
+  // `<Багана> заавал` → `v != null` (сервер naturalGuard: not empty(<Багана>); `!= null` нь сул — хоосон мөрийг ч зөвшөөрнө → X0-NEVER-TRUE-г цөөн гаргана, ХЭ биш)
+  t = t.replace(/(v\d+)\s+заавал(?![\p{L}\p{N}_])/gu, '$1 != null');
   // үлдсэн үг: түлхүүр үг, v<i>, тоо, §<i>§-ээс бусад → энгийн биш
   const leftovers = t.replace(/§\d+§/g, ' ').split(/[^\p{L}\p{N}_.]+/u).filter((w) => w && LETTER.test(w) && !/^v\d+$/.test(w) && !/^-?\d+(\.\d+)?$/.test(w) && !KEYWORDS.has(w));
   if (leftovers.length) return { skip: `энгийн биш: ${leftovers.slice(0, 3).join(', ')}` };

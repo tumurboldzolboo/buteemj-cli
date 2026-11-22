@@ -62,8 +62,9 @@ export const coverageCheck = {
     for (const [table, list] of forms) {
       const t = model.tables.get(table);
       if (!t || extended.has(table)) continue;
-      const withLayout = list.filter((s) => layoutFields(s).size > 0);
-      if (!withLayout.length) continue; // layout-гүй маягт — платформ бүх баганыг автоматаар
+      // `layout` түлхүүртэй маягт — web түүгээр зурна (хоосон ч); layout-гүй маягтад платформ бүх баганыг автоматаар (H2: хоосон layout ХС байсан)
+      const withLayout = list.filter((s) => s.layout && typeof s.layout === 'object');
+      if (!withLayout.length) continue;
       const placed = new Set(withLayout.flatMap((s) => [...layoutFields(s)]));
       for (const c of t.columns) {
         if (!c.required || c.pk || c.default !== undefined && c.default !== null && c.default !== '' || placed.has(c.name)) continue;
