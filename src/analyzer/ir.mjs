@@ -27,7 +27,7 @@ export function paragraphs(text) {
       if (/^\|[\s:|-]+\|?$/.test(t)) return; // тусгаарлагч
       tableRow++;
       if (tableRow === 1 && /^\|[\s:|-]+\|?$/.test(str(ls[i + 1]))) return; // толгой мөр
-      out.push({ n: out.length + 1, line, section, text: t.replace(/^\||\|$/g, '').split('|').map(str).filter(Boolean).join(' · ') });
+      out.push({ n: out.length + 1, line, section, text: t.replace(/^\||(?<!\\)\|$/g, '').split(/(?<!\\)\|/).map((c) => str(c).replace(/\\\|/g, '|')).filter(Boolean).join(' · ') });
       return;
     }
     tableRow = 0;

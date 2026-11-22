@@ -287,4 +287,7 @@ node scripts/bj.mjs questions answer docs/reference/procurement Q-c8ad411d308b �
 - Олдвор: IR-MISSING, IR-INVALID (JSON, схем, давхар id), IR-SOURCE-UNKNOWN, IR-QUOTE-NOTFOUND (assumed бол шалгахгүй), IR-ASSUMED, IR-ELEMENT-UNKNOWN, IR-PARA-UNCOVERED.
   Асуулт болохгүй (IR бичигчийн засвар): IR-INVALID, IR-SOURCE-UNKNOWN, IR-MISSING. IR-PARA-UNCOVERED-д «Үгүй — тайлбар» гэж хариулбал `bj questions apply` нь `ignored`-д нэмнэ.
 - Хамралт (E3): `analyzePackage(...).sources` = {total, covered, ignored, ratio}; `bj analyze`-д «эх баримтын хамралт …» мөр. Хамралтад зөвхөн `sources/` тооцогдоно; `brd.md` зэрэг багцын бусад файлыг эх болгон заах боломжтой (`bj cnl ir --write` — EARS-MN баримтаас `CNL-*` элемент, гараар бичсэнийг хадгална).
+- E4 `extract.mjs` (гадны сангүй, node:zlib): `readZip` (stored/deflate; zip64, шифрлэлт — татгалзана; entry ≤ 30MB, нийт ≤ 60MB, харьцаа ≤ 200 — `cgi/src/integration/Xlsx.cpp`-тэй ижил),
+  `docxToMarkdown` (Heading N / Title / outlineLvl → `#`, numPr ба «List Bullet/Number» хэв маяг → `-`, хүснэгт → Markdown, `w:delText` хасна), `xlsxToMarkdown` (sheet бүр `## <нэр>` + хүснэгт; shared/inline/bool),
+  `extractSource` (pdf → [З] алдаа). `sources-cli.mjs` + `bj sources <add|list>`; MCP `add_source` (зөвхөн ажлын хавтас доторх файл, дарахгүй).
 

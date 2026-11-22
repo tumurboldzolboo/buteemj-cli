@@ -19,6 +19,7 @@ import { loadYaml } from './validator/yaml.mjs';
 import { questionsFrom, mergeQuestions, parseQuestions, renderQuestions, answerQuestion, QUESTIONS_FILE } from './analyzer/questions.mjs';
 import { buildModel } from './analyzer/index.mjs';
 import { paragraphs } from './analyzer/ir.mjs';
+import { extractSource } from './analyzer/extract.mjs';
 import { ButeemjClient } from './api.js';
 
 const HERE = dirname(new URL(import.meta.url).pathname);
@@ -164,6 +165,24 @@ export function createServer({ root, env = process.env, log = env.BUTEEMJ_MCP_LO
         writeFileSync(join(abs, 'manifest.yaml'), `name: ${JSON.stringify(String(name))}\nkey: ${key}\nversion: 0.1.0\nfiles:\n  requirements: requirements.md\n`);
         writeFileSync(join(abs, 'requirements.md'), '| ID | Төрөл | Шаардлага | Эрэмбэ | Холбоос |\n|---|---|---|---|---|\n');
         return text({ package: rel, created: ['manifest.yaml', 'requirements.md'] });
+      } },
+    { name: 'add_source', description: 'Эх баримт (docx/xlsx/md/txt) → sources/<нэр>.md (локал задлалт, сервер рүү юу ч илгээхгүй). Файл MCP-ийн ажлын хавтас дотор байх ёстой (≤ 20MB); байгаа sources файлыг дарахгүй. PDF — дэмжихгүй (текст болгож .txt-ээр).',
+      inputSchema: { type: 'object', required: ['package', 'file'], properties: { package: { type: 'string' }, file: { type: 'string', description: 'ажлын хавтсаас харьцангуй зам (жишээ: inbox/brd.docx)' }, name: { type: 'string', description: 'sources/<нэр>.md (анхдагч: файлын нэр)' } }, additionalProperties: false }, annotations: { destructiveHint: false },
+      run: ({ package: pkg, file, name }) => {
+        const dir = pkgDir(pkg); const { abs: src, rel: srcRel } = filePath(ROOT, file);
+        if (!existsSync(src) || !statSync(src).isFile()) return fail(`«${srcRel}» алга`);
+        if (!/\.(docx|xlsx|md|txt)$/i.test(srcRel)) return fail('зөвхөн docx, xlsx, md, txt');
+        if (statSync(src).size > 20 * 1024 * 1024) return fail('20MB-аас их');
+        const buf = readFileSync(src);
+        const { kind, markdown } = extractSource(srcRel, buf);
+        const base = String(name ?? srcRel.split('/').pop().replace(/\.[^.]+$/, '')).normalize('NFC').replace(/[^\p{L}\p{N}._-]+/gu, '-').replace(/^[-.]+|-+$/g, '').slice(0, 80) || 'source';
+        const { abs, rel } = filePath(dir, `sources/${base}.md`);
+        if (existsSync(abs)) return fail(`«${rel}» аль хэдийн байна — өөр name өгнө (ir.json-ийн ¶ дугаар шилжихээс сэргийлнэ)`);
+        const sha = createHash('sha256').update(buf).digest('hex').slice(0, 16);
+        const content = `<!-- эх: ${srcRel.split('/').pop().replace(/--/g, '-')} · ${kind} · sha256:${sha} · bj mcp add_source -->\n\n${markdown}`;
+        checkContent(rel, content, dir);
+        mkdirSync(dirname(abs), { recursive: true }); writeFileSync(abs, content);
+        return text({ path: rel, kind, sha256: sha, paragraphs: paragraphs(content).length, next: 'source_paragraphs → sources/ir.json (write_file) → analyze' });
       } },
     { name: 'source_paragraphs', description: 'Эх баримтын догол мөрийн дугаарлалт (sources/ir.json-ийн source: "<файл>#¶n"). Ишлэлийг эндээс үгчлэн авна.',
       inputSchema: { type: 'object', required: ['package', 'path'], properties: { package: { type: 'string' }, path: { type: 'string', description: 'жишээ: sources/brd.md' } }, additionalProperties: false }, annotations: { readOnlyHint: true },

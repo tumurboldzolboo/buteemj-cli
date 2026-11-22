@@ -47,7 +47,7 @@ describe('bj mcp', { skip: !existsSync(fixture) && 'platform алга' }, () => 
 
   it('tools/list: зөвхөн ноорогийн хэрэгслүүд — apply/deploy/purge/confirm/хэрэглэгч алга', async () => {
     const t = (await srv.handle({ jsonrpc: '2.0', id: 1, method: 'tools/list' })).result.tools;
-    assert.deepEqual(t.map((x) => x.name), ['list_packages', 'get_standard', 'get_schema', 'create_package', 'source_paragraphs', 'read_file', 'list_files', 'write_file', 'delete_file', 'validate', 'analyze', 'list_questions', 'propose_answer', 'get_plan']);
+    assert.deepEqual(t.map((x) => x.name), ['list_packages', 'get_standard', 'get_schema', 'create_package', 'add_source', 'source_paragraphs', 'read_file', 'list_files', 'write_file', 'delete_file', 'validate', 'analyze', 'list_questions', 'propose_answer', 'get_plan']);
     assert.ok(t.every((x) => !FORBIDDEN_TOOLS.test(x.name) && x.description && x.inputSchema?.type === 'object'));
   });
 
@@ -101,7 +101,12 @@ describe('bj mcp', { skip: !existsSync(fixture) && 'platform алга' }, () => 
     assert.ok(!(await call('write_file', { package: 'procurement', path: 'sources/ir.json', content: JSON.stringify(ir) })).err);
     const codes = (await call('analyze', { package: 'procurement' })).json.findings.map((f) => f.code);
     assert.ok(codes.includes('IR-QUOTE-NOTFOUND') && !codes.includes('IR-PARA-UNCOVERED'), codes.filter((c) => c.startsWith('IR')).join());
-    for (const f of ['sources/ir.json', 'sources/brd.md']) assert.ok(!(await call('delete_file', { package: 'procurement', path: f })).err, f);
+    writeFileSync(join(root, 'inbox.txt'), '- Нэг\n- Хоёр\n');
+    const ad = await call('add_source', { package: 'procurement', file: 'inbox.txt', name: 'эх 2' });
+    assert.ok(!ad.err && ad.json.path === 'sources/эх-2.md' && ad.json.paragraphs === 2, ad.text);
+    assert.ok((await call('add_source', { package: 'procurement', file: 'inbox.txt', name: 'эх 2' })).err, 'дарахгүй');
+    for (const file of ['../outside.txt', '/etc/hosts', 'procurement/roles.csv', 'nope.txt']) assert.ok((await call('add_source', { package: 'procurement', file })).err, file);
+    for (const f of ['sources/ir.json', 'sources/brd.md', 'sources/эх-2.md']) assert.ok(!(await call('delete_file', { package: 'procurement', path: f })).err, f);
   });
 
   it('write_file: symlink-ээр багцаас гарах оролдлого хориотой', async () => {
