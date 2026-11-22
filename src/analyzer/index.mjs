@@ -16,10 +16,12 @@ import { decisionsCheck } from './checks/decisions.mjs';
 import { predicatesCheck } from './checks/predicates.mjs';
 import { coverageCheck } from './checks/coverage.mjs';
 import { slotsCheck, completeness } from './checks/slots.mjs';
+import { cnlCheck } from './checks/cnl.mjs';
+import { reqtextCheck } from './checks/reqtext.mjs';
 export { loadX0, setX0Evaluate } from './x0eval.mjs';
 
 // PLAN15 A1–A5 — дарааллаар ажиллана (гаралт эрэмбэлэгддэг тул дараалал үр дүнд нөлөөлөхгүй)
-export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck, slotsCheck];
+export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck, slotsCheck, cnlCheck, reqtextCheck];
 export { completeness };
 
 export const findingId = (code, element, discriminator = '') =>

@@ -36,6 +36,13 @@ export const CODES = {
   'COV-UNTRACED': { severity: 'advisory', layer: 'A5', title: 'Шаардлагаар лавлагдаагүй элемент', why: 'Машин, шийдвэр, процесс, тайлан, генератор ямар ч шаардлагаас үүсээгүй — илүүц эсвэл шаардлага дутуу (урвуу traceability)' },
   // B1 — бүрэн гүйцэд байдал (slots.yaml)
   'SLOT-MISSING': { severity: 'advisory', layer: 'B1', title: 'BRD-д хариулаагүй асуулт', why: 'Мета-загварын слот бөглөгдөөгүй — тухайн элементийн талаар бизнесийн шийдвэр BRD/PRD-д алга (түвшин нь слотоос, discriminator = слотын id)' },
+  // D — загварт хэл, шаардлагын текст
+  'CNL-UNPARSED': { severity: 'advisory', layer: 'D3', title: 'Загварт хэлний бус мөр', why: 'brd.md-ийн мөр EARS-MN загварт таарахгүй тул загвар руу буухгүй — загвараар дахин бичих эсвэл тайлбар бол ишлэлээр' },
+  'CNL-NOT-MODELED': { severity: 'important', layer: 'D2', title: 'Текстэд бий, загварт алга', why: 'brd.md-д бичсэн эрх/шилжилт/заавал талбар загварт (roles.csv, states.mmd, erd.dbml) тусгагдаагүй' },
+  'CNL-CONFLICT': { severity: 'important', layer: 'D2', title: 'Текст ба загварын зөрчил', why: 'brd.md-д бичсэнтэй загвар эсрэг (хориг ↔ зөвшөөрөл, өөр зорилт эсвэл хэн) — аль нь зөв болохыг шийдэх шаардлагатай' },
+  'REQ-VAGUE': { severity: 'advisory', layer: 'D4', title: 'Хэмжигдэхгүй үг', why: 'Шаардлага бүдэг үгтэй тул хэрэгжсэн эсэхийг шалгах боломжгүй' },
+  'REQ-DUPLICATE': { severity: 'advisory', layer: 'D4', title: 'Бараг ижил шаардлага', why: 'Хоёр шаардлага бараг ижил — давхардал эсвэл ялгаа нь тодорхой бус' },
+  'REQ-MODAL': { severity: 'advisory', layer: 'D4', title: 'Модаль зөрчлийн нэр дэвшигч', why: 'Ижил элементийн тухай нэг шаардлага «заавал», нөгөө нь «болохгүй» гэсэн — нөхцөлөөр ялгагдаагүй бол зөрчил' },
 };
 
 export const SEVERITIES = ['blocking', 'important', 'advisory'];

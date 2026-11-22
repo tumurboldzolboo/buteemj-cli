@@ -267,3 +267,35 @@ export function applyAnswers(files, doc, model, { now = new Date().toISOString()
   }
   return { files: cur, doc, applied, skipped };
 }
+
+// ---- PLAN15 D — загварт хэлний баримт (brd.md) → загвар. Зөвхөн «missing»; «conflict»-ыг хүн шийднэ (текст эсвэл загвар).
+// fact: cnl.mjs parseSentence-ийн гаралт. Буцаах: { files, applied: [{fact, summary}], skipped: [{fact, reason}] }
+export function applyFacts(files, model, facts) {
+  let cur = { ...files };
+  const applied = [], skipped = [];
+  const machineOf = (f) => model.machines.find((m) => m.name === (f.machine ?? f.table)) ?? model.machines.find((m) => m.table === f.table);
+  for (const f of facts) {
+    let r;
+    if (f.kind === 'right') {
+      const role = knownRole(model, f.role) ?? f.role;
+      r = setRight(cur, model, role, f.table, f.op, f.value);
+    } else if (f.kind === 'transition') {
+      const m = machineOf(f);
+      const names = new Set(m?.states.map((s) => s.name) ?? []);
+      if (!m) r = { error: `машин «${f.machine ?? f.table}» алга` };
+      else if (!names.has(f.from) || !names.has(f.to)) r = { error: `төлөв «${names.has(f.from) ? f.to : f.from}» машинд алга — эхлээд төлвийг нэмнэ` };
+      else if (m.transitions.some((t) => t.from === f.from && t.caption === f.caption)) r = { error: 'ижил товчтой шилжилт өөр зорилт/хэнтэй байна — зөрчил, гараар' };
+      else r = addToMachine(cur, model, m.name, [`${f.from} --> ${f.to} : ${f.caption} / хэн: ${f.who.map((w) => knownRole(model, w) ?? w).join(', ')}`]);
+    } else if (f.kind === 'required' || f.kind === 'unique') {
+      const setting = f.kind === 'required' ? 'not null' : 'unique';
+      r = editColumn(cur, model, f.table, f.column, (l) => withSetting(l, setting), setting);
+    } else if (f.kind === 'final') {
+      const m = machineOf(f);
+      r = !m ? { error: `машин «${f.machine ?? f.table}» алга` } : !m.states.some((s) => s.name === f.state) ? { error: `төлөв «${f.state}» алга` } : addToMachine(cur, model, m.name, [`${f.state} --> [*]`]);
+    } else r = { error: `төрөл «${f.kind}»` };
+    if (r.error) skipped.push({ fact: f, reason: r.error });
+    else if (r.same) skipped.push({ fact: f, reason: 'өөрчлөлтгүй' });
+    else { cur = r.files; applied.push({ fact: f, summary: r.summary }); }
+  }
+  return { files: cur, applied, skipped };
+}

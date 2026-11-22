@@ -107,6 +107,12 @@ node scripts/analyze/test.mjs
 | `COV-REQUIRED-NOFORM` | important | A5 | Заавал багана маягтад алга |
 | `COV-UNTRACED` | advisory | A5 | Шаардлагаар лавлагдаагүй элемент |
 | `SLOT-MISSING` | advisory | B1 | BRD-д хариулаагүй асуулт |
+| `CNL-UNPARSED` | advisory | D3 | Загварт хэлний бус мөр |
+| `CNL-NOT-MODELED` | important | D2 | Текстэд бий, загварт алга |
+| `CNL-CONFLICT` | important | D2 | Текст ба загварын зөрчил |
+| `REQ-VAGUE` | advisory | D4 | Хэмжигдэхгүй үг |
+| `REQ-DUPLICATE` | advisory | D4 | Бараг ижил шаардлага |
+| `REQ-MODAL` | advisory | D4 | Модаль зөрчлийн нэр дэвшигч |
 <!-- codes:end -->
 
 ## A1 — төлөвийн машин (`checks/states.mjs`)
@@ -256,3 +262,13 @@ node scripts/bj.mjs questions answer docs/reference/procurement Q-c8ad411d308b �
 - Шинжилгээ (JS): questions.yaml-д `dismissed`, эсвэл `answered` + `applied_at` (буулгасан атлаа олдвор үлдсэн — шийдвэрийн мөр) асуулттай олдворыг үндсэн жагсаалтаас
   гаргаж `acknowledged[]`, `stats.acknowledged`-д тоолно. `bj questions sync/apply` нь `acknowledge: false` — бүх олдворыг хардаг (эс бөгөөс хүлээн зөвшөөрсөн асуулт resolved болно).
 - e2e: `web/e2e/questions_roundtrip_smoke.mjs` (импорт → ноорог экспорт → plan off/warn/enforce → assumed хаана → answered → apply → сангийн экспорт ижил).
+
+## D — загварт хэл ба шаардлагын текст (`cnl.mjs`, `checks/cnl.mjs`, `checks/reqtext.mjs`, `cnl-cli.mjs`)
+
+- `cnl.mjs`: `vocabulary(model)` (загварын нэрс), `tag` (`«…»` ишлэл → урт үндэс + дагавар; богиносгосон үндэс дагавартай л), `parseSentence` (эрх, хориг, шилжилт, заавал/давтагдахгүй, эцсийн төлөв — нэрийн олон утгыг загвар бүр `pick`-ээр ялгана),
+  `parseDocument` (`brd.md` → баримт + unparsed мөр), `compare` (present | missing | conflict), `renderCnl` (загвар → өгүүлбэр, roundtrip).
+- `checks/cnl.mjs` — `brd.md` байвал л: `CNL-UNPARSED`, `CNL-NOT-MODELED`, `CNL-CONFLICT`. `patch.mjs` `applyFacts` — «missing»-ийг загварт (`setRight`, `addToMachine`, `editColumn`).
+- `checks/reqtext.mjs` (D4, зөвлөмж): `REQ-VAGUE` (бүдэг үгийн жагсаалт; хаалт доторх тайлбарыг тоолохгүй; «бусад/олон/сайн» корпуст нарийн утгатай тул хассан),
+  `REQ-DUPLICATE` (үгийн Jaccard ≥ 0.85, ≥ 5 үг), `REQ-MODAL` (яг ижил загварын нэрс + «заавал/хийнэ» ↔ «болохгүй/шаардлагагүй»).
+- Үнэлгээ: `node scripts/analyze/cnl-eval.mjs --write` → `docs/analysis/cnl-eval.md` (roundtrip 4023 баримт 100% present, 0 unparsed; эсрэг илрүүлэлт 982/982).
+
