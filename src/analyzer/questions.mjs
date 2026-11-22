@@ -165,6 +165,16 @@ export function confirmQuestion(doc, id, by, { now = new Date().toISOString() } 
   Object.assign(q, { status: 'answered', confirmed_by: by, at: now });
   return q;
 }
+// агентын саналыг татгалзах: assumed → open (хариулт арилна, саналыг note-д үлдээнэ)
+export function rejectQuestion(doc, id, { by = '', now = new Date().toISOString() } = {}) {
+  const q = doc?.questions?.find((x) => x.id === id);
+  if (!q) throw new Error(`асуулт ${id} алга`);
+  if (q.status !== 'assumed') throw new Error(`${id}: зөвхөн assumed асуултын саналыг татгалзана (одоо ${q.status})`);
+  const note = `татгалзсан санал${by ? ` (${by})` : ''}: ${JSON.stringify(q.answer)}${q.answered_by ? ` — ${q.answered_by}` : ''}`;
+  for (const k of ['answer', 'answered_by', 'confirmed_by']) delete q[k];
+  Object.assign(q, { status: 'open', note, at: now });
+  return q;
+}
 export function dismissQuestion(doc, id, note, { now = new Date().toISOString() } = {}) {
   const q = doc?.questions?.find((x) => x.id === id);
   if (!q) throw new Error(`асуулт ${id} алга`);

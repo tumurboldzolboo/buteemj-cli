@@ -4,6 +4,7 @@
 //   sync    — questions.yaml-д нэгтгэж бичнэ (idempotent: өөрчлөлтгүй бол файлд хүрэхгүй)
 //   answer  <Q-id> <хариулт> [--by=<нэвтрэх нэр>] [--agent] — answered (хүн) | assumed (агент)
 //   confirm <Q-id> --by=<нэвтрэх нэр> — assumed → answered
+//   reject  <Q-id> [--by=<нэвтрэх нэр>] — агентын санал (assumed) → open
 //   dismiss <Q-id> [--note=<шалтгаан>]
 //   apply   [--dry-run] [--only=Q-…,Q-…] — answered асуултыг BRD-д буулгана (C3, patch.mjs), дараа нь дахин шинжилж sync (засагдсан → resolved)
 // Гаралтын код: 0 — амжилттай, 1 — `list --fail-open`-д нээлттэй blocking/important асуулт байна, 2 — ажиллаж чадсангүй.
@@ -13,7 +14,7 @@ import { analyzePackage, loadX0, buildModel } from './index.mjs';
 import { loadCatalog } from '../validator/index.mjs';
 import { loadRegexpCanonical } from '../validator/regexp-loader.mjs';
 import { applyAnswers } from './patch.mjs';
-import { QUESTIONS_FILE, questionsFrom, mergeQuestions, parseQuestions, renderQuestions, answerQuestion, confirmQuestion, dismissQuestion, STATUSES } from './questions.mjs';
+import { QUESTIONS_FILE, questionsFrom, mergeQuestions, parseQuestions, renderQuestions, answerQuestion, confirmQuestion, rejectQuestion, dismissQuestion, STATUSES } from './questions.mjs';
 
 const TEXT = /\.(ya?ml|md|csv|mmd|dbml|dmn|bpmn|html|json|txt|sql|svg)$/i;
 const args = process.argv.slice(2);
@@ -21,7 +22,7 @@ const flag = (n) => { const a = args.find((x) => x.startsWith(`--${n}=`)); retur
 const pos = args.filter((a) => !a.startsWith('--'));
 const [sub, dirArg, ...rest] = pos;
 const die = (m) => { console.error(m); process.exit(2); };
-if (!['list', 'sync', 'answer', 'confirm', 'dismiss', 'apply'].includes(sub) || !dirArg) die('хэрэглээ: questions-cli.mjs <list|sync|answer|confirm|dismiss|apply> <багцын хавтас> [...]');
+if (!['list', 'sync', 'answer', 'confirm', 'reject', 'dismiss', 'apply'].includes(sub) || !dirArg) die('хэрэглээ: questions-cli.mjs <list|sync|answer|confirm|dismiss|apply> <багцын хавтас> [...]');
 const dir = resolve(dirArg);
 if (!existsSync(join(dir, 'manifest.yaml'))) die(`${dir}: manifest.yaml алга`);
 
@@ -36,7 +37,7 @@ const write = (doc) => {
 };
 
 try {
-  if (sub === 'answer' || sub === 'confirm' || sub === 'dismiss') {
+  if (sub === 'answer' || sub === 'confirm' || sub === 'reject' || sub === 'dismiss') {
     const doc = existing();
     if (!doc) die(`${QUESTIONS_FILE} алга — эхлээд sync`);
     const [id, ...value] = rest;
