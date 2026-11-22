@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // PLAN15 E4 — эх баримт: `node scripts/analyze/sources-cli.mjs <add|list> <багцын хавтас> [...]`
-//   add <файл> [--name=<нэр>] [--force] — docx/xlsx/md/txt → sources/<нэр>.md (локал задлалт; сервер рүү юу ч илгээхгүй). Байгаа файлыг --force-гүй дарахгүй.
+//   add <файл> [--name=<нэр>] [--force] — docx/xlsx/pdf/md/txt → sources/<нэр>.md (локал задлалт; сервер рүү юу ч илгээхгүй). Байгаа файлыг --force-гүй дарахгүй.
 //   list [--json]                       — sources/ дахь эх баримт, догол мөрийн тоо, IR-ийн хамралт
 // Гаралтын код: 0 — амжилттай, 2 — ажиллаж чадсангүй.
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, extname, join, relative, resolve } from 'node:path';
-import { extractSource } from './extract.mjs';
+import { extractSourceAsync } from './extract.mjs';
 import { paragraphs, irCoverage } from './ir.mjs';
 import { buildModel } from './model.mjs';
 
@@ -27,7 +27,7 @@ try {
     const src = resolve(fileArg);
     if (!existsSync(src) || !statSync(src).isFile()) die(`${src}: файл алга`);
     const buf = readFileSync(src);
-    const { kind, markdown } = extractSource(src, buf);
+    const { kind, markdown } = await extractSourceAsync(src, buf);
     const raw = typeof flag('name') === 'string' ? flag('name') : basename(src, extname(src));
     const name = raw.normalize('NFC').replace(/[^\p{L}\p{N}._-]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'source';
     const rel = `sources/${name}.md`, out = join(dir, rel);

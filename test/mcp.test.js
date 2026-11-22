@@ -106,7 +106,18 @@ describe('bj mcp', { skip: !existsSync(fixture) && 'platform алга' }, () => 
     assert.ok(!ad.err && ad.json.path === 'sources/эх-2.md' && ad.json.paragraphs === 2, ad.text);
     assert.ok((await call('add_source', { package: 'procurement', file: 'inbox.txt', name: 'эх 2' })).err, 'дарахгүй');
     for (const file of ['../outside.txt', '/etc/hosts', 'procurement/roles.csv', 'nope.txt']) assert.ok((await call('add_source', { package: 'procurement', file })).err, file);
-    for (const f of ['sources/ir.json', 'sources/brd.md', 'sources/эх-2.md']) assert.ok(!(await call('delete_file', { package: 'procurement', path: f })).err, f);
+    const content = 'BT /F1 11 Tf 72 700 Td (Buyer creates a request.) Tj ET';
+    const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+      `<< /Length ${content.length} >>\nstream\n${content}\nendstream`, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+    let pdf = '%PDF-1.4\n'; const offs = [];
+    objs.forEach((o, i) => { offs.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+    const xr = pdf.length;
+    pdf += `xref\n0 6\n0000000000 65535 f \n${offs.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF\n`;
+    writeFileSync(join(root, 'brd.pdf'), pdf, 'latin1');
+    const pd = await call('add_source', { package: 'procurement', file: 'brd.pdf', name: 'brd-pdf' });
+    assert.ok(!pd.err && pd.json.kind === 'pdf' && pd.json.paragraphs === 1, pd.text);
+    assert.match(readFileSync(join(root, 'procurement', 'sources', 'brd-pdf.md'), 'utf8'), /Buyer creates a request\./);
+    for (const f of ['sources/ir.json', 'sources/brd.md', 'sources/эх-2.md', 'sources/brd-pdf.md']) assert.ok(!(await call('delete_file', { package: 'procurement', path: f })).err, f);
   });
 
   it('write_file: symlink-ээр багцаас гарах оролдлого хориотой', async () => {

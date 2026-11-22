@@ -1,7 +1,7 @@
 // PLAN15 E4 — эх баримт задлах (локал, сервер рүү илгээхгүй, гадны сангүй): docx / xlsx → Markdown (sources/*.md), md/txt — шууд.
 // ZIP: stored/deflate (node:zlib). Хамгаалалт (cgi/src/integration/Xlsx.cpp-тэй ижил): zip64 ба шифрлэлт дэмжихгүй, нэг entry ≤ 30MB,
 // нийт задлал ≤ 60MB, шахалтын харьцаа ≤ 200 (zip bomb). XML-ийг regex-ээр уншина — DTD/гадаад entity ачаалахгүй (зөвхөн 5 стандарт + тоон entity).
-// PDF: сангийн сонголт PLAN15 [З] — шийдэгдэх хүртэл татгалзана (текст болгож .txt-ээр нэмнэ).
+// PDF: pdfjs-dist@6.5.438 (PLAN15 [З] 2026-11-22) — хэрэгтэй үед л динамик ачаална (суугаагүй бол тодорхой алдаа); eval хаалттай, ≤ 30MB, ≤ 1000 хуудас.
 import { inflateRawSync } from 'node:zlib';
 
 const MAX_ENTRY = 30 * 1024 * 1024, MAX_TOTAL = 60 * 1024 * 1024, MAX_RATIO = 200;
@@ -168,12 +168,78 @@ export function xlsxToMarkdown(buf) {
   return `${out.join('\n').trim()}\n`;
 }
 
-// файлын нэр + байт → {markdown, kind}
+// ---- PDF → Markdown (текст давхаргаас; скан зураг — OCR-гүй тул текстгүй): мөрийг y-ээр, догол мөрийг босоо зайгаар,
+// гарчгийг үсгийн өндрөөр (≥ 1.3 × голч, богино мөр), жагсаалтыг тэмдгээр (•, ●, ▪, -, –, 1. 1)) таньна; хуудасны дугаар мөрийг хасна
+export const PDFJS = 'pdfjs-dist/legacy/build/pdf.mjs';
+const MAX_PDF = 30 * 1024 * 1024, MAX_PAGES = 1000;
+export async function pdfToMarkdown(buf) {
+  const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+  if (b.subarray(0, 5).toString('latin1') !== '%PDF-') throw new Error('PDF биш');
+  if (b.length > MAX_PDF) throw new Error(`PDF ${MAX_PDF / 1048576}MB-аас их`);
+  let pdfjs;
+  try { const spec = PDFJS; pdfjs = await import(spec); }
+  catch { throw new Error('PDF: pdfjs-dist суугаагүй (`npm i pdfjs-dist@6.5.438`; Node ≥ 22.13) — эсвэл текст болгож .txt-ээр нэмнэ'); }
+  const task = pdfjs.getDocument({ data: new Uint8Array(b), isEvalSupported: false, disableFontFace: true, useSystemFonts: false, verbosity: 0, stopAtErrors: false });
+  try {
+    const doc = await task.promise;
+    if (doc.numPages > MAX_PAGES) throw new Error(`PDF ${doc.numPages} хуудас (≤ ${MAX_PAGES})`);
+    const lines = []; // {text, h, y, page}
+    for (let n = 1; n <= doc.numPages; n++) {
+      const page = await doc.getPage(n);
+      const tc = await page.getTextContent();
+      let cur = null;
+      const push = () => { if (cur && cur.text.trim()) lines.push({ ...cur, text: cur.text.replace(/\s+/g, ' ').trim() }); cur = null; };
+      for (const it of tc.items) {
+        if (typeof it.str !== 'string') continue;
+        const y = it.transform?.[5] ?? 0, h = Math.abs(it.height || it.transform?.[3] || 0);
+        if (cur && Math.abs(cur.y - y) > Math.max(2, Math.min(cur.h || h, h || cur.h) * 0.5)) push();
+        if (!cur) cur = { text: '', h, y, page: n };
+        cur.text += it.str; cur.h = Math.max(cur.h, h);
+        if (it.hasEOL) push();
+      }
+      push();
+      page.cleanup();
+    }
+    const hs = lines.map((l) => l.h).filter(Boolean).sort((a, b) => a - b);
+    const body = hs.length ? hs[Math.floor(hs.length / 2)] : 0;
+    const out = [];
+    let para = null, prev = null;
+    const flush = () => { if (para) out.push(para.text, ''); para = null; };
+    for (const l of lines) {
+      if (/^\d{1,4}$/.test(l.text) || /^(page|хуудас)\s*\d+(\s*(\/|of)\s*\d+)?$/i.test(l.text)) continue; // хуудасны дугаар
+      const gap = prev && prev.page === l.page ? prev.y - l.y : Infinity;
+      const bullet = /^([•●▪◦‣∙·]|[-–—]\s|\d{1,3}[.)]\s)/.exec(l.text);
+      const heading = body && l.h >= body * 1.3 && l.text.length <= 120;
+      if (heading) { flush(); out.push(`${l.h >= body * 1.8 ? '#' : '##'} ${l.text}`, ''); prev = l; continue; }
+      if (bullet) { flush(); para = { text: `- ${l.text.replace(/^([•●▪◦‣∙·]\s*|[-–—]\s+|\d{1,3}[.)]\s+)/, '')}` }; prev = l; continue; }
+      const lh = Math.max(l.h, prev?.h ?? 0) || body || 10;
+      if (para && gap <= lh * 1.6) {
+        // мөрийн төгсгөлийн тасархай (үг-\nүг): дараагийн мөр жижиг үсгээр эхэлбэл тасархайг хасаж нийлүүлнэ
+        if (/\p{L}-$/u.test(para.text) && /^\p{Ll}/u.test(l.text)) para.text = para.text.slice(0, -1) + l.text;
+        else para.text += ` ${l.text}`;
+      }
+      else { flush(); para = { text: l.text }; }
+      prev = l;
+    }
+    flush();
+    const md = out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    if (!md) throw new Error('PDF-д текст давхарга алга (скан зураг байж магадгүй — OCR дэмжихгүй)');
+    return `${md}\n`;
+  } finally { await task.destroy(); }
+}
+
+// async: PDF-ийг оролцуулна
+export async function extractSourceAsync(name, buf) {
+  if (String(name).toLowerCase().endsWith('.pdf')) return { kind: 'pdf', markdown: await pdfToMarkdown(buf) };
+  return extractSource(name, buf);
+}
+
+// файлын нэр + байт → {markdown, kind} (sync — PDF-д extractSourceAsync)
 export function extractSource(name, buf) {
   const ext = String(name).toLowerCase().split('.').pop();
   if (ext === 'docx') return { kind: 'docx', markdown: docxToMarkdown(buf) };
   if (ext === 'xlsx') return { kind: 'xlsx', markdown: xlsxToMarkdown(buf) };
   if (ext === 'md' || ext === 'txt') return { kind: ext, markdown: Buffer.from(buf).toString('utf8').replace(/^﻿/, '').replace(/\r\n?/g, '\n') };
-  if (ext === 'pdf') throw new Error('PDF: задлах сан сонгогдоогүй (PLAN15 E4 [З]) — текст болгож .txt эсвэл .md-ээр нэмнэ');
-  throw new Error(`«.${ext}» дэмжихгүй (docx, xlsx, md, txt)`);
+  if (ext === 'pdf') throw new Error('PDF: extractSourceAsync ашиглана');
+  throw new Error(`«.${ext}» дэмжихгүй (docx, xlsx, pdf, md, txt)`);
 }

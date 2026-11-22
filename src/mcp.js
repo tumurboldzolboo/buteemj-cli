@@ -19,7 +19,7 @@ import { loadYaml } from './validator/yaml.mjs';
 import { questionsFrom, mergeQuestions, parseQuestions, renderQuestions, answerQuestion, QUESTIONS_FILE } from './analyzer/questions.mjs';
 import { buildModel } from './analyzer/index.mjs';
 import { paragraphs } from './analyzer/ir.mjs';
-import { extractSource } from './analyzer/extract.mjs';
+import { extractSourceAsync } from './analyzer/extract.mjs';
 import { ButeemjClient } from './api.js';
 
 const HERE = dirname(new URL(import.meta.url).pathname);
@@ -166,15 +166,15 @@ export function createServer({ root, env = process.env, log = env.BUTEEMJ_MCP_LO
         writeFileSync(join(abs, 'requirements.md'), '| ID | Төрөл | Шаардлага | Эрэмбэ | Холбоос |\n|---|---|---|---|---|\n');
         return text({ package: rel, created: ['manifest.yaml', 'requirements.md'] });
       } },
-    { name: 'add_source', description: 'Эх баримт (docx/xlsx/md/txt) → sources/<нэр>.md (локал задлалт, сервер рүү юу ч илгээхгүй). Файл MCP-ийн ажлын хавтас дотор байх ёстой (≤ 20MB); байгаа sources файлыг дарахгүй. PDF — дэмжихгүй (текст болгож .txt-ээр).',
+    { name: 'add_source', description: 'Эх баримт (docx/xlsx/pdf/md/txt) → sources/<нэр>.md (локал задлалт, сервер рүү юу ч илгээхгүй). Файл MCP-ийн ажлын хавтас дотор байх ёстой (≤ 20MB); байгаа sources файлыг дарахгүй. PDF — текст давхаргаас (скан зураг — OCR-гүй).',
       inputSchema: { type: 'object', required: ['package', 'file'], properties: { package: { type: 'string' }, file: { type: 'string', description: 'ажлын хавтсаас харьцангуй зам (жишээ: inbox/brd.docx)' }, name: { type: 'string', description: 'sources/<нэр>.md (анхдагч: файлын нэр)' } }, additionalProperties: false }, annotations: { destructiveHint: false },
-      run: ({ package: pkg, file, name }) => {
+      run: async ({ package: pkg, file, name }) => {
         const dir = pkgDir(pkg); const { abs: src, rel: srcRel } = filePath(ROOT, file);
         if (!existsSync(src) || !statSync(src).isFile()) return fail(`«${srcRel}» алга`);
-        if (!/\.(docx|xlsx|md|txt)$/i.test(srcRel)) return fail('зөвхөн docx, xlsx, md, txt');
+        if (!/\.(docx|xlsx|pdf|md|txt)$/i.test(srcRel)) return fail('зөвхөн docx, xlsx, pdf, md, txt');
         if (statSync(src).size > 20 * 1024 * 1024) return fail('20MB-аас их');
         const buf = readFileSync(src);
-        const { kind, markdown } = extractSource(srcRel, buf);
+        const { kind, markdown } = await extractSourceAsync(srcRel, buf);
         const base = String(name ?? srcRel.split('/').pop().replace(/\.[^.]+$/, '')).normalize('NFC').replace(/[^\p{L}\p{N}._-]+/gu, '-').replace(/^[-.]+|-+$/g, '').slice(0, 80) || 'source';
         const { abs, rel } = filePath(dir, `sources/${base}.md`);
         if (existsSync(abs)) return fail(`«${rel}» аль хэдийн байна — өөр name өгнө (ir.json-ийн ¶ дугаар шилжихээс сэргийлнэ)`);
