@@ -14,10 +14,12 @@ import { permissionsCheck } from './checks/permissions.mjs';
 import { decisionsCheck } from './checks/decisions.mjs';
 import { predicatesCheck } from './checks/predicates.mjs';
 import { coverageCheck } from './checks/coverage.mjs';
+import { slotsCheck, completeness } from './checks/slots.mjs';
 export { loadX0, setX0Evaluate } from './x0eval.mjs';
 
 // PLAN15 A1–A5 — дарааллаар ажиллана (гаралт эрэмбэлэгддэг тул дараалал үр дүнд нөлөөлөхгүй)
-export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck];
+export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck, slotsCheck];
+export { completeness };
 
 export const findingId = (code, element, discriminator = '') =>
   `F-${createHash('sha256').update(`${code}\u0000${element}\u0000${discriminator}`).digest('hex').slice(0, 12)}`;
@@ -67,5 +69,7 @@ export function analyzePackage(files, opts = {}) {
   findings.sort((a, b) => severityRank(a.severity) - severityRank(b.severity) || a.file.localeCompare(b.file) || a.line - b.line
     || a.code.localeCompare(b.code) || a.element.localeCompare(b.element) || a.id.localeCompare(b.id));
   const bySeverity = Object.fromEntries(SEVERITIES.map((s) => [s, findings.filter((f) => f.severity === s).length]));
-  return { key: model.key, partial, findings, stats: { ...bySeverity, checks: checks.length } };
+  const out = { key: model.key, partial, findings, stats: { ...bySeverity, checks: checks.length } };
+  if (opts.completeness !== false) out.completeness = completeness(model); // PLAN15 B2
+  return out;
 }

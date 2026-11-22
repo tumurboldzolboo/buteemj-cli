@@ -106,6 +106,7 @@ node scripts/analyze/test.mjs
 | `COV-P1-UNTESTED` | important | A5 | Заавал шаардлагад сценари алга |
 | `COV-REQUIRED-NOFORM` | important | A5 | Заавал багана маягтад алга |
 | `COV-UNTRACED` | advisory | A5 | Шаардлагаар лавлагдаагүй элемент |
+| `SLOT-MISSING` | advisory | B1 | BRD-д хариулаагүй асуулт |
 <!-- codes:end -->
 
 ## A1 — төлөвийн машин (`checks/states.mjs`)
@@ -185,3 +186,16 @@ validate аль хэдийн мэдээлдгийг давхардуулахгү
 3. [test.mjs](test.mjs)-д эерэг (олдвор гарна) ба сөрөг (гарахгүй) fixture нэмнэ.
 
 Бүртгэлгүй код эсвэл буруу `element` дамжуулбал тэр шалгалт `AN-CHECK-FAILED` болж зогсоно. Бусад шалгалт үргэлжилнэ.
+
+## B — бүрэн гүйцэд байдал (`checks/slots.mjs`, `docs/brd-standard/slots.yaml`)
+
+Мета-загвар: [docs/brd-standard/slots.yaml](../../docs/brd-standard/slots.yaml) — элементийн төрөл бүрт BRD хариулсан байх ёстой асуулт (слот).
+Analyzer нь үүсгэсэн [slots.data.mjs](slots.data.mjs)-ийг уншина (`node scripts/analyze/gen-slots.mjs`; таарахыг test.mjs шалгана) — хуулбар ба bundle-д файл уншихгүй.
+
+- Слот бүр: `id`, `element`, `title`, `question` (`{name}`), `fix`, `severity`, `detect` (илрүүлэгч), `coveredBy` (A шатны код), `options` (C1-ийн сонголтын эх).
+- Бөглөгдөөгүй, `coveredBy`-гүй слот → `SLOT-MISSING` (түвшин слотоос, `discriminator` = слотын id, мессеж = асуулт). `coveredBy`-тэй слотыг A-ийн код мэдээлдэг — зөвхөн тоонд.
+- `analyzePackage(...).completeness` (B2): `score` = бөглөгдсөн / хамаарах, `bySlot`, `byElement`, `missing[]`, `crud` (үүрэг × өөрийн хүснэгт: мөр бий = шийдсэн; ямар ч үүрэгт мөргүй хүснэгтүүд).
+- `cli.mjs --completeness` — тайлан.
+- Илрүүлэгчийн дүрэм: цөмийн хүснэгт хамаарахгүй; `table.key` — хүү (parent) хүснэгтэд биш; `table.deleter` — үүсгэх эрхтэй, машингүй, хүү биш, лавлах (reference/) биш хүснэгтэд
+  (Устгах = 1 эсвэл `-` хориг = шийдсэн); `machine.reject` — татгалзах/цуцлах/буцаах нэртэй шилжилт эсвэл анхны төлвөөс хүрэх 2+ эцсийн төлөв;
+  `process.trigger` — startOn/timer/message/signal/conditional, `buteemj:category` (цэс), `startProcess(…)`, дэлгэцэд нэр; `process.timeout` — userTask-тай процесст timer.

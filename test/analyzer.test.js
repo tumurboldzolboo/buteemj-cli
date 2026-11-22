@@ -59,8 +59,12 @@ describe('bj analyze', () => {
       assert.equal(bj(p).status, 0);
       assert.equal(bj(p, '--fail-on=advisory').status, 1); // scaffold: SM-NO-ACTOR зөвлөмж
       assert.equal(bj(p, '--min=bad').status, 2);
+      const c = bj(p, '--completeness');
+      assert.match(c.stdout, /бүрэн гүйцэд байдал \d+%/);
+      assert.match(c.stdout, /machine\.reject/);
       const j = JSON.parse(bj(p, '--json', '--min=important').stdout);
       assert.ok(Array.isArray(j.findings) && j.findings.every((x) => x.severity !== 'advisory'));
+      assert.ok(j.completeness && typeof j.completeness.score === 'number');
     } finally { rmSync(tmp, { recursive: true, force: true }); }
   });
 });

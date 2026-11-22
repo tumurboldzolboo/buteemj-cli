@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { initProject } from '../src/init.js';
 import { readPackageFiles, validatePackage } from '../src/validate.js';
-import { analyzePackage, loadX0, SEVERITIES, severityRank } from '../src/analyze.js';
+import { analyzePackage, loadX0, SEVERITIES, severityRank, completenessLine, completenessDetail } from '../src/analyze.js';
 import { ButeemjClient } from '../src/api.js';
 import { serverCommand } from '../src/server.js';
 
@@ -32,6 +32,7 @@ function showHelp() {
   validate [хавтас]       Багцын загваруудыг локалд (сервергүй) шалгах
   analyze [хавтас]        Загварын шинжилгээ: зөрчил, цоорхой, хамралт (сервергүй, LLM-гүй)
                           --min=<түвшин> (харуулах доод түвшин), --fail-on=<түвшин> (код 1); blocking|important|advisory
+                          --completeness (бүрэн гүйцэд байдал слотоор: хэн үүсгэх/харах, түлхүүр, татгалзах зам …)
   server start|stop|status|logs  Локал сервер (бэлэн Docker image): --port 8080, --project buteemj,
                           --registry <R/>, stop --purge (өгөгдөл устгана), logs [сервис] --follow
   status                  Бүтээмжийн серверийн холболтын төлөвийг шалгах
@@ -171,6 +172,8 @@ async function main() {
       if (f.fix) console.log(`             → ${f.fix}`);
     }
     console.log(`${fail ? '✗' : '✓'} Шинжилгээ: ${SEVERITIES.map((s) => `${res.stats[s]} ${s}`).join(', ')}${res.partial ? ' (хэсэгчилсэн — эхлээд bj validate-ийн алдааг засна)' : ''}`);
+    console.log(`  ${completenessLine(res.completeness)}`);
+    if (flags.completeness) for (const l of completenessDetail(res.completeness)) console.log(l);
     process.exit(fail ? 1 : 0);
   }
 

@@ -34,6 +34,8 @@ export const CODES = {
   'COV-P1-UNTESTED': { severity: 'important', layer: 'A5', title: 'Заавал шаардлагад сценари алга', why: 'Эрэмбэ 1 шаардлага хэрэгжсэн эсэхийг шалгах хүлээн авах сценари байхгүй' },
   'COV-REQUIRED-NOFORM': { severity: 'important', layer: 'A5', title: 'Заавал багана маягтад алга', why: 'Web маягт зөвхөн layout-ийн баганыг зурдаг тул заавал, анхдагчгүй багана хоосон үлдэж маягтаар бичлэг үүсгэх үед NOT NULL алдаа гарна' },
   'COV-UNTRACED': { severity: 'advisory', layer: 'A5', title: 'Шаардлагаар лавлагдаагүй элемент', why: 'Машин, шийдвэр, процесс, тайлан, генератор ямар ч шаардлагаас үүсээгүй — илүүц эсвэл шаардлага дутуу (урвуу traceability)' },
+  // B1 — бүрэн гүйцэд байдал (slots.yaml)
+  'SLOT-MISSING': { severity: 'advisory', layer: 'B1', title: 'BRD-д хариулаагүй асуулт', why: 'Мета-загварын слот бөглөгдөөгүй — тухайн элементийн талаар бизнесийн шийдвэр BRD/PRD-д алга (түвшин нь слотоос, discriminator = слотын id)' },
 };
 
 export const SEVERITIES = ['blocking', 'important', 'advisory'];

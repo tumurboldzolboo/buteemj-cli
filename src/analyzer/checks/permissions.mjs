@@ -39,6 +39,20 @@ export function permIndex(model) {
   return { known, can, rowOf: (role, table) => model.roles.find((r) => low(r.role) === low(role) && (r.table === table || r.table === '*') && !r.object) ?? null };
 }
 
+// seed/defaults/reference, генераторын target, интеграцын inbound, BPMN table/children, create(…) action-аар бөглөгдөх хүснэгтүүд (B1 table.creator ч ашиглана)
+export function filledTables(model) {
+  const filled = new Set();
+  for (const [f, v] of Object.entries(model.yaml)) {
+    if (/^(seed|defaults|reference)\//.test(f) && v && typeof v === 'object') for (const k of Object.keys(v)) filled.add(k);
+    if (/^generators\.ya?ml$/i.test(f)) for (const g of asList(v?.generators)) { filled.add(str(g?.target)); for (const l of asList(g?.lines)) filled.add(str(l?.target ?? l?.table)); }
+    if (/^integrations\.ya?ml$/i.test(f)) for (const i of asList(v?.inbound)) filled.add(str(i?.table));
+  }
+  for (const f of model.files) if (/^reference\/[^/]+\.csv$/i.test(f) || /^defaults\/[^/]+\.csv$/i.test(f)) filled.add(f.split('/').pop().replace(/\.csv$/i, ''));
+  for (const b of model.bpmn) for (const m of b.text.matchAll(/\bbuteemj:(?:table|children)="([^"]+)"/g)) filled.add(m[1]);
+  for (const m of model.machines) for (const t of m.transitions) for (const a of t.actions ?? []) if (a.name === 'create') filled.add(str(a.arg).split(/[:(,]/)[0]);
+  return filled;
+}
+
 const lineAt = (text, i) => text.slice(0, i).split('\n').length;
 const attr = (tag, name) => { const m = new RegExp(`\\b${name.replace(':', '\\:')}="([^"]*)"`).exec(tag); return m ? m[1] : ''; };
 
@@ -104,15 +118,7 @@ export const permissionsCheck = {
     }
 
     // PERM-TABLE-NOCREATOR (зөвлөмж): ямар ч үүрэг үүсгэх эрхгүй, өөр эх сурвалжаар ч бөглөгдөхгүй хүснэгт
-    const filled = new Set();
-    for (const [f, v] of Object.entries(model.yaml)) {
-      if (/^(seed|defaults|reference)\//.test(f) && v && typeof v === 'object') for (const k of Object.keys(v)) filled.add(k);
-      if (/^generators\.ya?ml$/i.test(f)) for (const g of asList(v?.generators)) { filled.add(str(g?.target)); for (const l of asList(g?.lines)) filled.add(str(l?.target ?? l?.table)); }
-      if (/^integrations\.ya?ml$/i.test(f)) for (const i of asList(v?.inbound)) filled.add(str(i?.table));
-    }
-    for (const f of model.files) if (/^reference\/[^/]+\.csv$/i.test(f) || /^defaults\/[^/]+\.csv$/i.test(f)) filled.add(f.split('/').pop().replace(/\.csv$/i, ''));
-    for (const b of model.bpmn) for (const m of b.text.matchAll(/\bbuteemj:(?:table|children)="([^"]+)"/g)) filled.add(m[1]);
-    for (const m of model.machines) for (const t of m.transitions) for (const a of t.actions ?? []) if (a.name === 'create') filled.add(str(a.arg).split(/[:(,]/)[0]);
+    const filled = filledTables(model);
     for (const [name, t] of model.tables) {
       if (filled.has(name) || CORE_TABLES.has(name)) continue; // цөмийн хүснэгт (Хэрэглэгч, Хэсэг …) — платформ удирдана
       if (P.known.size && [...P.known.keys()].some((r) => P.can(r, name, 'create'))) continue;
