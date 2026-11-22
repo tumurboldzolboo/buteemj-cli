@@ -290,4 +290,7 @@ node scripts/bj.mjs questions answer docs/reference/procurement Q-c8ad411d308b �
 - E4 `extract.mjs` (гадны сангүй, node:zlib): `readZip` (stored/deflate; zip64, шифрлэлт — татгалзана; entry ≤ 30MB, нийт ≤ 60MB, харьцаа ≤ 200 — `cgi/src/integration/Xlsx.cpp`-тэй ижил),
   `docxToMarkdown` (Heading N / Title / outlineLvl → `#`, numPr ба «List Bullet/Number» хэв маяг → `-`, хүснэгт → Markdown, `w:delText` хасна), `xlsxToMarkdown` (sheet бүр `## <нэр>` + хүснэгт; shared/inline/bool),
   `pdfToMarkdown` (pdfjs-dist 6.5.438, динамик ачаалалт — `platform/scripts`-д `npm install`; мөр/догол/гарчиг/жагсаалтыг байрлал ба үсгийн өндрөөр; OCR-гүй), `extractSourceAsync`. `sources-cli.mjs` + `bj sources <add|list>`; MCP `add_source` (зөвхөн ажлын хавтас доторх файл, дарахгүй).
+- D5 `reqtable.mjs`: `mapColumns` (синонимын дарааллаар exact → contains; `map`-аар дарна), `normKind` (Ө/П/Д/Дэ/Э/Т — үг/англи/contains, эс бөгөөс текстээс таамаг, анхдагч Д), `normPriority` (MoSCoW, өндөр/дунд/бага, P1–P4; хоосон → 2 таамаг),
+  `convertTable` — шинэ мөр (тоон/давхар ID → `R<n>` одоо байгаа өргөнөөр), давхардсан текстийг алгасаж IR-ийг одоо байгаа шаардлагад холбоно, хоосон Холбоосыг текстээс (хүснэгт/төлөв/үүрэг) санал болгоно, текстгүй мөр → `ignored`; idempotent.
+  `bj sources table`, MCP `import_requirements_table` (анхдагч — санал). Корпусын roundtrip 1094/1094.
 

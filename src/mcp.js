@@ -20,6 +20,7 @@ import { questionsFrom, mergeQuestions, parseQuestions, renderQuestions, answerQ
 import { buildModel } from './analyzer/index.mjs';
 import { paragraphs } from './analyzer/ir.mjs';
 import { extractSourceAsync } from './analyzer/extract.mjs';
+import { convertTable } from './analyzer/reqtable.mjs';
 import { ButeemjClient } from './api.js';
 
 const HERE = dirname(new URL(import.meta.url).pathname);
@@ -183,6 +184,23 @@ export function createServer({ root, env = process.env, log = env.BUTEEMJ_MCP_LO
         checkContent(rel, content, dir);
         mkdirSync(dirname(abs), { recursive: true }); writeFileSync(abs, content);
         return text({ path: rel, kind, sha256: sha, paragraphs: paragraphs(content).length, next: 'source_paragraphs → sources/ir.json (write_file) → analyze' });
+      } },
+    { name: 'import_requirements_table', description: 'Эх баримтын стандарт бус шаардлагын хүснэгт (sources/*.md) → requirements.md мөр + sources/ir.json холбоос. Багана синонимоор (map-аар дарна), төрөл/эрэмбэ хэвийн болно; таамгийг inferred-д. apply: false (анхдагч) — зөвхөн санал.',
+      inputSchema: { type: 'object', required: ['package', 'source'], properties: { package: { type: 'string' }, source: { type: 'string', description: 'sources/<нэр>.md' }, table: { type: 'integer', minimum: 0 },
+        map: { type: 'object', additionalProperties: { type: 'string' }, description: '{text: "Тайлбар", id: "№", kind, priority, links}' }, apply: { type: 'boolean' } }, additionalProperties: false }, annotations: { destructiveHint: false },
+      run: ({ package: pkg, source, table, map, apply }) => {
+        const dir = pkgDir(pkg); const { rel } = filePath(dir, source);
+        if (!/^sources\/[^/]+\.(md|txt)$/i.test(rel)) return fail('source — sources/<нэр>.md');
+        const bad = Object.keys(map ?? {}).filter((k) => !['id', 'kind', 'text', 'priority', 'links'].includes(k));
+        if (bad.length) return fail(`map: танихгүй ${bad.join(', ')}`);
+        const files = readFiles(dir);
+        const r = convertTable(files, rel, { table: table ?? null, map: map ?? {} });
+        const out = { tables: r.tables, rows: r.rows, inferred: r.inferred, skipped: r.skipped.map(({ line, reason }) => ({ line, reason })) };
+        if (!apply) return text({ ...out, applied: false, next: 'inferred-ийг хэрэглэгчээр шалгуулаад apply: true' });
+        const written = [];
+        if (r.rows.length) { const { abs } = filePath(dir, 'requirements.md'); checkContent('requirements.md', r.requirements, dir); writeFileSync(abs, r.requirements); written.push('requirements.md'); }
+        if (r.ir && r.ir !== files['sources/ir.json']) { const { abs } = filePath(dir, 'sources/ir.json'); checkContent('sources/ir.json', r.ir, dir); mkdirSync(dirname(abs), { recursive: true }); writeFileSync(abs, r.ir); written.push('sources/ir.json'); }
+        return text({ ...out, applied: true, written });
       } },
     { name: 'source_paragraphs', description: 'Эх баримтын догол мөрийн дугаарлалт (sources/ir.json-ийн source: "<файл>#¶n"). Ишлэлийг эндээс үгчлэн авна.',
       inputSchema: { type: 'object', required: ['package', 'path'], properties: { package: { type: 'string' }, path: { type: 'string', description: 'жишээ: sources/brd.md' } }, additionalProperties: false }, annotations: { readOnlyHint: true },

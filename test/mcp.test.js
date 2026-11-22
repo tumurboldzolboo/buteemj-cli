@@ -47,7 +47,7 @@ describe('bj mcp', { skip: !existsSync(fixture) && 'platform алга' }, () => 
 
   it('tools/list: зөвхөн ноорогийн хэрэгслүүд — apply/deploy/purge/confirm/хэрэглэгч алга', async () => {
     const t = (await srv.handle({ jsonrpc: '2.0', id: 1, method: 'tools/list' })).result.tools;
-    assert.deepEqual(t.map((x) => x.name), ['list_packages', 'get_standard', 'get_schema', 'create_package', 'add_source', 'source_paragraphs', 'read_file', 'list_files', 'write_file', 'delete_file', 'validate', 'analyze', 'list_questions', 'propose_answer', 'get_plan']);
+    assert.deepEqual(t.map((x) => x.name), ['list_packages', 'get_standard', 'get_schema', 'create_package', 'add_source', 'import_requirements_table', 'source_paragraphs', 'read_file', 'list_files', 'write_file', 'delete_file', 'validate', 'analyze', 'list_questions', 'propose_answer', 'get_plan']);
     assert.ok(t.every((x) => !FORBIDDEN_TOOLS.test(x.name) && x.description && x.inputSchema?.type === 'object'));
   });
 
@@ -117,7 +117,16 @@ describe('bj mcp', { skip: !existsSync(fixture) && 'platform алга' }, () => 
     const pd = await call('add_source', { package: 'procurement', file: 'brd.pdf', name: 'brd-pdf' });
     assert.ok(!pd.err && pd.json.kind === 'pdf' && pd.json.paragraphs === 1, pd.text);
     assert.match(readFileSync(join(root, 'procurement', 'sources', 'brd-pdf.md'), 'utf8'), /Buyer creates a request\./);
-    for (const f of ['sources/ir.json', 'sources/brd.md', 'sources/эх-2.md', 'sources/brd-pdf.md']) assert.ok(!(await call('delete_file', { package: 'procurement', path: f })).err, f);
+    writeFileSync(join(root, 'procurement', 'sources', 'tbl.md'), '| № | Тайлбар | Priority |\n|---|---|---|\n| 1 | Нягтлан нэхэмжлэхийг батална | Must |\n');
+    const prop = await call('import_requirements_table', { package: 'procurement', source: 'sources/tbl.md' });
+    assert.ok(!prop.err && prop.json.applied === false && prop.json.rows[0].priority === '1' && prop.json.rows[0].id === 'R43', prop.text);
+    assert.ok(!readFileSync(join(root, 'procurement', 'requirements.md'), 'utf8').includes('Нягтлан нэхэмжлэхийг батална'), 'санал бичихгүй');
+    assert.ok((await call('import_requirements_table', { package: 'procurement', source: 'sources/tbl.md', map: { bogus: 'x' } })).err);
+    assert.ok((await call('import_requirements_table', { package: 'procurement', source: 'roles.csv' })).err);
+    const ap = await call('import_requirements_table', { package: 'procurement', source: 'sources/tbl.md', apply: true });
+    assert.ok(!ap.err && ap.json.written.includes('requirements.md'), ap.text);
+    assert.match(readFileSync(join(root, 'procurement', 'requirements.md'), 'utf8'), /\| R43 \| Д \| Нягтлан нэхэмжлэхийг батална \| 1 \|/);
+    for (const f of ['sources/ir.json', 'sources/brd.md', 'sources/эх-2.md', 'sources/brd-pdf.md', 'sources/tbl.md']) assert.ok(!(await call('delete_file', { package: 'procurement', path: f })).err, f);
   });
 
   it('write_file: symlink-ээр багцаас гарах оролдлого хориотой', async () => {
