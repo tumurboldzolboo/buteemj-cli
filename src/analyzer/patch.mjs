@@ -91,6 +91,17 @@ function transitionLine(model, el) {
   return m?.transitions.find((t) => t.caption === el.caption && (!el.from || t.from === el.from)) ? { m, t: m.transitions.find((t) => t.caption === el.caption && (!el.from || t.from === el.from)) } : null;
 }
 
+// ---- sources/ir.json: догол мөрийг хамралтаас хасах (PLAN15 E3)
+function irIgnore(files, source, reason) {
+  const F = 'sources/ir.json';
+  if (files[F] === undefined) return { error: `${F} алга` };
+  let doc; try { doc = JSON.parse(files[F]); } catch { return { error: `${F}: JSON алдаа` }; }
+  const ign = Array.isArray(doc.ignored) ? doc.ignored : [];
+  if (ign.some((g) => g?.source === source)) return { same: true };
+  const out = { ...doc, ignored: [...ign, { source, reason }] };
+  return { files: { ...files, [F]: `${JSON.stringify(out, null, 2)}\n` }, summary: `${F}: ignored «${source}»` };
+}
+
 // ---- шийдвэрийн мөр (requirements.md) — patch хийх боломжгүй хариулт
 function decisionNote(files, model, q, reason) {
   const f = model.requirements[0]?.file ?? (files['requirements.md'] !== undefined ? 'requirements.md' : null);
@@ -190,6 +201,7 @@ function patcher(q, model) {
       const to = first.replace(/ рүү шилжинэ$/, '');
       return stateNames.has(to) ? (f) => addToMachine(f, model, e.machine, [`${e.state} --> ${to} : ${to} болгох`]) : null;
     }
+    case 'IR-PARA-UNCOVERED': return /^(үгүй|тайлбар|оршил|no)/i.test(first) ? (f) => irIgnore(f, e.name, `${q.id}: ${first}`) : null;
     case 'SM-NO-FINAL': case 'machine.final': return stateNames.has(first) ? (f) => addToMachine(f, model, e.machine, [`${first} --> [*]`]) : null;
     case 'SM-UNREACHABLE': {
       const from = first.replace(/-аас шилжинэ$/, '');

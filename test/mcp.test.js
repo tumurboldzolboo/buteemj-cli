@@ -47,7 +47,7 @@ describe('bj mcp', { skip: !existsSync(fixture) && 'platform алга' }, () => 
 
   it('tools/list: зөвхөн ноорогийн хэрэгслүүд — apply/deploy/purge/confirm/хэрэглэгч алга', async () => {
     const t = (await srv.handle({ jsonrpc: '2.0', id: 1, method: 'tools/list' })).result.tools;
-    assert.deepEqual(t.map((x) => x.name), ['list_packages', 'get_standard', 'get_schema', 'create_package', 'read_file', 'list_files', 'write_file', 'delete_file', 'validate', 'analyze', 'list_questions', 'propose_answer', 'get_plan']);
+    assert.deepEqual(t.map((x) => x.name), ['list_packages', 'get_standard', 'get_schema', 'create_package', 'source_paragraphs', 'read_file', 'list_files', 'write_file', 'delete_file', 'validate', 'analyze', 'list_questions', 'propose_answer', 'get_plan']);
     assert.ok(t.every((x) => !FORBIDDEN_TOOLS.test(x.name) && x.description && x.inputSchema?.type === 'object'));
   });
 
@@ -88,6 +88,20 @@ describe('bj mcp', { skip: !existsSync(fixture) && 'platform алга' }, () => 
     assert.ok(!existsSync(join(root, 'procurement', 'seed', 'users.yaml')) && !existsSync(join(root, 'escape.md')));
     const m = readFileSync(join(root, 'procurement', 'manifest.yaml'), 'utf8');
     assert.ok(!(await call('write_file', { package: 'procurement', path: 'manifest.yaml', content: `${m}\n` })).err, 'ижил key-тэй manifest зөвшөөрнө');
+  });
+
+  it('эх баримт ба IR (PLAN15 E): sources/*.md, source_paragraphs, ir.json → analyze IR-*', async () => {
+    assert.ok(!(await call('write_file', { package: 'procurement', path: 'sources/brd.md', content: '# BRD\n\nОршил текст.\n\n- Нягтлан нэхэмжлэхийг батална.\n' })).err);
+    const ps = (await call('source_paragraphs', { package: 'procurement', path: 'sources/brd.md' })).json;
+    assert.deepEqual(ps.map((p) => p.source), ['sources/brd.md#¶1', 'sources/brd.md#¶2']);
+    assert.ok((await call('source_paragraphs', { package: 'procurement', path: 'roles.csv' })).err);
+    for (const [path, content] of [['sources/ir.json', '{bad'], ['sources/x.json', '{}'], ['other/ir.json', '{}'], ['sources/sub/a.txt', 'x']])
+      assert.ok((await call('write_file', { package: 'procurement', path, content })).err, path);
+    const ir = { version: 1, items: [{ id: 'IR-1', kind: 'rule', source: 'sources/brd.md#¶2', quote: 'нэхэмжлэхийг 3 хоногт батална' }], ignored: [{ source: 'sources/brd.md#¶1', reason: 'оршил' }] };
+    assert.ok(!(await call('write_file', { package: 'procurement', path: 'sources/ir.json', content: JSON.stringify(ir) })).err);
+    const codes = (await call('analyze', { package: 'procurement' })).json.findings.map((f) => f.code);
+    assert.ok(codes.includes('IR-QUOTE-NOTFOUND') && !codes.includes('IR-PARA-UNCOVERED'), codes.filter((c) => c.startsWith('IR')).join());
+    for (const f of ['sources/ir.json', 'sources/brd.md']) assert.ok(!(await call('delete_file', { package: 'procurement', path: f })).err, f);
   });
 
   it('write_file: symlink-ээр багцаас гарах оролдлого хориотой', async () => {

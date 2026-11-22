@@ -21,3 +21,9 @@ export function completenessDetail(c) {
   if (c.crud.tablesWithoutAnyRole.length) out.push(`  · CRUD: ямар ч үүрэгт мөргүй хүснэгт — ${c.crud.tablesWithoutAnyRole.slice(0, 8).join(', ')}${c.crud.tablesWithoutAnyRole.length > 8 ? ' …' : ''}`);
   return out;
 }
+// PLAN15 E3 — эх баримтын хамралт (analyzePackage(...).sources)
+export function sourcesLine(s) {
+  if (!s) return '';
+  return `эх баримтын хамралт ${pct(s.ratio)} (${s.covered}/${s.total - s.ignored} догол мөр${s.ignored ? `, ${s.ignored} хассан` : ''}; ${s.files.join(', ')})`;
+}
+

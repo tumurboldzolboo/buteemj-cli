@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/ir",
+  "title": "sources/ir.json",
+  "description": "PLAN15 E1 — эх баримтын атом шаардлага (IR): эх баримтын догол мөр бүрээс ишлэлтэй, загварын элементэд холбогдсон баримт. Ноорогт хадгалагдана, хэрэгжүүлэлтэд орохгүй. `bj cnl ir` (EARS-MN) ба MCP агент үүсгэнэ; `bj analyze` ишлэл ба хамралтыг шалгана.",
+  "type": "object",
+  "required": ["version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "minimum": 1, "maximum": 1, "description": "Хэлбэрийн хувилбар" },
+    "items": {
+      "type": "array",
+      "description": "Атом шаардлагууд",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "source", "quote"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-zА-Яа-яЁёӨөҮү0-9_.-]{1,64}$", "description": "Багц доторх давтагдахгүй дугаар (жишээ: IR-001, CNL-…)" },
+          "kind": { "enum": ["right", "transition", "field", "rule", "report", "screen", "integration", "nfr", "glossary", "other"], "description": "Төрөл: эрх, шилжилт, талбар, дүрэм, тайлан, дэлгэц, интеграц, функциональ бус, нэр томьёо, бусад" },
+          "text": { "type": "string", "maxLength": 2000, "description": "Хэвийн болгосон шаардлага (өөрийн үгээр)" },
+          "element": { "type": "string", "pattern": "^(package|table|column|machine|state|transition|role|requirement|scenario|screen|report|decision|process|file):.+$", "description": "Загварын элементийн лавлагаа (analyze-ийн хэлбэр: table:Т, column:Т.Б, state:М [С], transition:М/Товч @Эхлэх, role:Р …)" },
+          "actor": { "type": "string", "maxLength": 200, "description": "Оролцогч (үүрэг)" },
+          "condition": { "type": "string", "maxLength": 1000, "description": "Нөхцөл (хэзээ, хэрэв)" },
+          "number": { "type": "number", "description": "Тоон утга (хугацаа, хязгаар, хувь)" },
+          "unit": { "type": "string", "maxLength": 40, "description": "Тооны нэгж (₮, хоног, %, ш …)" },
+          "source": { "type": "string", "pattern": "^[^#]+#¶[1-9][0-9]*$", "description": "Эх догол мөр: `<файл>#¶<дугаар>` (жишээ: sources/brd.md#¶4); дугаарыг `bj analyze` догол мөрийн хуваалтаар (хоосон мөр, жагсаалтын мөр, хүснэгтийн мөр) тоолно" },
+          "quote": { "type": "string", "minLength": 1, "maxLength": 2000, "description": "Эх текстээс үгчлэн ишлэл (хоосон зай, хашилт, ө/ү хувилбарыг хэвийн болгож харьцуулна)" },
+          "assumed": { "type": "boolean", "description": "Эх баримтад шууд байхгүй — таамаг (хүн батлах хүртэл асуулт)" }
+        }
+      }
+    },
+    "ignored": {
+      "type": "array",
+      "description": "Шаардлага агуулаагүй догол мөр (хамралтаас хасна)",
+      "items": {
+        "type": "object",
+        "required": ["source", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "source": { "type": "string", "pattern": "^[^#]+#¶[1-9][0-9]*$" },
+          "reason": { "type": "string", "minLength": 1, "maxLength": 300, "description": "Шалтгаан (оршил, гарчгийн тайлбар, хамааралгүй …)" }
+        }
+      }
+    }
+  }
+}

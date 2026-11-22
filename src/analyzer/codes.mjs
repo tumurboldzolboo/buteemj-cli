@@ -43,6 +43,14 @@ export const CODES = {
   'REQ-VAGUE': { severity: 'advisory', layer: 'D4', title: 'Хэмжигдэхгүй үг', why: 'Шаардлага бүдэг үгтэй тул хэрэгжсэн эсэхийг шалгах боломжгүй' },
   'REQ-DUPLICATE': { severity: 'advisory', layer: 'D4', title: 'Бараг ижил шаардлага', why: 'Хоёр шаардлага бараг ижил — давхардал эсвэл ялгаа нь тодорхой бус' },
   'REQ-MODAL': { severity: 'advisory', layer: 'D4', title: 'Модаль зөрчлийн нэр дэвшигч', why: 'Ижил элементийн тухай нэг шаардлага «заавал», нөгөө нь «болохгүй» гэсэн — нөхцөлөөр ялгагдаагүй бол зөрчил' },
+  // E — эх баримтын IR (sources/ir.json)
+  'IR-MISSING': { severity: 'advisory', layer: 'E1', title: 'Эх баримт бий, IR алга', why: 'sources/-д эх баримт байгаа ч шаардлага эх текстээс мөрдөгдөхгүй (sources/ir.json алга)' },
+  'IR-INVALID': { severity: 'important', layer: 'E1', title: 'IR-ийн хэлбэрийн алдаа', why: 'sources/ir.json JSON/схемд таарахгүй эсвэл id давхардсан — ишлэл ба хамралтыг найдвартай шалгах боломжгүй' },
+  'IR-SOURCE-UNKNOWN': { severity: 'important', layer: 'E2', title: 'Эх догол мөр алга', why: 'IR элементийн source (`файл#¶n`) эх баримтад байхгүй догол мөр заасан' },
+  'IR-QUOTE-NOTFOUND': { severity: 'important', layer: 'E2', title: 'Ишлэл эх текстэд алга', why: 'Ишлэл заасан догол мөрт үгчлэн байхгүй (хэвийн болгосны дараа) — зохиосон эсвэл буруу эх; таамаг бол assumed гэж тэмдэглэнэ' },
+  'IR-ASSUMED': { severity: 'advisory', layer: 'E2', title: 'IR-ийн таамаг', why: 'Эх баримтад шууд байхгүй, агент эсвэл шинжээч таамагласан шаардлага — эзэн батлах хүртэл асуулт' },
+  'IR-ELEMENT-UNKNOWN': { severity: 'important', layer: 'E1', title: 'IR-ийн элемент загварт алга', why: 'IR элемент заасан загварын элемент (хүснэгт, багана, төлөв …) загварт байхгүй' },
+  'IR-PARA-UNCOVERED': { severity: 'advisory', layer: 'E3', title: 'Хамрагдаагүй догол мөр', why: 'Эх баримтын догол мөр нэг ч IR элементэд буугаагүй, ignored-д ч ороогүй — шаардлага алдагдсан байж болно' },
 };
 
 export const SEVERITIES = ['blocking', 'important', 'advisory'];

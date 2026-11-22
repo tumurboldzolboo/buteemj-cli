@@ -18,10 +18,12 @@ import { coverageCheck } from './checks/coverage.mjs';
 import { slotsCheck, completeness } from './checks/slots.mjs';
 import { cnlCheck } from './checks/cnl.mjs';
 import { reqtextCheck } from './checks/reqtext.mjs';
+import { irCheck } from './checks/ir.mjs';
+import { irCoverage } from './ir.mjs';
 export { loadX0, setX0Evaluate } from './x0eval.mjs';
 
 // PLAN15 A1–A5 — дарааллаар ажиллана (гаралт эрэмбэлэгддэг тул дараалал үр дүнд нөлөөлөхгүй)
-export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck, slotsCheck, cnlCheck, reqtextCheck];
+export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck, slotsCheck, cnlCheck, reqtextCheck, irCheck];
 export { completeness };
 
 export const findingId = (code, element, discriminator = '') =>
@@ -62,7 +64,7 @@ export function analyzePackage(files, opts = {}) {
   }
 
   for (const check of checks) {
-    try { check.run(model, makeEmit(check)); }
+    try { check.run(model, makeEmit(check), opts); }
     catch (e) {
       makeEmit({ id: 'runner' })({ code: 'AN-CHECK-FAILED', element: ref.package(model.key || '?'), file: model.manifestFile ?? 'manifest.yaml', line: 0, discriminator: check.id,
         message: `шалгалт «${check.id}» (${check.layer}) ажиллаж чадсангүй: ${String(e?.message ?? e).slice(0, 300)}`, evidence: [] });
@@ -85,5 +87,6 @@ export function analyzePackage(files, opts = {}) {
   const out = { key: model.key, partial, findings, stats: { ...SEVERITIES.reduce((a, s) => ({ ...a, [s]: findings.filter((f) => f.severity === s).length }), {}), acknowledged: acknowledged.length, checks: checks.length } };
   if (acknowledged.length) out.acknowledged = acknowledged;
   if (opts.completeness !== false) out.completeness = completeness(model); // PLAN15 B2
+  if (opts.completeness !== false) { const c = irCoverage(model); if (c) out.sources = { files: c.files, total: c.total, covered: c.covered, ignored: c.ignored, ratio: c.ratio }; } // PLAN15 E3
   return out;
 }

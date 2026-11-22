@@ -10,7 +10,8 @@ import { columnIndex } from './checks/predicates.mjs';
 export const QUESTIONS_FILE = 'questions.yaml';
 export const STATUSES = ['open', 'answered', 'assumed', 'dismissed', 'resolved'];
 // асуулт болохгүй олдвор: дэд бүтэц ба хэрэгслийн хязгаар
-const SKIP = new Set(['AN-INPUT-INVALID', 'AN-CHECK-FAILED', 'DMN-NOT-ANALYZED']);
+// IR-ийн хэлбэр/эх/байхгүй — IR бичигчийн (агент, шинжээч) засах зүйл, бизнесийн асуулт биш
+const SKIP = new Set(['AN-INPUT-INVALID', 'AN-CHECK-FAILED', 'DMN-NOT-ANALYZED', 'IR-INVALID', 'IR-SOURCE-UNKNOWN', 'IR-MISSING']);
 const str = (v) => String(v ?? '').trim();
 const uniq = (xs) => [...new Set(xs.filter(Boolean))];
 
@@ -35,6 +36,10 @@ const rolesOnTable = (model, t) => uniq(model.roles.filter((r) => r.table === t 
 
 // код бүрийн бизнесийн асуулт ба сонголт (f — олдвор, e — задалсан элемент)
 const ASK = {
+  // E — эх баримтын IR
+  'IR-PARA-UNCOVERED': (f) => ({ ask: `Эх баримтын ${f.message.replace(/ — IR-д буугаагүй$/, '')} — энэ хэсэг системд тусгах шаардлага агуулж байна уу?`, options: ['Тийм — шаардлага (IR-д нэмнэ)', 'Үгүй — тайлбар/оршил (ignored)'] }),
+  'IR-QUOTE-NOTFOUND': (f) => ({ ask: `${f.message.replace(/ үгчлэн алга.*$/, '')} гэж эх баримтад бичигдээгүй — энэ шаардлага зөв үү (таамаг)?`, options: ['Зөв — таамгийг батална', 'Буруу — хасна'] }),
+  'IR-ASSUMED': (f) => ({ ask: `${f.message.replace(/^([^:]+): таамаг — /, '$1: ').replace(/ эх баримтад шууд байхгүй$/, '')} — эх баримтад байхгүй энэ шаардлагыг батлах уу?`, options: ['Батална', 'Хасна'] }),
   // D — brd.md (загварт хэл) ↔ загвар; хариултыг `bj cnl apply` эсвэл гараар буулгана
   'CNL-NOT-MODELED': (f) => ({ ask: `${f.message.replace(/ — загварт алга$/, '')} гэж BRD-д бичсэн — загварт нэмэх үү?`, options: ['Тийм — загварт нэмнэ (bj cnl apply)', 'Үгүй — BRD-ийн өгүүлбэрийг засна'] }),
   'CNL-CONFLICT': (f) => ({ ask: `${f.message.replace(/ — загвар эсрэгээр.*$/, '')} гэж BRD-д бичсэн боловч загвар эсрэг — аль нь зөв бэ?`, options: ['BRD зөв — загварыг засна', 'Загвар зөв — BRD-ийг засна'] }),

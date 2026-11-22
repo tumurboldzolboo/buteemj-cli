@@ -113,6 +113,13 @@ node scripts/analyze/test.mjs
 | `REQ-VAGUE` | advisory | D4 | Хэмжигдэхгүй үг |
 | `REQ-DUPLICATE` | advisory | D4 | Бараг ижил шаардлага |
 | `REQ-MODAL` | advisory | D4 | Модаль зөрчлийн нэр дэвшигч |
+| `IR-MISSING` | advisory | E1 | Эх баримт бий, IR алга |
+| `IR-INVALID` | important | E1 | IR-ийн хэлбэрийн алдаа |
+| `IR-SOURCE-UNKNOWN` | important | E2 | Эх догол мөр алга |
+| `IR-QUOTE-NOTFOUND` | important | E2 | Ишлэл эх текстэд алга |
+| `IR-ASSUMED` | advisory | E2 | IR-ийн таамаг |
+| `IR-ELEMENT-UNKNOWN` | important | E1 | IR-ийн элемент загварт алга |
+| `IR-PARA-UNCOVERED` | advisory | E3 | Хамрагдаагүй догол мөр |
 <!-- codes:end -->
 
 ## A1 — төлөвийн машин (`checks/states.mjs`)
@@ -271,4 +278,13 @@ node scripts/bj.mjs questions answer docs/reference/procurement Q-c8ad411d308b �
 - `checks/reqtext.mjs` (D4, зөвлөмж): `REQ-VAGUE` (бүдэг үгийн жагсаалт; хаалт доторх тайлбарыг тоолохгүй; «бусад/олон/сайн» корпуст нарийн утгатай тул хассан),
   `REQ-DUPLICATE` (үгийн Jaccard ≥ 0.85, ≥ 5 үг), `REQ-MODAL` (яг ижил загварын нэрс + «заавал/хийнэ» ↔ «болохгүй/шаардлагагүй»).
 - Үнэлгээ: `node scripts/analyze/cnl-eval.mjs --write` → `docs/analysis/cnl-eval.md` (roundtrip 4023 баримт 100% present, 0 unparsed; эсрэг илрүүлэлт 982/982).
+
+## E — эх баримтын IR (`ir.mjs`, `checks/ir.mjs`, `docs/brd-standard/catalog/ir.schema.json`)
+
+- Эх баримт: `sources/*.md|txt` (E4: docx/xlsx/pdf → текст — дараа). IR: `sources/ir.json` — атом шаардлага бүр `source: "<файл>#¶n"` ба үгчлэн `quote`, сонголттой `element` (analyze-ийн лавлагаа), `assumed`; `ignored` — шаардлагагүй догол мөр.
+- `paragraphs`: хоосон мөрөөр блок; жагсаалтын мөр бүр, хүснэгтийн өгөгдлийн мөр бүр тусдаа; гарчиг = хэсэг; код, `<!-- -->` алгасна. Дугаарыг `bj cnl paras --file=<файл>` эсвэл MCP `source_paragraphs`-аар харна.
+- `normalize` (E2): NFKC, жижиг үсэг, хашилт ба `*_` хасна, зураас нэгтгэнэ, ö/ü/θ → ө/ү, ё → е, үл үзэгдэх тэмдэгт, хоосон зай. Ишлэл өөр догол мөрт байвал зөв дугаарыг санал болгоно.
+- Олдвор: IR-MISSING, IR-INVALID (JSON, схем, давхар id), IR-SOURCE-UNKNOWN, IR-QUOTE-NOTFOUND (assumed бол шалгахгүй), IR-ASSUMED, IR-ELEMENT-UNKNOWN, IR-PARA-UNCOVERED.
+  Асуулт болохгүй (IR бичигчийн засвар): IR-INVALID, IR-SOURCE-UNKNOWN, IR-MISSING. IR-PARA-UNCOVERED-д «Үгүй — тайлбар» гэж хариулбал `bj questions apply` нь `ignored`-д нэмнэ.
+- Хамралт (E3): `analyzePackage(...).sources` = {total, covered, ignored, ratio}; `bj analyze`-д «эх баримтын хамралт …» мөр. Хамралтад зөвхөн `sources/` тооцогдоно; `brd.md` зэрэг багцын бусад файлыг эх болгон заах боломжтой (`bj cnl ir --write` — EARS-MN баримтаас `CNL-*` элемент, гараар бичсэнийг хадгална).
 
