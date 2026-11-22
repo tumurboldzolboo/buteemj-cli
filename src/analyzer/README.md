@@ -245,3 +245,14 @@ node scripts/bj.mjs questions answer docs/reference/procurement Q-c8ad411d308b �
 
 Хашилттай CSV мөр, танигдахгүй үүрэг/төлөв/багана — patch биш, шийдвэрийн мөр (хүн засна).
 Хязгаар: «татгалзах шаардлагагүй» гэх мэт сөрөг хариулт шийдвэрийн мөр болно, гэхдээ слотын олдвор шинжилгээнд үлдэнэ (асуулт `answered` хэвээр) — шинжилгээ хариулсан асуултыг хараахан тооцохгүй.
+
+### C2b/C5 — сервер (`questions.yaml` roundtrip, plan-ийн хаалт)
+
+- Импорт (`Package.cpp`) `questions.yaml`-ийг задалж `model.questions`-д, эх текстийг `ST1971.ST197118`-д (migration `99zn-solution-questions.sql`) хадгална;
+  дараагийн импортод файл алга бол өмнөхийг хэвээр (resolutions-тэй адил). Сангийн экспорт (`ModelExport` `questions(c)`, `?source=model`, снапшот) эх текстээр нь буцаана.
+- `manifest.questions` (`enforce | warn | off`, З4 opt-in): plan нь questions.yaml-ийн `open`/`assumed` төлөвтэй blocking/important асуулт бүрт
+  `enforce` — `question_open` алдаа (`{question, element}`; blocking → apply хаагдана), `warn` — `questions.yaml: …` анхааруулга. Хариулт нь questions.yaml-д (acknowledge-аар биш).
+  Хаалт багцын түвшинд (элемент бүрээр биш — хаах асуулттай элементийг л хаах нь цаашдын ажил).
+- Шинжилгээ (JS): questions.yaml-д `dismissed`, эсвэл `answered` + `applied_at` (буулгасан атлаа олдвор үлдсэн — шийдвэрийн мөр) асуулттай олдворыг үндсэн жагсаалтаас
+  гаргаж `acknowledged[]`, `stats.acknowledged`-д тоолно. `bj questions sync/apply` нь `acknowledge: false` — бүх олдворыг хардаг (эс бөгөөс хүлээн зөвшөөрсөн асуулт resolved болно).
+- e2e: `web/e2e/questions_roundtrip_smoke.mjs` (импорт → ноорог экспорт → plan off/warn/enforce → assumed хаана → answered → apply → сангийн экспорт ижил).

@@ -319,6 +319,15 @@
           }
         }
       }
+    },
+    "questions": {
+      "enum": [
+        "enforce",
+        "warn",
+        "off"
+      ],
+      "description": "PLAN15 C5 — questions.yaml-ийн нээлттэй blocking/important асуулт: enforce — plan-ийн алдаа (apply хаагдана), warn — анхааруулга, off (анхдагч) — үл тооно",
+      "x-source": "cgi/src/solution/SolutionDeploy.cpp (PLAN15 C5)"
     }
   }
 }

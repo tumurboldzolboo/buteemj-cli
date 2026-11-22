@@ -67,14 +67,14 @@ try {
     }
     // дахин шинжилж нэгтгэнэ — patch хийгдсэн олдвор алга болж resolved
     const after = read(dir);
-    const analysis2 = analyzePackage(after, { catalog: loadCatalog(), completeness: false });
+    const analysis2 = analyzePackage(after, { catalog: loadCatalog(), completeness: false, acknowledge: false });
     const merged = mergeQuestions(r.doc, questionsFrom(analysis2, buildModel(after)));
     write(merged.doc);
     console.log(`✓ ${r.applied.length} хариулт буулгав (${changed.join(', ') || 'файл өөрчлөгдөөгүй'}); шийдэгдсэн ${merged.changes.resolved.length}, шинэ асуулт ${merged.changes.added.length}`);
     process.exit(0);
   }
   const files = read(dir);
-  const analysis = analyzePackage(files, { catalog: loadCatalog(), completeness: false });
+  const analysis = analyzePackage(files, { catalog: loadCatalog(), completeness: false, acknowledge: false });
   const { doc, changes } = mergeQuestions(existing(), questionsFrom(analysis, buildModel(files)));
   if (sub === 'sync') {
     const wrote = write(doc);

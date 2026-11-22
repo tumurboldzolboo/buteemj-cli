@@ -4,6 +4,7 @@
 // Нэг шалгалт унавал `AN-CHECK-FAILED` олдвор болж бусад нь үргэлжилнэ. Гаралт эрэмбэлэгдсэн, ижил оролтод ижил.
 import { createHash } from 'node:crypto';
 import { validatePackage } from '../validator/index.mjs';
+import { loadYaml } from '../validator/yaml.mjs';
 import { CODES, SEVERITIES, severityRank } from './codes.mjs';
 import { buildModel, lineText, ref } from './model.mjs';
 
@@ -28,7 +29,7 @@ export const findingId = (code, element, discriminator = '') =>
 export function analyzePackage(files, opts = {}) {
   const checks = opts.checks ?? CHECKS;
   const model = buildModel(files);
-  const findings = [];
+  let findings = [];
   const seen = new Set();
   const push = (f) => { if (!seen.has(f.id)) { seen.add(f.id); findings.push(f); } };
 
@@ -68,8 +69,19 @@ export function analyzePackage(files, opts = {}) {
 
   findings.sort((a, b) => severityRank(a.severity) - severityRank(b.severity) || a.file.localeCompare(b.file) || a.line - b.line
     || a.code.localeCompare(b.code) || a.element.localeCompare(b.element) || a.id.localeCompare(b.id));
-  const bySeverity = Object.fromEntries(SEVERITIES.map((s) => [s, findings.filter((f) => f.severity === s).length]));
-  const out = { key: model.key, partial, findings, stats: { ...bySeverity, checks: checks.length } };
+  // PLAN15 C5: questions.yaml-д хүлээн зөвшөөрсөн олдвор (dismissed, эсвэл answered + BRD-д буулгасан атлаа үлдсэн — шийдвэрийн мөр) — үндсэн жагсаалтаас гаргана.
+  // `acknowledge: false` (bj questions sync/apply) — бүх олдвор (эс бөгөөс хүлээн зөвшөөрсөн асуулт resolved болно)
+  let acknowledged = [];
+  if (opts.acknowledge !== false && typeof files['questions.yaml'] === 'string') {
+    const r = loadYaml(files['questions.yaml']);
+    const byId = new Map((r.error ? [] : r.value?.questions ?? []).filter((q) => q?.id).map((q) => [q.id, q]));
+    const ack = (f) => { const q = byId.get(`Q-${f.id.slice(2)}`); return q && (q.status === 'dismissed' || (q.status === 'answered' && q.applied_at)) ? q : null; };
+    acknowledged = findings.filter(ack).map((f) => ({ id: f.id, code: f.code, element: f.element, question: `Q-${f.id.slice(2)}`, status: ack(f).status }));
+    const drop = new Set(acknowledged.map((a) => a.id));
+    findings = findings.filter((f) => !drop.has(f.id));
+  }
+  const out = { key: model.key, partial, findings, stats: { ...SEVERITIES.reduce((a, s) => ({ ...a, [s]: findings.filter((f) => f.severity === s).length }), {}), acknowledged: acknowledged.length, checks: checks.length } };
+  if (acknowledged.length) out.acknowledged = acknowledged;
   if (opts.completeness !== false) out.completeness = completeness(model); // PLAN15 B2
   return out;
 }
