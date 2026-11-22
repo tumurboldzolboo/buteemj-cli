@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buteemj:catalog/questions",
+  "title": "questions.yaml",
+  "description": "PLAN15 C2 — BRD/PRD-ийн бизнесийн асуулт ба хариулт (шинжилгээний олдвороос үүснэ; `bj questions sync`). Хэрэгжүүлэлтийн холболтын resolutions.yaml-аас тусдаа (З3).",
+  "type": "object",
+  "required": ["version", "questions"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1, "maximum": 1, "description": "Хэлбэрийн хувилбар" },
+    "questions": {
+      "type": "array",
+      "description": "Асуултууд (түвшин → элемент → id-аар эрэмбэлсэн)",
+      "items": {
+        "type": "object",
+        "required": ["id", "code", "element", "severity", "ask", "status"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^Q-[0-9a-f]{12}$", "description": "Олдворын id-тай ижил hash (code, element, discriminator) — мөрийн дугаараас үл хамаарна" },
+          "code": { "type": "string", "description": "Шинжилгээний олдворын код (scripts/analyze/codes.mjs)" },
+          "slot": { "type": "string", "description": "SLOT-MISSING бол слотын id (docs/brd-standard/slots.yaml)" },
+          "element": { "type": "string", "description": "Элементийн лавлагаа (`state:Машин [Төлөв]` г.м.)" },
+          "severity": { "enum": ["blocking", "important", "advisory"] },
+          "ask": { "type": "string", "description": "Бизнесийн асуулт" },
+          "options": { "type": "array", "items": { "type": "string" }, "description": "Хариултын сонголт (загвараас — үүрэг, төлөв, багана …); хоосон бол чөлөөт хариулт" },
+          "impact": { "type": "string", "description": "Хариулахгүй бол юу болох" },
+          "audience": { "type": "array", "items": { "type": "string" }, "description": "Хэнээс асуух (үүрэг) — бүлэглэхэд" },
+          "file": { "type": "string", "description": "Олдворын файл (мэдээллийн, sync бүрт шинэчлэгдэнэ)" },
+          "line": { "type": "integer", "minimum": 0 },
+          "status": { "enum": ["open", "answered", "assumed", "dismissed", "resolved"], "description": "open — хариулаагүй; answered — хүн хариулсан; assumed — агент/AI санал (хүн батлаагүй); dismissed — хамаарахгүй; resolved — BRD засагдаж олдвор алга болсон" },
+          "answer": { "type": ["string", "array", "number", "boolean"], "description": "Хариулт" },
+          "answered_by": { "type": "string", "description": "Нэвтрэх нэр эсвэл `agent:<клиент>`" },
+          "confirmed_by": { "type": "string", "description": "assumed хариултыг баталсан хүн" },
+          "at": { "type": "string", "description": "Хариулсан/өөрчилсөн огноо (ISO 8601)" },
+          "resolved_at": { "type": "string", "description": "resolved болсон огноо" },
+          "note": { "type": "string", "description": "Тайлбар (dismiss-ийн шалтгаан г.м.)" }
+        }
+      }
+    }
+  }
+}

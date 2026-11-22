@@ -199,3 +199,27 @@ Analyzer нь үүсгэсэн [slots.data.mjs](slots.data.mjs)-ийг унши�
 - Илрүүлэгчийн дүрэм: цөмийн хүснэгт хамаарахгүй; `table.key` — хүү (parent) хүснэгтэд биш; `table.deleter` — үүсгэх эрхтэй, машингүй, хүү биш, лавлах (reference/) биш хүснэгтэд
   (Устгах = 1 эсвэл `-` хориг = шийдсэн); `machine.reject` — татгалзах/цуцлах/буцаах нэртэй шилжилт эсвэл анхны төлвөөс хүрэх 2+ эцсийн төлөв;
   `process.trigger` — startOn/timer/message/signal/conditional, `buteemj:category` (цэс), `startProcess(…)`, дэлгэцэд нэр; `process.timeout` — userTask-тай процесст timer.
+
+## C — асуулт ба хариулт (`questions.mjs`, `questions-cli.mjs`)
+
+Олдвор бүр (дэд бүтцийн `AN-*` ба `DMN-NOT-ANALYZED`-аас бусад) → бизнесийн асуулт, багцын `questions.yaml`-д
+(схем: [catalog/questions.schema.json](../../docs/brd-standard/catalog/questions.schema.json); `resolutions.yaml`-аас тусдаа — З3).
+
+```bash
+node scripts/bj.mjs questions sync docs/reference/procurement
+```
+```bash
+node scripts/bj.mjs questions list docs/reference/procurement --status=all
+```
+```bash
+node scripts/bj.mjs questions answer docs/reference/procurement Q-c8ad411d308b Нягтлан --by=<нэвтрэх нэр>
+```
+
+- `id` = `Q-` + олдворын hash (code, element, discriminator) — мөрийн дугаараас үл хамаарна → `sync` idempotent (өөрчлөлтгүй бол файлд хүрэхгүй).
+- Асуулт: SLOT-MISSING бол слотын `question`; бусад кодод бизнесийн хэллэгтэй загвар (`ASK`), сонголт загвараас (бусад төлөв, үүрэг, enum-ийн утга, багана …),
+  `impact` = кодын `why`, `audience` = машины `хэн` эсвэл хүснэгтэд эрхтэй үүргүүд, процесс — BPMN-ийн нэрээр.
+- Төлөв: `open` → `answered` (хүн) | `assumed` (`--agent`, `answered_by: agent:<клиент>`) → `confirm --by` → `answered`; `dismiss --note` → `dismissed`.
+- `sync`: хариулт/төлөв хадгалагдана; олдвор алга болвол open/answered/assumed → `resolved` (`resolved_at`, хариулт хэвээр); дахин гарвал `resolved` →
+  `answered` (хариулттай) эсвэл `open`; `dismissed` хэвээр.
+- Платформын YAML (`Yaml.cpp`) хашилтгүй `yes`/`null`/тоог өөр төрөл болгодог тул ийм мөрийг хашилтаар бичнэ.
+- Хийгээгүй (PLAN15): C2b серверийн roundtrip (импорт/экспорт `questions.yaml`-ийг хадгалах — C++), C3 хариултыг BRD руу patch, C4 Studio UI, C5 plan-ийн хаалт.
