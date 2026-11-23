@@ -286,6 +286,7 @@ node scripts/bj.mjs questions answer docs/reference/procurement Q-c8ad411d308b �
 - `checks/reqtext.mjs` (D4, зөвлөмж): `REQ-VAGUE` (бүдэг үгийн жагсаалт; хаалт доторх тайлбарыг тоолохгүй; «бусад/олон/сайн» корпуст нарийн утгатай тул хассан),
   `REQ-DUPLICATE` (үгийн Jaccard ≥ 0.85, ≥ 5 үг), `REQ-MODAL` (яг ижил загварын нэрс + «заавал/хийнэ» ↔ «болохгүй/шаардлагагүй»).
 - Үнэлгээ: `node scripts/analyze/cnl-eval.mjs --write` → `docs/analysis/cnl-eval.md` (roundtrip 4023 баримт 100% present (нөхцөлтэй 188), 0 unparsed; эсрэг илрүүлэлт 1162/1162 — guard/тайлбар хасах 180-г оруулан; хориг-нөхцөл 90/90 present, guard хасахад 90/90 missing).
+- D2 (гараар тэмдэглэсэн): `node scripts/analyze/d2-eval.mjs sample | blind | check | agree | merge | score [--write]` — `docs/analysis/d2/labels.csv` (225 мөр, корпусын 7 багц), `vocab/`, заавар `docs/analysis/d2/README.md`; дүн `docs/analysis/d2-eval.md`, эзэн ↔ AI нийцэл `d2-agreement.md`. Хуудаст задлагчийн гаралт оруулахгүй (хазайлт).
 
 ## E — эх баримтын IR (`ir.mjs`, `checks/ir.mjs`, `docs/brd-standard/catalog/ir.schema.json`)
 
