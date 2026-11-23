@@ -107,6 +107,8 @@ node scripts/analyze/test.mjs
 | `COV-REQUIRED-NOFORM` | important | A5 | Заавал багана маягтад алга |
 | `COV-UNTRACED` | advisory | A5 | Шаардлагаар лавлагдаагүй элемент |
 | `SLOT-MISSING` | advisory | B1 | BRD-д хариулаагүй асуулт |
+| `DOMAIN-HINT` | advisory | B3 | Домэйны жишиг |
+| `HINTS-INVALID` | important | B3 | hints.yaml алдаатай |
 | `CNL-UNPARSED` | advisory | D3 | Загварт хэлний бус мөр |
 | `CNL-NOT-MODELED` | important | D2 | Текстэд бий, загварт алга |
 | `CNL-CONFLICT` | important | D2 | Текст ба загварын зөрчил |
@@ -277,6 +279,14 @@ node scripts/bj.mjs questions answer docs/reference/procurement Q-c8ad411d308b �
 - Шинжилгээ (JS): questions.yaml-д `dismissed`, эсвэл `answered` + `applied_at` (буулгасан атлаа олдвор үлдсэн — шийдвэрийн мөр) асуулттай олдворыг үндсэн жагсаалтаас
   гаргаж `acknowledged[]`, `stats.acknowledged`-д тоолно. `bj questions sync/apply` нь `acknowledge: false` — бүх олдворыг хардаг (эс бөгөөс хүлээн зөвшөөрсөн асуулт resolved болно).
 - e2e: `web/e2e/questions_roundtrip_smoke.mjs` (импорт → ноорог экспорт → plan off/warn/enforce → assumed хаана → answered → apply → сангийн экспорт ижил).
+
+## B3 — домэйны жишиг (`checks/hints.mjs`)
+
+- `hintSources(model, opts)`: багцын `hints.yaml`, `requires`-ийн (давхар, `opts.packages`) `hints.yaml`, `opts.hints` ([{source, text}] — `--hints=<файл>`).
+  `parseHints` — id, regex, `expect` `{has, match}`, `when.machine` шалгана; алдаа → `HINTS-INVALID`. Ижил id өөр эхэд — эхнийх.
+- Хүснэгт бүрт `when` биелж, `expect`-ийн аль нь ч биелээгүй → `DOMAIN-HINT` (advisory, discriminator = жишгийн id, мессеж = асуулт, fix = шалтгаан ба хүлээгдэж буй).
+  Асуулт: «Тийм — загварт нэмнэ» / «Үгүй — энэ багцад хамаарахгүй».
+- Цөмд домэйны үг алга (`scripts/domain-scan.mjs` ALL OK); жишиг нь `docs/reference/hints/erp-mn.yaml`. Хэмжилт `docs/analysis/hints-eval.md`.
 
 ## D — загварт хэл ба шаардлагын текст (`cnl.mjs`, `checks/cnl.mjs`, `checks/reqtext.mjs`, `cnl-cli.mjs`)
 

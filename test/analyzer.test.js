@@ -1,7 +1,7 @@
 // PLAN15 A6 — `bj analyze`: src/analyzer нь платформын scripts/analyze-ийн хуулбар (хуучирвал буруу олдвор), X0 үнэлэгч vendor/-оос.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { existsSync, writeFileSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -65,6 +65,11 @@ describe('bj analyze', () => {
       const j = JSON.parse(bj(p, '--json', '--min=important').stdout);
       assert.ok(Array.isArray(j.findings) && j.findings.every((x) => x.severity !== 'advisory'));
       assert.ok(j.completeness && typeof j.completeness.score === 'number');
+      // PLAN15 B3: --hints
+      writeFileSync(join(tmp, 'h.yaml'), 'version: 1\nhints:\n  - id: t.x\n    when: { tableMatch: "." }\n    expect: [{ has: column, match: "^ЗААВАЛ_ҮГҮЙ$" }]\n    message: m\n    question: "«{name}»?"\n');
+      const h = JSON.parse(bj(p, '--json', `--hints=${join(tmp, 'h.yaml')}`).stdout);
+      assert.ok(h.findings.some((x) => x.code === 'DOMAIN-HINT' && x.discriminator === 't.x'));
+      assert.equal(bj(p, '--hints=/no/such.yaml').status, 2);
     } finally { rmSync(tmp, { recursive: true, force: true }); }
   });
 });

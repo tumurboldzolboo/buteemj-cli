@@ -20,17 +20,18 @@ import { cnlCheck } from './checks/cnl.mjs';
 import { reqtextCheck } from './checks/reqtext.mjs';
 import { irCheck } from './checks/ir.mjs';
 import { staticCheck } from './checks/static.mjs';
+import { hintsCheck } from './checks/hints.mjs';
 import { irCoverage } from './ir.mjs';
 export { loadX0, setX0Evaluate } from './x0eval.mjs';
 
 // PLAN15 A1–A5 — дарааллаар ажиллана (гаралт эрэмбэлэгддэг тул дараалал үр дүнд нөлөөлөхгүй)
-export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck, slotsCheck, cnlCheck, reqtextCheck, irCheck, staticCheck];
+export const CHECKS = [statesCheck, permissionsCheck, decisionsCheck, predicatesCheck, coverageCheck, slotsCheck, cnlCheck, reqtextCheck, irCheck, staticCheck, hintsCheck];
 export { completeness };
 
 export const findingId = (code, element, discriminator = '') =>
   `F-${createHash('sha256').update(`${code}\u0000${element}\u0000${discriminator}`).digest('hex').slice(0, 12)}`;
 
-// files: {<зам>: текст}; opts: {packages: Map<key,{key,files}>, catalog, checks: [...] (тестэд), validate: false (алгасах)}
+// files: {<зам>: текст}; opts: {packages: Map<key,{key,files}>, catalog, checks: [...] (тестэд), validate: false (алгасах), hints: [{source, text}] (B3)}
 export function analyzePackage(files, opts = {}) {
   const checks = opts.checks ?? CHECKS;
   const model = buildModel(files);

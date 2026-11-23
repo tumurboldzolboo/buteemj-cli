@@ -11,7 +11,7 @@ export const QUESTIONS_FILE = 'questions.yaml';
 export const STATUSES = ['open', 'answered', 'assumed', 'dismissed', 'resolved'];
 // асуулт болохгүй олдвор: дэд бүтэц ба хэрэгслийн хязгаар
 // IR-ийн хэлбэр/эх/байхгүй — IR бичигчийн (агент, шинжээч) засах зүйл, бизнесийн асуулт биш
-const SKIP = new Set(['AN-INPUT-INVALID', 'AN-CHECK-FAILED', 'DMN-NOT-ANALYZED', 'IR-INVALID', 'IR-SOURCE-UNKNOWN', 'IR-MISSING']);
+const SKIP = new Set(['AN-INPUT-INVALID', 'AN-CHECK-FAILED', 'HINTS-INVALID', 'DMN-NOT-ANALYZED', 'IR-INVALID', 'IR-SOURCE-UNKNOWN', 'IR-MISSING']);
 const str = (v) => String(v ?? '').trim();
 const uniq = (xs) => [...new Set(xs.filter(Boolean))];
 
@@ -36,6 +36,8 @@ const rolesOnTable = (model, t) => uniq(model.roles.filter((r) => r.table === t 
 
 // код бүрийн бизнесийн асуулт ба сонголт (f — олдвор, e — задалсан элемент)
 const ASK = {
+  // B3 — домэйны жишиг (мессеж нь жишгийн асуулт)
+  'DOMAIN-HINT': (f) => ({ ask: f.message, options: ['Тийм — загварт нэмнэ', 'Үгүй — энэ багцад хамаарахгүй'] }),
   // E — эх баримтын IR
   'IR-PARA-UNCOVERED': (f) => ({ ask: `Эх баримтын ${f.message.replace(/ — IR-д буугаагүй$/, '')} — энэ хэсэг системд тусгах шаардлага агуулж байна уу?`, options: ['Тийм — шаардлага (IR-д нэмнэ)', 'Үгүй — тайлбар/оршил (ignored)'] }),
   'IR-QUOTE-NOTFOUND': (f) => ({ ask: `${f.message.replace(/ үгчлэн алга.*$/, '')} гэж эх баримтад бичигдээгүй — энэ шаардлага зөв үү (таамаг)?`, options: ['Зөв — таамгийг батална', 'Буруу — хасна'] }),

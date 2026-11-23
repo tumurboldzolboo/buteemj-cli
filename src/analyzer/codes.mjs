@@ -37,6 +37,8 @@ export const CODES = {
   // B1 — бүрэн гүйцэд байдал (slots.yaml)
   'SLOT-MISSING': { severity: 'advisory', layer: 'B1', title: 'BRD-д хариулаагүй асуулт', why: 'Мета-загварын слот бөглөгдөөгүй — тухайн элементийн талаар бизнесийн шийдвэр BRD/PRD-д алга (түвшин нь слотоос, discriminator = слотын id)' },
   // D — загварт хэл, шаардлагын текст
+  'DOMAIN-HINT': { severity: 'advisory', layer: 'B3', title: 'Домэйны жишиг', why: 'Тухайн төрлийн хүснэгтэд ихэвчлэн байдаг элемент (hints.yaml-ийн жишиг) энэ багцад алга — зөвлөмж, хаахгүй; хамаарахгүй бол асуултыг хаана' },
+  'HINTS-INVALID': { severity: 'important', layer: 'B3', title: 'hints.yaml алдаатай', why: 'Домэйны жишгийн файл задлагдахгүй, хэлбэр эсвэл regex буруу — тэр жишгүүд шалгагдахгүй' },
   'CNL-UNPARSED': { severity: 'advisory', layer: 'D3', title: 'Загварт хэлний бус мөр', why: 'brd.md-ийн мөр EARS-MN загварт таарахгүй тул загвар руу буухгүй — загвараар дахин бичих эсвэл тайлбар бол ишлэлээр' },
   'CNL-NOT-MODELED': { severity: 'important', layer: 'D2', title: 'Текстэд бий, загварт алга', why: 'brd.md-д бичсэн эрх/шилжилт/заавал талбар загварт (roles.csv, states.mmd, erd.dbml) тусгагдаагүй' },
   'CNL-CONFLICT': { severity: 'important', layer: 'D2', title: 'Текст ба загварын зөрчил', why: 'brd.md-д бичсэнтэй загвар эсрэг (хориг ↔ зөвшөөрөл, өөр зорилт эсвэл хэн) — аль нь зөв болохыг шийдэх шаардлагатай' },

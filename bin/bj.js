@@ -35,6 +35,7 @@ function showHelp() {
   analyze [хавтас]        Загварын шинжилгээ: зөрчил, цоорхой, хамралт (сервергүй, LLM-гүй)
                           --min=<түвшин> (харуулах доод түвшин), --fail-on=<түвшин> (код 1); blocking|important|advisory
                           --completeness (бүрэн гүйцэд байдал слотоор: хэн үүсгэх/харах, түлхүүр, татгалзах зам …)
+                          --hints=<файл.yaml> (домэйны жишиг — зөвлөмж; багцын hints.yaml-ийг мөн уншина)
   server start|stop|status|logs  Локал сервер (бэлэн Docker image): --port 8080, --project buteemj,
                           --registry <R/>, stop --purge (өгөгдөл устгана), logs [сервис] --follow
   status                  Бүтээмжийн серверийн холболтын төлөвийг шалгах
@@ -167,7 +168,14 @@ async function main() {
     for (const [n, v] of [['min', min], ['fail-on', failOn]]) if (v !== null && !SEVERITIES.includes(v)) { console.error(`✗ --${n}=${v}: ${SEVERITIES.join(' | ')}`); process.exit(2); }
     await loadX0();
     const { files } = readPackageFiles(dir);
-    const res = analyzePackage(files);
+    // PLAN15 B3: --hints=<файл.yaml>[,…] — домэйны жишиг (өгөгдөл; багцын hints.yaml-аас гадна)
+    const hints = [];
+    for (const h of String(flags.hints ?? '').split(',').map((x) => x.trim()).filter(Boolean)) {
+      const f = resolve(h);
+      if (!existsSync(f)) { console.error(`✗ --hints: ${f} алга`); process.exit(2); }
+      hints.push({ source: h, text: readFileSync(f, 'utf8') });
+    }
+    const res = analyzePackage(files, { hints });
     const shown = res.findings.filter((f) => severityRank(f.severity) <= severityRank(min));
     const fail = !!failOn && res.findings.some((f) => severityRank(f.severity) <= severityRank(failOn));
     if (flags.json) {
