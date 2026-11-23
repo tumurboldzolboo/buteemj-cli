@@ -6,6 +6,8 @@
 //   REQUIRED <Хүснэгт>-ийн <Багана> заавал                                    — not null (erd.dbml)
 //   UNIQUE  <Хүснэгт>-ийн <Багана> давтагдахгүй                              — unique (erd.dbml)
 //   FINAL   [<Хүснэгт>] <Төлөв> эцсийн төлөв                                  — `<Төлөв> --> [*]`
+//   COND    Хэрэв <нөхцөл>[ ба <нөхцөл>] бол <TRANS>                         — шилжилтийн guard (`Товч [guard]`); нөхцөл: `илэрхийлэл`,
+//           <Багана> <утга>-аас их|бага|их буюу тэнцүү|…, <Багана> <утга>[ биш], <Багана> хоосон[ биш], тайлбар бичсэн, мөртэй
 // Танигдахгүй мөр → unparsed (D3: асуулт). Гарчиг (#), хоосон, код, `>` ишлэл, `%%`/`<!--` тайлбарыг алгасна.
 const str = (v) => String(v ?? '').trim();
 const VOWELS = 'аэиоуөүыяеёю';
@@ -50,10 +52,67 @@ const VERBS = [
 ];
 const DENY = [[/^(харахгүй|харж болохгүй)$/, 'view'], [/^(үүсгэхгүй|үүсгэж болохгүй|бүртгэхгүй)$/, 'create'], [/^(засахгүй|засаж болохгүй|өөрчлөхгүй)$/, 'update'], [/^(устгахгүй|устгаж болохгүй)$/, 'remove']];
 
+// нөхцөл (тэмдэглэсэн текст) → {guard: [илэрхийлэл], comment} | null. Багана нь шилжилтийн хүснэгтийнх; утга — тоо, багана эсвэл «текст»
+const CMP = [[/^их буюу тэнцүү$|^багагүй$/, '>='], [/^бага буюу тэнцүү$|^ихгүй$/, '<='], [/^их$/, '>'], [/^бага$/, '<'], [/^тэнцүү биш$|^биш$/, '!='], [/^тэнцүү$|^$/, '==']];
+function condition(t, table, { pick, quoted, nameOf, exprs }) {
+  const col = (i) => pick(i, 'column', (a) => a.table === table);
+  const val = (v) => {
+    const n = /^(-?\d+(?:\.\d+)?)/.exec(v); if (n) return n[1];
+    const k = /^⟦(\d+)⟧/.exec(v)?.[1]; if (k == null) return null;
+    const c = col(k); if (c && !quoted(k)) return c.name;
+    return `"${nameOf(k).replace(/"/g, '\\"')}"`;
+  };
+  const guard = []; let comment = false;
+  for (const p0 of t.split(/\s*,\s*|\s+(?:ба|болон|мөн)\s+/)) {
+    const p = str(p0); let x;
+    if ((x = /^⟪(\d+)⟫$/.exec(p))) { guard.push(exprs[Number(x[1])]); continue; }
+    if (/^(тайлбар (бичсэн|оруулсан)|тайлбартай)$/.test(p)) { comment = true; continue; }
+    if (/^(мөртэй|мөр (байгаа|бий|заавал))$/.test(p)) { guard.push('мөр заавал'); continue; }
+    if ((x = /^⟦(\d+)⟧ (хоосон биш|бөглөсөн|бөглөгдсөн|сонгосон|хоосон)$/.exec(p))) {
+      const c = col(x[1]); if (!c) return null;
+      guard.push(`${c.name} ${x[2] === 'хоосон' ? '==' : '!='} null`); continue;
+    }
+    if ((x = /^⟦(\d+)⟧ (-?\d+(?:\.\d+)?|⟦\d+⟧)(?:-?[\p{L}]{1,4})?(?: (.+))?$/u.exec(p))) {
+      const c = col(x[1]); const v = val(x[2]); const op = CMP.find(([re]) => re.test(str(x[3])))?.[1];
+      if (!c || v == null || !op) return null;
+      if (/^"/.test(v) && !['==', '!='].includes(op)) return null;
+      guard.push(`${c.name} ${op} ${v}`); continue;
+    }
+    return null;
+  }
+  return guard.length || comment ? { guard, comment } : null;
+}
+
+// guard → дээд түвшний «and» хэсгүүд (хаалт, хашилт доторхыг хуваахгүй), хэвийн
+export function guardParts(g) {
+  const out = []; let depth = 0, q = null, cur = '';
+  const s = str(g);
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (q) { if (ch === q) q = null; cur += ch; continue; }
+    if (ch === '"' || ch === "'" || ch === '«') { q = ch === '«' ? '»' : ch; cur += ch; continue; }
+    if (ch === '(') depth++; else if (ch === ')') depth--;
+    if (depth === 0 && /^\s+and\s+/i.test(s.slice(i)) && /\s/.test(ch)) { const mm = /^\s+and\s+/i.exec(s.slice(i)); out.push(cur); cur = ''; i += mm[0].length - 1; continue; }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map(normGuard).filter(Boolean);
+}
+export const normGuard = (s) => str(s).replace(/\s+/g, ' ').replace(/\s*(==|!=|>=|<=|>|<)\s*/g, ' $1 ').replace(/^\((.*)\)$/, '$1').trim();
+// шилжилтэд дутуу нөхцөлийн хэсгүүд (баримтын guard/comment) — [] бол бүгд бий
+export function missingGuard(fact, t) {
+  const have = new Set([...guardParts(t.guard), normGuard(t.guard)]);
+  const miss = (fact.guard ?? []).filter((g) => !have.has(normGuard(g)));
+  if (fact.comment && !t.requireComment) miss.unshift('тайлбар заавал');
+  return miss;
+}
+
 // нэг өгүүлбэр → {facts: [...]} | null
 export function parseSentence(sentence, vocab) {
-  const raw = str(sentence).replace(/[.。]+$/, '').trim();
-  if (!raw) return null;
+  const raw0 = str(sentence).replace(/[.。]+$/, '').trim();
+  if (!raw0) return null;
+  const exprs = [];
+  const raw = raw0.replace(/`([^`]+)`/g, (m, e) => { exprs.push(str(e)); return ` ⟪${exprs.length - 1}⟫ `; });
   const { text, found } = tag(raw, vocab);
   const pick = (i, kind, ok = () => true) => found[Number(i)]?.alts.find((a) => a.kind === kind && ok(a)) ?? null;
   const quoted = (i) => !!found[Number(i)]?.quoted;
@@ -63,7 +122,7 @@ export function parseSentence(sentence, vocab) {
   if ((m = /^⟦(\d+)⟧ ⟦(\d+)⟧ (.+)$/.exec(text))) {
     const role = pick(m[1], 'role'), table = pick(m[2], 'table');
     if (role && table) {
-      const words = m[3].split(/\s*(?:,|\bба\b|\bболон\b)\s*/).map(str).filter(Boolean);
+      const words = m[3].split(/\s*,\s*|\s+(?:ба|болон)\s+/).map(str).filter(Boolean);
       const facts = [];
       for (const w of words) {
         const v = VERBS.find(([re]) => re.test(w)), d = DENY.find(([re]) => re.test(w));
@@ -74,16 +133,24 @@ export function parseSentence(sentence, vocab) {
     }
   }
   // TRANS: [⟦T⟧] ⟦S1⟧ үед ⟦R⟧[, ⟦R⟧] ⟦Товч⟧(товчоор)? ⟦S2⟧ болгоно
-  if ((m = /^(?:⟦(\d+)⟧ )?⟦(\d+)⟧ (?:төлөвтэй үед|төлөвт|үед) ((?:⟦\d+⟧(?: ?, ?| ба )?)+) ⟦(\d+)⟧ (?:товчоор )?⟦(\d+)⟧ (?:болгоно|руу шилжүүлнэ|шилжүүлнэ|төлөвт шилжүүлнэ)$/.exec(text))) {
-    const table = m[1] ? pick(m[1], 'table') : null;
-    if (!m[1] || table) {
-      const s1 = pick(m[2], 'state', (a) => !table || a.table === table.name);
-      const s2 = s1 && (pick(m[5], 'state', (a) => a.machine === s1.machine) ?? (quoted(m[5]) ? { name: nameOf(m[5]) } : null));
-      const capt = pick(m[4], 'transition', (a) => !s1 || a.machine === s1.machine) ?? (quoted(m[4]) ? { name: nameOf(m[4]) } : null);
-      const roles = [...m[3].matchAll(/⟦(\d+)⟧/g)].map((x) => pick(x[1], 'role') ?? (/^процесс$/i.test(nameOf(x[1]) ?? '') ? { name: 'процесс' } : null));
-      if (s1 && s2 && capt && roles.length && roles.every(Boolean))
-        return { facts: [{ kind: 'transition', machine: s1.machine, table: s1.table, from: s1.name, to: s2.name, caption: capt.name, who: roles.map((r) => r.name) }] };
-    }
+  const trans = (t) => {
+    const x = /^(?:⟦(\d+)⟧ )?⟦(\d+)⟧ (?:төлөвтэй үед|төлөвт|үед) ((?:⟦\d+⟧(?: ?, ?| ба )?)+) ⟦(\d+)⟧ (?:товчоор )?⟦(\d+)⟧ (?:болгоно|руу шилжүүлнэ|шилжүүлнэ|төлөвт шилжүүлнэ)$/.exec(t);
+    if (!x) return null;
+    const table = x[1] ? pick(x[1], 'table') : null;
+    if (x[1] && !table) return null;
+    const s1 = pick(x[2], 'state', (a) => !table || a.table === table.name);
+    const s2 = s1 && (pick(x[5], 'state', (a) => a.machine === s1.machine) ?? (quoted(x[5]) ? { name: nameOf(x[5]) } : null));
+    const capt = pick(x[4], 'transition', (a) => !s1 || a.machine === s1.machine) ?? (quoted(x[4]) ? { name: nameOf(x[4]) } : null);
+    const roles = [...x[3].matchAll(/⟦(\d+)⟧/g)].map((y) => pick(y[1], 'role') ?? (/^процесс$/i.test(nameOf(y[1]) ?? '') ? { name: 'процесс' } : null));
+    if (!(s1 && s2 && capt && roles.length && roles.every(Boolean))) return null;
+    return { kind: 'transition', machine: s1.machine, table: s1.table, from: s1.name, to: s2.name, caption: capt.name, who: roles.map((r) => r.name) };
+  };
+  { const f = trans(text); if (f) return { facts: [f] }; }
+  // COND: Хэрэв <нөхцөл> бол <TRANS> → шилжилт + guard
+  if ((m = /^[Хх]эрэв (.+?) бол (.+)$/.exec(text))) {
+    const f = trans(m[2]);
+    const c = f && condition(m[1], f.table, { pick, quoted, nameOf, exprs });
+    if (c) return { facts: [{ ...f, ...(c.guard.length ? { guard: c.guard } : {}), ...(c.comment ? { comment: true } : {}) }] };
   }
   // REQUIRED / UNIQUE: ⟦T⟧ ⟦C⟧ заавал | давтагдахгүй
   if ((m = /^⟦(\d+)⟧ ⟦(\d+)⟧ (заавал(?: бөглөнө)?|давтагдахгүй|давхардахгүй)$/.exec(text))) {
@@ -146,7 +213,8 @@ export function compare(fact, model) {
     if (!t) return 'missing';
     if (t.to !== fact.to) return 'conflict';
     const who = str(t.who).split(',').map((x) => str(x).toLowerCase()).filter(Boolean);
-    return fact.who.every((w) => who.includes(w.toLowerCase())) ? 'present' : who.length ? 'conflict' : 'missing';
+    const st = fact.who.every((w) => who.includes(w.toLowerCase())) ? 'present' : who.length ? 'conflict' : 'missing';
+    return st === 'present' && missingGuard(fact, t).length ? 'missing' : st;
   }
   if (fact.kind === 'required' || fact.kind === 'unique') {
     const c = model.tables.get(fact.table)?.columns.find((x) => x.name === fact.column);
@@ -175,7 +243,8 @@ export function renderCnl(model) {
   for (const m of model.machines) {
     for (const t of m.transitions) {
       if (t.create || t.from === '[*]' || !str(t.who)) continue;
-      out.push({ kind: 'transition', text: `${q(m.table)} ${q(t.from)} үед ${str(t.who).split(',').map((w) => q(str(w))).join(', ')} ${q(t.caption)}-оор ${q(t.to)} болгоно.` });
+      const conds = [t.requireComment ? 'тайлбар бичсэн' : null, str(t.guard) && !t.guard.includes('`') ? `\`${str(t.guard)}\`` : null].filter(Boolean);
+      out.push({ kind: 'transition', text: `${conds.length ? `Хэрэв ${conds.join(' ба ')} бол ` : ''}${q(m.table)} ${q(t.from)} үед ${str(t.who).split(',').map((w) => q(str(w))).join(', ')} ${q(t.caption)}-оор ${q(t.to)} болгоно.` });
     }
     for (const s of m.states) if (s.final) out.push({ kind: 'final', text: `${q(m.table)} ${q(s.name)} эцсийн төлөв.` });
   }

@@ -6,6 +6,7 @@
 import { parseDocument, isMap, isSeq } from '../validator/vendor/yaml.mjs';
 import { parseCsv } from '../validator/parsers.mjs';
 import { parseElement } from './questions.mjs';
+import { compare, missingGuard } from './cnl.mjs';
 
 const str = (v) => String(v ?? '').trim();
 const low = (v) => str(v).toLowerCase();
@@ -280,6 +281,21 @@ export function applyAnswers(files, doc, model, { now = new Date().toISOString()
   return { files: cur, doc, applied, skipped };
 }
 
+// шилжилтийн мөрийн `Товч [guard]`-д дутуу хэсгийг нэмнэ («тайлбар заавал» эхэнд — сервер зөвхөн угтвараар таньдаг)
+function addGuard(files, m, t, parts) {
+  const ls = lines(files[m.file]); const raw = ls[t.line - 1] ?? '';
+  const ci = raw.indexOf(' : ', raw.indexOf('-->'));
+  if (ci < 0) return { error: 'шилжилтийн мөр танигдсангүй — гараар' };
+  const label = raw.slice(ci + 3), sl = label.indexOf(' / ');
+  let left = sl >= 0 ? label.slice(0, sl) : label; const rest = sl >= 0 ? label.slice(sl) : '';
+  let cap = left.trimEnd(), g = '';
+  if (cap.endsWith(']') && cap.lastIndexOf('[') >= 0) { g = cap.slice(cap.lastIndexOf('[') + 1, -1).trim(); cap = cap.slice(0, cap.lastIndexOf('[')).trimEnd(); }
+  const com = parts.includes('тайлбар заавал'), add = parts.filter((x) => x !== 'тайлбар заавал');
+  const ng = [com ? 'тайлбар заавал' : null, g || null, ...add].filter(Boolean).join(' and ');
+  ls[t.line - 1] = `${raw.slice(0, ci + 3)}${cap} [${ng}]${rest}`;
+  return { files: { ...files, [m.file]: ls.join('\n') }, summary: `${m.file}:${t.line}: «${t.caption}»-д guard ${parts.map((x) => `\`${x}\``).join(', ')}` };
+}
+
 // ---- PLAN15 D — загварт хэлний баримт (brd.md) → загвар. Зөвхөн «missing»; «conflict»-ыг хүн шийднэ (текст эсвэл загвар).
 // fact: cnl.mjs parseSentence-ийн гаралт. Буцаах: { files, applied: [{fact, summary}], skipped: [{fact, reason}] }
 export function applyFacts(files, model, facts) {
@@ -296,8 +312,14 @@ export function applyFacts(files, model, facts) {
       const names = new Set(m?.states.map((s) => s.name) ?? []);
       if (!m) r = { error: `машин «${f.machine ?? f.table}» алга` };
       else if (!names.has(f.from) || !names.has(f.to)) r = { error: `төлөв «${names.has(f.from) ? f.to : f.from}» машинд алга — эхлээд төлвийг нэмнэ` };
-      else if (m.transitions.some((t) => t.from === f.from && t.caption === f.caption)) r = { error: 'ижил товчтой шилжилт өөр зорилт/хэнтэй байна — зөрчил, гараар' };
-      else r = addToMachine(cur, model, m.name, [`${f.from} --> ${f.to} : ${f.caption} / хэн: ${f.who.map((w) => knownRole(model, w) ?? w).join(', ')}`]);
+      else if (m.transitions.some((t) => t.from === f.from && t.caption === f.caption)) {
+        const t = m.transitions.find((x) => x.from === f.from && x.caption === f.caption);
+        r = t.to === f.to && compare({ ...f, guard: [], comment: false }, model) === 'present' && missingGuard(f, t).length ? addGuard(cur, m, t, missingGuard(f, t))
+          : { error: 'ижил товчтой шилжилт өөр зорилт/хэнтэй байна — зөрчил, гараар' };
+      } else {
+        const g = [f.comment ? 'тайлбар заавал' : null, ...(f.guard ?? [])].filter(Boolean).join(' and ');
+        r = addToMachine(cur, model, m.name, [`${f.from} --> ${f.to} : ${f.caption}${g ? ` [${g}]` : ''} / хэн: ${f.who.map((w) => knownRole(model, w) ?? w).join(', ')}`]);
+      }
     } else if (f.kind === 'required' || f.kind === 'unique') {
       const setting = f.kind === 'required' ? 'not null' : 'unique';
       r = editColumn(cur, model, f.table, f.column, (l) => withSetting(l, setting), setting);
