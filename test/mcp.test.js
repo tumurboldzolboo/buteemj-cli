@@ -47,7 +47,7 @@ describe('bj mcp', { skip: !existsSync(fixture) && 'platform алга' }, () => 
 
   it('tools/list: зөвхөн ноорогийн хэрэгслүүд — apply/deploy/purge/confirm/хэрэглэгч алга', async () => {
     const t = (await srv.handle({ jsonrpc: '2.0', id: 1, method: 'tools/list' })).result.tools;
-    assert.deepEqual(t.map((x) => x.name), ['list_packages', 'get_standard', 'get_schema', 'create_package', 'add_source', 'import_requirements_table', 'source_paragraphs', 'read_file', 'list_files', 'write_file', 'delete_file', 'validate', 'analyze', 'list_questions', 'propose_answer', 'get_plan']);
+    assert.deepEqual(t.map((x) => x.name), ['list_packages', 'get_standard', 'get_schema', 'create_package', 'add_source', 'import_requirements_table', 'source_paragraphs', 'read_file', 'list_files', 'write_file', 'delete_file', 'validate', 'analyze', 'list_questions', 'propose_answer', 'elicit_answer', 'get_plan']);
     assert.ok(t.every((x) => !FORBIDDEN_TOOLS.test(x.name) && x.description && x.inputSchema?.type === 'object'));
   });
 
@@ -216,8 +216,61 @@ describe('bj mcp', { skip: !existsSync(fixture) && 'platform алга' }, () => 
     p.stdin.end();
     await new Promise((r) => p.on('close', r));
     const msgs = out.join('').trim().split('\n').map((l) => JSON.parse(l));
-    assert.equal(msgs[0].error.code, -32700);
-    assert.equal(msgs[1].result.protocolVersion, '2024-11-05');
-    assert.deepEqual(msgs[2].result, {});
+    assert.equal(msgs.find((m) => m.id === null).error.code, -32700);
+    assert.equal(msgs.find((m) => m.id === 1).result.protocolVersion, '2024-11-05');
+    assert.deepEqual(msgs.find((m) => m.id === 2).result, {});
+  });
+
+  it('F7 elicitation: дэмждэг/дэмждэггүй клиент, хүлээн авах/татгалзах, сонголтын шалгалт', async () => {
+    let reply = null; const asked = [];
+    const s2 = createServer({ root, log, request: async (method, params) => { asked.push({ method, params }); return reply; } });
+    const init = (caps) => s2.handle({ jsonrpc: '2.0', id: ++id, method: 'initialize', params: { protocolVersion: '2025-06-18', clientInfo: { name: 'elic' }, capabilities: caps } });
+    await init({});
+    const open = (await call('list_questions', { package: 'procurement' }, s2)).json.questions;
+    const q = open.find((x) => (x.options ?? []).length) ?? open[0];
+    assert.ok(q, 'нээлттэй асуулт');
+    assert.ok((await call('elicit_answer', { package: 'procurement', id: q.id }, s2)).err, 'capability-гүй → fail');
+    await init({ elicitation: {} });
+    reply = { action: 'decline' };
+    const d = await call('elicit_answer', { package: 'procurement', id: q.id }, s2);
+    assert.ok(!d.err && d.json.action === 'decline' && d.json.status === 'open', d.text);
+    assert.equal(asked[0].method, 'elicitation/create');
+    assert.ok(asked[0].params.message.includes(q.ask) && asked[0].params.requestedSchema.type === 'object');
+    const opts = q.options ?? [];
+    if (opts.length) {
+      assert.deepEqual(asked[0].params.requestedSchema.properties.choice.enum, [...opts, 'Бусад']);
+      reply = { action: 'accept', content: { choice: 'зохиосон утга' } };
+      assert.ok((await call('elicit_answer', { package: 'procurement', id: q.id }, s2)).err, 'enum-д байхгүй');
+      reply = { action: 'accept', content: { choice: opts[0] } };
+    } else reply = { action: 'accept', content: { answer: 'Тийм' } };
+    const a = await call('elicit_answer', { package: 'procurement', id: q.id }, s2);
+    assert.ok(!a.err && a.json.status === 'assumed' && a.json.answered_by === 'elicit:elic', a.text);
+    const y = readFileSync(join(root, 'procurement', 'questions.yaml'), 'utf8');
+    assert.match(y, new RegExp(`${q.id}[\\s\\S]*?status: assumed[\\s\\S]*?answered_by: elicit:elic`));
+    reply = { action: 'accept', content: opts.length ? { choice: 'Бусад', other: '' } : { answer: '  ' } };
+    const q2 = (await call('list_questions', { package: 'procurement' }, s2)).json.questions.find((x) => x.id !== q.id);
+    if (q2) assert.ok((await call('elicit_answer', { package: 'procurement', id: q2.id }, s2)).err, 'хоосон хариулт');
+    rmSync(join(root, 'procurement', 'questions.yaml'), { force: true });
+  });
+
+  it('F7 stdio: сервер → клиент elicitation/create, хариу ирэх хүртэл бусад мессеж боловсруулагдана', async () => {
+    const p = spawn(process.execPath, [join(here, 'bin', 'bj.js'), 'mcp', root], { env: { ...process.env, BUTEEMJ_MCP_LOG: log } });
+    let buf = ''; const msgs = []; const waiters = [];
+    p.stdout.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const m = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1); msgs.push(m); waiters.splice(0).forEach((w) => w()); } });
+    const wait = async (pred) => { for (let k = 0; k < 400; k++) { const m = msgs.find(pred); if (m) return m; await new Promise((r) => { waiters.push(r); setTimeout(r, 25); }); } throw new Error('хариу ирсэнгүй'); };
+    const w = (o) => p.stdin.write(`${JSON.stringify(o)}\n`);
+    w({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', clientInfo: { name: 'st' }, capabilities: { elicitation: {} } } });
+    w({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'list_questions', arguments: { package: 'procurement' } } });
+    const qid = JSON.parse((await wait((m) => m.id === 2)).result.content[0].text).questions[0].id;
+    w({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'elicit_answer', arguments: { package: 'procurement', id: qid } } });
+    const req = await wait((m) => m.method === 'elicitation/create');
+    w({ jsonrpc: '2.0', id: 4, method: 'ping' }); // хариу хүлээж байхад ч ажиллана
+    assert.deepEqual((await wait((m) => m.id === 4)).result, {});
+    const props = req.params.requestedSchema.properties;
+    w({ jsonrpc: '2.0', id: req.id, result: { action: 'accept', content: props.choice ? { choice: props.choice.enum[0] } : { answer: 'Тийм' } } });
+    const res = JSON.parse((await wait((m) => m.id === 3)).result.content[0].text);
+    p.stdin.end(); await new Promise((r) => p.on('close', r));
+    assert.equal(res.status, 'assumed'); assert.equal(res.answered_by, 'elicit:st');
+    rmSync(join(root, 'procurement', 'questions.yaml'), { force: true });
   });
 });

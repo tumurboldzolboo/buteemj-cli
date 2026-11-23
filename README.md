@@ -121,8 +121,11 @@ npm test
 `bj mcp [хавтас]` нь [Model Context Protocol](https://modelcontextprotocol.io)-ийн stdio сервер. Таны сонгосон AI (Claude Desktop, Claude Code, Cursor,
 VS Code, локал загвар …) BRD+PRD багцын **ноорог** бэлтгэхэд ашиглана. Платформ өөрөө LLM дууддаггүй.
 
-**Хэрэгслүүд:** `list_packages`, `get_standard`, `get_schema`, `create_package`, `read_file`, `list_files`, `write_file`, `delete_file`, `validate`, `analyze`,
-`list_questions`, `propose_answer`, `get_plan` (сервер тохируулсан бол; lint — ROLLBACK, юу ч хадгалахгүй).
+**Хэрэгслүүд:** `list_packages`, `get_standard`, `get_schema`, `create_package`, `add_source`, `import_requirements_table`, `source_paragraphs`, `read_file`, `list_files`, `write_file`, `delete_file`, `validate`, `analyze`,
+`list_questions`, `propose_answer`, `elicit_answer`, `get_plan` (сервер тохируулсан бол; lint — ROLLBACK, юу ч хадгалахгүй).
+
+`elicit_answer` — клиент MCP elicitation дэмждэг бол (Claude Code, VS Code …) асуултыг хэрэглэгчид маягтаар шууд харуулна (сонголттой бол жагсаалт + «Бусад»).
+Хариулт мөн `assumed` (`answered_by: elicit:<клиент>`) — хүн батлах хүртэл BRD-д буухгүй; дэмждэггүй клиентэд AI чатаар асууж `propose_answer`.
 
 **AI хийж чадахгүй зүйл:** apply, deploy, purge, хариулт батлах, хариултыг BRD-д буулгах, хэрэглэгч/нууц үг/байгууллага (`seed/organisations.yaml`),
 `integrations.yaml`, `questions.yaml`/`resolutions.yaml`-ийг шууд бичих, manifest-ийн `key` солих, YAML anchor/alias. Ийм хэрэгсэл байхгүй, эсвэл бичих хил татгалзана.

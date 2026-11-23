@@ -39,10 +39,11 @@ const MAX_YAML = 256 * 1024, MAX_FILE = 1024 * 1024, PAGE = 50;
 const text = (o) => ({ content: [{ type: 'text', text: typeof o === 'string' ? o : JSON.stringify(o, null, 2) }] });
 const fail = (msg) => ({ content: [{ type: 'text', text: msg }], isError: true });
 
-export function createServer({ root, env = process.env, log = env.BUTEEMJ_MCP_LOG ?? join(homedir(), '.buteemj', 'mcp.log'), limit = 120, now = () => Date.now() } = {}) {
+// request(method, params) → Promise<result> — сервер → клиент хүсэлт (F7 elicitation); serve() дамжуулна, тестэд хуурамч
+export function createServer({ root, env = process.env, log = env.BUTEEMJ_MCP_LOG ?? join(homedir(), '.buteemj', 'mcp.log'), limit = 120, now = () => Date.now(), request = null } = {}) {
   const ROOT = realpathSync(resolve(root ?? process.cwd()));
   const trace = randomBytes(6).toString('hex');
-  let client = 'unknown', seq = 0;
+  let client = 'unknown', seq = 0, canElicit = false;
   const calls = [];
 
   // ---- зам ба багц
@@ -259,6 +260,34 @@ export function createServer({ root, env = process.env, log = env.BUTEEMJ_MCP_LO
         writeFileSync(join(dir, QUESTIONS_FILE), renderQuestions(doc));
         return text({ id, status: 'assumed', answered_by: `agent:${client}`, note: 'Хүн батлах хүртэл BRD-д буухгүй' });
       } },
+    { name: 'elicit_answer', description: 'Нээлттэй бизнесийн асуултыг хэрэглэгчээс ШУУД асуух (MCP elicitation — клиент маягт харуулна). Хариулт assumed (answered_by: elicit:<клиент>) болж хадгалагдана; хүн Studio/CLI-аар батлах хүртэл BRD-д буухгүй. Клиент elicitation дэмждэггүй бол хэрэглэгчээс чатаар асууж propose_answer.',
+      inputSchema: { type: 'object', required: ['package', 'id'], properties: { package: { type: 'string' }, id: { type: 'string', pattern: '^Q-[0-9a-f]{12}$' } }, additionalProperties: false }, annotations: { destructiveHint: false },
+      run: async ({ package: pkg, id }) => {
+        if (!canElicit) return fail('клиент elicitation дэмждэггүй — хэрэглэгчээс чатаар асууж propose_answer ашиглана');
+        const dir = pkgDir(pkg);
+        const { doc } = mergedQuestions(dir);
+        const q = doc.questions.find((x) => x.id === id);
+        if (!q) return fail(`асуулт ${id} алга (list_questions)`);
+        if (q.status !== 'open' && q.status !== 'assumed') return fail(`${id}: ${q.status} — хүн шийдсэн асуулт`);
+        const opts = (q.options ?? []).map(String).filter(Boolean).slice(0, 20);
+        const props = opts.length
+          ? { choice: { type: 'string', title: 'Хариулт', enum: [...opts, 'Бусад'], description: 'Тохирох сонголт' }, other: { type: 'string', title: 'Бусад бол — өөрийн хариулт', maxLength: 2000 } }
+          : { answer: { type: 'string', title: 'Хариулт', minLength: 1, maxLength: 2000 } };
+        let r;
+        try {
+          r = await request('elicitation/create', { message: `[${q.severity}] ${q.ask}${q.status === 'assumed' && q.answer ? `\n(агентын санал: ${q.answer})` : ''}`,
+            requestedSchema: { type: 'object', properties: props, required: opts.length ? ['choice'] : ['answer'] } });
+        } catch (e) { return fail(`elicitation: ${String(e?.message ?? e).slice(0, 200)}`); }
+        if (r?.action !== 'accept') return text({ id, action: r?.action ?? 'cancel', status: q.status, note: 'хэрэглэгч хариулаагүй — өөрчлөлтгүй' });
+        const c = r.content ?? {};
+        const answer = String(opts.length ? (c.choice === 'Бусад' ? c.other ?? '' : c.choice ?? '') : c.answer ?? '').trim();
+        if (!answer || answer.length > 4000) return fail('хоосон эсвэл хэт урт хариулт — өөрчлөлтгүй');
+        if (opts.length && c.choice !== 'Бусад' && !opts.includes(answer)) return fail('сонголтод байхгүй утга — өөрчлөлтгүй');
+        answerQuestion(doc, id, answer, { by: client, agent: true });
+        q.answered_by = `elicit:${client}`;
+        writeFileSync(join(dir, QUESTIONS_FILE), renderQuestions(doc));
+        return text({ id, status: 'assumed', answer, answered_by: q.answered_by, note: 'Хэрэглэгч клиентээр хариулсан — Studio/CLI-аар батлах хүртэл BRD-д буухгүй (`bj questions confirm`)' });
+      } },
     { name: 'get_plan', description: 'Серверийн хуурай шалгалт (lint: импорт → plan → хуурай apply, ROLLBACK — юу ч хадгалахгүй). BUTEEMJ_URL/USER/PASS тохируулсан үед.',
       inputSchema: { type: 'object', required: ['package'], properties: { package: { type: 'string' } }, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: true },
       run: async ({ package: pkg }) => {
@@ -284,6 +313,7 @@ export function createServer({ root, env = process.env, log = env.BUTEEMJ_MCP_LO
     switch (msg.method) {
       case 'initialize': {
         client = String(msg.params?.clientInfo?.name ?? 'unknown').replace(/[^\w.-]/g, '').slice(0, 40) || 'unknown';
+        canElicit = !!msg.params?.capabilities?.elicitation && typeof request === 'function';
         const want = msg.params?.protocolVersion;
         return reply({ protocolVersion: PROTOCOLS.includes(want) ? want : PROTOCOLS[0], capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'buteemj', version: '0.1.0' },
           instructions: 'Бүтээмж BRD+PRD багцын ноорог бэлтгэх хэрэгслүүд. Ажлын урсгал: get_standard → (create_package) → write_file → validate → analyze → list_questions. '
@@ -315,14 +345,29 @@ export function createServer({ root, env = process.env, log = env.BUTEEMJ_MCP_LO
 
 export async function serve(root) {
   await loadX0();
-  const server = createServer({ root });
-  const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
   const send = (o) => { if (o) process.stdout.write(`${JSON.stringify(o)}\n`); };
+  const pending = new Map(); let rid = 0;
+  const request = (method, params, timeoutMs = 10 * 60 * 1000) => new Promise((resolve, reject) => {
+    const id = `bj-${++rid}`;
+    const t = setTimeout(() => { pending.delete(id); reject(new Error('хариу ирсэнгүй (хугацаа дууссан)')); }, timeoutMs);
+    pending.set(id, { resolve: (v) => { clearTimeout(t); resolve(v); }, reject: (e) => { clearTimeout(t); reject(e); } });
+    send({ jsonrpc: '2.0', id, method, params });
+  });
+  const server = createServer({ root, request });
+  const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
+  // клиентийн хариу (method-гүй, бидний id) — хүлээж буй хүсэлтэд; бусад нь зэрэгцээ (хэрэгсэл клиентийн хариуг хүлээж байхад уншилт зогсохгүй)
+  const one = (m) => {
+    if (m && m.method === undefined && typeof m.id === 'string' && pending.has(m.id)) {
+      const p = pending.get(m.id); pending.delete(m.id);
+      if (m.error) p.reject(new Error(String(m.error.message ?? 'алдаа'))); else p.resolve(m.result);
+      return;
+    }
+    server.handle(m).then(send, (e) => send({ jsonrpc: '2.0', id: m?.id ?? null, error: { code: -32603, message: String(e?.message ?? e).slice(0, 200) } }));
+  };
   for await (const line of rl) {
     if (!line.trim()) continue;
     let msg;
     try { msg = JSON.parse(line); } catch { send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }); continue; }
-    if (Array.isArray(msg)) { for (const m of msg) send(await server.handle(m)); continue; }
-    send(await server.handle(msg));
+    if (Array.isArray(msg)) msg.forEach(one); else one(msg);
   }
 }
