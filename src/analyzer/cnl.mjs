@@ -8,6 +8,7 @@
 //   FINAL   [<Хүснэгт>] <Төлөв> эцсийн төлөв                                  — `<Төлөв> --> [*]`
 //   COND    Хэрэв <нөхцөл>[ ба <нөхцөл>] бол <TRANS>                         — шилжилтийн guard (`Товч [guard]`); нөхцөл: `илэрхийлэл`,
 //           <Багана> <утга>-аас их|бага|их буюу тэнцүү|…, <Багана> <утга>[ биш], <Багана> хоосон[ биш], тайлбар бичсэн, мөртэй
+//   BLOCK   Хэрэв <нөхцөл> бол [<Хүснэгт>] <Төлөв> үед «Товч» хийгдэхгүй       — хүсээгүй тохиолдол: guard нөхцөлийг үгүйсгэх ёстой (+ тайлбар бичээгүй, мөргүй)
 // Танигдахгүй мөр → unparsed (D3: асуулт). Гарчиг (#), хоосон, код, `>` ишлэл, `%%`/`<!--` тайлбарыг алгасна.
 const str = (v) => String(v ?? '').trim();
 const VOWELS = 'аэиоуөүыяеёю';
@@ -54,7 +55,7 @@ const DENY = [[/^(харахгүй|харж болохгүй)$/, 'view'], [/^(ү
 
 // нөхцөл (тэмдэглэсэн текст) → {guard: [илэрхийлэл], comment} | null. Багана нь шилжилтийн хүснэгтийнх; утга — тоо, багана эсвэл «текст»
 const CMP = [[/^их буюу тэнцүү$|^багагүй$/, '>='], [/^бага буюу тэнцүү$|^ихгүй$/, '<='], [/^их$/, '>'], [/^бага$/, '<'], [/^тэнцүү биш$|^биш$/, '!='], [/^тэнцүү$|^$/, '==']];
-function condition(t, table, { pick, quoted, nameOf, exprs }) {
+function condition(t, table, { pick, quoted, nameOf, exprs }, neg = false) {
   const col = (i) => pick(i, 'column', (a) => a.table === table);
   const val = (v) => {
     const n = /^(-?\d+(?:\.\d+)?)/.exec(v); if (n) return n[1];
@@ -68,6 +69,8 @@ function condition(t, table, { pick, quoted, nameOf, exprs }) {
     if ((x = /^⟪(\d+)⟫$/.exec(p))) { guard.push(exprs[Number(x[1])]); continue; }
     if (/^(тайлбар (бичсэн|оруулсан)|тайлбартай)$/.test(p)) { comment = true; continue; }
     if (/^(мөртэй|мөр (байгаа|бий|заавал))$/.test(p)) { guard.push('мөр заавал'); continue; }
+    if (neg && /^(тайлбар (бичээгүй|оруулаагүй)|тайлбаргүй)$/.test(p)) { guard.push(NOCOMMENT); continue; }
+    if (neg && /^(мөргүй|мөр (байхгүй|алга))$/.test(p)) { guard.push(NOROWS); continue; }
     if ((x = /^⟦(\d+)⟧ (хоосон биш|бөглөсөн|бөглөгдсөн|сонгосон|хоосон)$/.exec(p))) {
       const c = col(x[1]); if (!c) return null;
       guard.push(`${c.name} ${x[2] === 'хоосон' ? '==' : '!='} null`); continue;
@@ -98,7 +101,9 @@ export function guardParts(g) {
   out.push(cur);
   return out.map(normGuard).filter(Boolean);
 }
-export const normGuard = (s) => str(s).replace(/\s+/g, ' ').replace(/\s*(==|!=|>=|<=|>|<)\s*/g, ' $1 ').replace(/^\((.*)\)$/, '$1').trim();
+// гаднах хаалт нь бүхэлдээ хүрээлсэн үед л хасна («(A) or (B)» биш)
+const enclosed = (x) => { if (!/^\(.*\)$/.test(x)) return false; let d = 0; for (let i = 0; i < x.length; i++) { if (x[i] === '(') d++; else if (x[i] === ')') d--; if (d === 0 && i < x.length - 1) return false; } return true; };
+export const normGuard = (s) => { let x = str(s).replace(/\s+/g, ' ').replace(/\s*(==|!=|>=|<=|>|<)\s*/g, ' $1 ').trim(); while (enclosed(x)) x = x.slice(1, -1).trim(); return x; };
 // шилжилтэд дутуу нөхцөлийн хэсгүүд (баримтын guard/comment) — [] бол бүгд бий
 export function missingGuard(fact, t) {
   const have = new Set([...guardParts(t.guard), normGuard(t.guard)]);
@@ -151,6 +156,15 @@ export function parseSentence(sentence, vocab) {
     const f = trans(m[2]);
     const c = f && condition(m[1], f.table, { pick, quoted, nameOf, exprs });
     if (c) return { facts: [{ ...f, ...(c.guard.length ? { guard: c.guard } : {}), ...(c.comment ? { comment: true } : {}) }] };
+    // BLOCK: … бол [⟦T⟧] ⟦S⟧ үед ⟦Товч⟧ хийгдэхгүй
+    const b = /^(?:⟦(\d+)⟧ )?⟦(\d+)⟧ (?:төлөвтэй үед|төлөвт|үед) ⟦(\d+)⟧ (?:товч(?:ийг)? )?(?:хийгдэхгүй|хийж болохгүй|дарж болохгүй|ажиллахгүй|хориотой)$/.exec(m[2]);
+    if (b) {
+      const table = b[1] ? pick(b[1], 'table') : null;
+      const st = (!b[1] || table) && pick(b[2], 'state', (a) => !table || a.table === table.name);
+      const capt = st && (pick(b[3], 'transition', (a) => a.machine === st.machine) ?? (quoted(b[3]) ? { name: nameOf(b[3]) } : null));
+      const cb = capt && condition(m[1], st.table, { pick, quoted, nameOf, exprs }, true);
+      if (cb && !cb.comment && cb.guard.length) return { facts: [{ kind: 'block', machine: st.machine, table: st.table, from: st.name, caption: capt.name, when: cb.guard }] };
+    }
   }
   // REQUIRED / UNIQUE: ⟦T⟧ ⟦C⟧ заавал | давтагдахгүй
   if ((m = /^⟦(\d+)⟧ ⟦(\d+)⟧ (заавал(?: бөглөнө)?|давтагдахгүй|давхардахгүй)$/.exec(text))) {
@@ -178,6 +192,62 @@ export function vocabulary(model) {
   // ижил нэртэй олон төлөв/товч (өөр машинд) — бүгд үлдэнэ; загвар хүснэгтээр сонгоно (хүснэгтийг эхэнд бичвэл ялгагдана)
   const seen = new Set();
   return v.filter((x) => { const k = `${x.kind}\u0000${x.name}\u0000${x.table ?? ''}\u0000${x.machine ?? ''}`; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
+// ---- хүсээгүй тохиолдол: guard нөхцөлийг (when — бүгд үнэн) үгүйсгэх эсэх. Хангалттай нөхцөл (sound): guard-ийн нэг хэсэг when-ийн нэг хэсэгтэй
+// нийцгүй (ижил багана, тоо/текст/null-ийн энгийн харьцуулалт), эсвэл `not (…)`, эсвэл тайлбар/мөр. Илүү нийлмэл guard-ыг нотлохгүй — missing.
+export const NOCOMMENT = 'тайлбар бичээгүй', NOROWS = 'мөргүй';
+const ATOM = /^(.+?) (==|!=|>=|<=|>|<) (.+)$/;
+function lit(v) {
+  const x = str(v);
+  if (/^-?\d+(\.\d+)?$/.test(x)) return { t: 'n', v: Number(x) };
+  if (/^null$/i.test(x)) return { t: 'null' };
+  if (/^(true|false)$/i.test(x)) return { t: 's', v: x.toLowerCase() };
+  const q = /^"(.*)"$|^'(.*)'$/.exec(x); if (q) return { t: 's', v: q[1] ?? q[2] };
+  return null;
+}
+// энгийн харьцуулалт: зүүн тал логик холбоосгүй (and/or/not), баруун тал литерал
+export const atom = (s) => { const m = ATOM.exec(normGuard(s)); if (!m || /(^|\s)(and|or|not)(\s|$)/i.test(m[1])) return null; const v = lit(m[3]); return v ? { lhs: m[1], op: m[2], v } : null; };
+const holds = (op, a, b) => ({ '==': a === b, '!=': a !== b, '>': a > b, '<': a < b, '>=': a >= b, '<=': a <= b })[op];
+function unsat(a, b) {
+  if (!a || !b || a.lhs !== b.lhs) return false;
+  const nul = (x) => x.v.t === 'null';
+  if (nul(a) || nul(b)) {
+    const [n, o] = nul(a) ? [a, b] : [b, a];
+    if (n.op === '==') return !(nul(o) && o.op === '==');      // x == null ∧ (x != null | x op утга) — null харьцуулалт худал
+    if (n.op === '!=') return nul(o) && o.op === '==';
+    return false;
+  }
+  if (a.v.t !== b.v.t) return false;
+  if (a.v.t === 's') {
+    if (!['==', '!='].includes(a.op) || !['==', '!='].includes(b.op)) return false;
+    if (a.op === '==' && b.op === '==') return a.v.v !== b.v.v;
+    return a.op !== b.op && a.v.v === b.v.v;
+  }
+  const x = a.v.v, y = b.v.v, e = 1e-9;
+  const cand = [x, y, (x + y) / 2, x - 1, x + 1, y - 1, y + 1, x - e, x + e, y - e, y + e, Math.min(x, y) - 1, Math.max(x, y) + 1];
+  return !cand.some((c) => holds(a.op, c, x) && holds(b.op, c, y));
+}
+const FLIP = { '==': '!=', '!=': '==', '>': '<=', '<=': '>', '<': '>=', '>=': '<' };
+// guard хоригийг хангах эсэх
+export function blocks(fact, t) {
+  if (!t) return true; // шилжилт алга — хийгдэх боломжгүй
+  const parts = guardParts(t.guard), norm = new Set([...parts, normGuard(t.guard)]);
+  const exprs = fact.when.filter((w) => w !== NOCOMMENT && w !== NOROWS);
+  if (fact.when.includes(NOCOMMENT) && t.requireComment) return true;
+  if (fact.when.includes(NOROWS) && parts.includes('мөр заавал')) return true;
+  if (exprs.length && [...norm].some((g) => g === normGuard(`not (${exprs.join(' and ')})`) || g === normGuard(`not ${exprs.join(' and ')}`))) return true;
+  return exprs.some((w) => parts.some((g) => unsat(atom(w), atom(g))));
+}
+// хоригийг хангах guard-ийн нэмэлт: нэг нөхцөл → эсрэг оператор/`тайлбар заавал`/`мөр заавал`; олон → `not (… and …)`; холимог → null
+export function negation(when) {
+  if (when.length === 1) {
+    if (when[0] === NOCOMMENT) return 'тайлбар заавал';
+    if (when[0] === NOROWS) return 'мөр заавал';
+    const a = atom(when[0]), m = ATOM.exec(normGuard(when[0]));
+    return a ? `${a.lhs} ${FLIP[a.op]} ${m[3]}` : `not (${when[0]})`;
+  }
+  return when.some((w) => w === NOCOMMENT || w === NOROWS) ? null : `not (${when.join(' and ')})`;
 }
 
 // текст (brd.md) → {facts: [{…, line}], unparsed: [{line, text}]}
@@ -215,6 +285,10 @@ export function compare(fact, model) {
     const who = str(t.who).split(',').map((x) => str(x).toLowerCase()).filter(Boolean);
     const st = fact.who.every((w) => who.includes(w.toLowerCase())) ? 'present' : who.length ? 'conflict' : 'missing';
     return st === 'present' && missingGuard(fact, t).length ? 'missing' : st;
+  }
+  if (fact.kind === 'block') {
+    const m = model.machines.find((x) => x.name === fact.machine);
+    return blocks(fact, m?.transitions.find((x) => x.from === fact.from && x.caption === fact.caption)) ? 'present' : 'missing';
   }
   if (fact.kind === 'required' || fact.kind === 'unique') {
     const c = model.tables.get(fact.table)?.columns.find((x) => x.name === fact.column);

@@ -6,7 +6,7 @@
 import { parseDocument, isMap, isSeq } from '../validator/vendor/yaml.mjs';
 import { parseCsv } from '../validator/parsers.mjs';
 import { parseElement } from './questions.mjs';
-import { compare, missingGuard } from './cnl.mjs';
+import { compare, missingGuard, negation } from './cnl.mjs';
 
 const str = (v) => String(v ?? '').trim();
 const low = (v) => str(v).toLowerCase();
@@ -320,6 +320,10 @@ export function applyFacts(files, model, facts) {
         const g = [f.comment ? 'тайлбар заавал' : null, ...(f.guard ?? [])].filter(Boolean).join(' and ');
         r = addToMachine(cur, model, m.name, [`${f.from} --> ${f.to} : ${f.caption}${g ? ` [${g}]` : ''} / хэн: ${f.who.map((w) => knownRole(model, w) ?? w).join(', ')}`]);
       }
+    } else if (f.kind === 'block') {
+      const m = machineOf(f), t = m?.transitions.find((x) => x.from === f.from && x.caption === f.caption);
+      const g = negation(f.when);
+      r = !t ? { same: true } : compare(f, model) === 'present' ? { same: true } : !g ? { error: 'холимог нөхцөл (тайлбар/мөр + илэрхийлэл) — guard-ыг гараар' } : addGuard(cur, m, t, [g]);
     } else if (f.kind === 'required' || f.kind === 'unique') {
       const setting = f.kind === 'required' ? 'not null' : 'unique';
       r = editColumn(cur, model, f.table, f.column, (l) => withSetting(l, setting), setting);

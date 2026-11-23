@@ -49,12 +49,14 @@ try {
   const rows = facts.map((f) => ({ ...f, status: compare(f, model) }));
   if (sub === 'ir') {
     const ps = paragraphs(files[file]);
-    const KIND = { right: 'right', transition: 'transition', required: 'field', unique: 'field', final: 'rule' };
+    const KIND = { right: 'right', transition: 'transition', required: 'field', unique: 'field', final: 'rule', block: 'rule' };
     const items = facts.map((f) => {
       const p = ps.find((x) => x.line === f.line);
       const { element, discriminator } = factElement(f);
       const it = { id: `CNL-${createHash('sha256').update(`${f.kind}\u0000${element}\u0000${discriminator}`).digest('hex').slice(0, 10)}`, kind: KIND[f.kind], text: factText(f), element };
       if (f.role) it.actor = f.role; else if (f.who?.length) it.actor = f.who.join(', ');
+      const cond = [...(f.comment ? ['тайлбар заавал'] : []), ...(f.guard ?? f.when ?? [])].join(' and ');
+      if (cond) it.condition = f.kind === 'block' ? `not (${cond})` : cond;
       return p ? { ...it, source: `${file}#¶${p.n}`, quote: p.text } : null;
     }).filter(Boolean);
     let doc = { version: 1, items: [] };
