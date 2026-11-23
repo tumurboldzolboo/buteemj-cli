@@ -280,7 +280,7 @@ node scripts/bj.mjs questions answer docs/reference/procurement Q-c8ad411d308b �
 
 ## D — загварт хэл ба шаардлагын текст (`cnl.mjs`, `checks/cnl.mjs`, `checks/reqtext.mjs`, `cnl-cli.mjs`)
 
-- `cnl.mjs`: `vocabulary(model)` (загварын нэрс), `tag` (`«…»` ишлэл → урт үндэс + дагавар; богиносгосон үндэс дагавартай л), `parseSentence` (эрх, хориг, шилжилт, заавал/давтагдахгүй, эцсийн төлөв, `Хэрэв … бол` нөхцөлтэй шилжилт → `guard`/`comment`; `… хийгдэхгүй` хориг-нөхцөл → `block` (`blocks` — guard-ийн энгийн хэсэг нөхцөлтэй нийцгүй эсэх, `negation`); `guardParts`, `missingGuard` — нэрийн олон утгыг загвар бүр `pick`-ээр ялгана),
+- `cnl.mjs`: `vocabulary(model)` (загварын нэрс), `tag` (`«…»` ишлэл → урт үндэс + дагавар; богиносгосон үндэс дагавартай л), `parseSentence` (эрх, хориг, шилжилт, заавал/давтагдахгүй, эцсийн төлөв, `Хэрэв … бол` нөхцөлтэй шилжилт → `guard`/`comment`; `…, эс бөгөөс …` → хоёр дахь шилжилт `unless`; `… хийгдэхгүй` хориг-нөхцөл → `block` (`blocks` — guard-ийн энгийн хэсэг нөхцөлтэй нийцгүй эсэх, `negation`); `guardParts`, `missingGuard` — нэрийн олон утгыг загвар бүр `pick`-ээр ялгана),
   `parseDocument` (`brd.md` → баримт + unparsed мөр), `compare` (present | missing | conflict), `renderCnl` (загвар → өгүүлбэр, roundtrip).
 - `checks/cnl.mjs` — `brd.md` байвал л: `CNL-UNPARSED`, `CNL-NOT-MODELED`, `CNL-CONFLICT`. `patch.mjs` `applyFacts` — «missing»-ийг загварт (`setRight`, `addToMachine`, `editColumn`).
 - `checks/reqtext.mjs` (D4, зөвлөмж): `REQ-VAGUE` (бүдэг үгийн жагсаалт; хаалт доторх тайлбарыг тоолохгүй; «бусад/олон/сайн» корпуст нарийн утгатай тул хассан),

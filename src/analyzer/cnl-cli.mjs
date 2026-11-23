@@ -57,6 +57,7 @@ try {
       if (f.role) it.actor = f.role; else if (f.who?.length) it.actor = f.who.join(', ');
       const cond = [...(f.comment ? ['тайлбар заавал'] : []), ...(f.guard ?? f.when ?? [])].join(' and ');
       if (cond) it.condition = f.kind === 'block' ? `not (${cond})` : cond;
+      if (f.unless?.length) it.condition = [cond, `not (${f.unless.join(' and ')})`].filter(Boolean).join(' and ');
       return p ? { ...it, source: `${file}#¶${p.n}`, quote: p.text } : null;
     }).filter(Boolean);
     let doc = { version: 1, items: [] };

@@ -8,6 +8,7 @@
 //   FINAL   [<Хүснэгт>] <Төлөв> эцсийн төлөв                                  — `<Төлөв> --> [*]`
 //   COND    Хэрэв <нөхцөл>[ ба <нөхцөл>] бол <TRANS>                         — шилжилтийн guard (`Товч [guard]`); нөхцөл: `илэрхийлэл`,
 //           <Багана> <утга>-аас их|бага|их буюу тэнцүү|…, <Багана> <утга>[ биш], <Багана> хоосон[ биш], тайлбар бичсэн, мөртэй
+//   ELSE    Хэрэв <нөхцөл> бол <TRANS>, эс бөгөөс [<Үүрэг>] <Товч>-оор <Төлөв> болгоно — 2 шилжилт: guard <нөхцөл> ба `unless` (guard нь нөхцөлийг үгүйсгэнэ)
 //   BLOCK   Хэрэв <нөхцөл> бол [<Хүснэгт>] <Төлөв> үед «Товч» хийгдэхгүй       — хүсээгүй тохиолдол: guard нөхцөлийг үгүйсгэх ёстой (+ тайлбар бичээгүй, мөргүй)
 // Танигдахгүй мөр → unparsed (D3: асуулт). Гарчиг (#), хоосон, код, `>` ишлэл, `%%`/`<!--` тайлбарыг алгасна.
 const str = (v) => String(v ?? '').trim();
@@ -109,6 +110,7 @@ export function missingGuard(fact, t) {
   const have = new Set([...guardParts(t.guard), normGuard(t.guard)]);
   const miss = (fact.guard ?? []).filter((g) => !have.has(normGuard(g)));
   if (fact.comment && !t.requireComment) miss.unshift('тайлбар заавал');
+  if (fact.unless?.length && !blocks({ when: fact.unless }, t)) miss.push(negation(fact.unless));
   return miss;
 }
 
@@ -153,6 +155,18 @@ export function parseSentence(sentence, vocab) {
   { const f = trans(text); if (f) return { facts: [f] }; }
   // COND: Хэрэв <нөхцөл> бол <TRANS> → шилжилт + guard
   if ((m = /^[Хх]эрэв (.+?) бол (.+)$/.exec(text))) {
+    // ELSE: <TRANS>, эс бөгөөс [⟦R⟧…] ⟦B⟧ ⟦S3⟧ болгоно — эх төлөв/хүснэгт эхний хэсгээс
+    const e = /^(.+?),? (?:эс бөгөөс|эсрэг тохиолдолд|үгүй бол) (?:((?:⟦\d+⟧(?: ?, ?| ба )?)+?) )?⟦(\d+)⟧ (?:товчоор )?⟦(\d+)⟧ (?:болгоно|руу шилжүүлнэ|шилжүүлнэ|төлөвт шилжүүлнэ)$/.exec(m[2]);
+    if (e) {
+      const f1 = trans(e[1]);
+      const c = f1 && condition(m[1], f1.table, { pick, quoted, nameOf, exprs });
+      if (!c || c.comment || c.guard.includes('мөр заавал')) return null; // тайлбар/мөрийн эсрэгийг guard-аар илэрхийлэхгүй
+      const capt = pick(e[3], 'transition', (a) => a.machine === f1.machine) ?? (quoted(e[3]) ? { name: nameOf(e[3]) } : null);
+      const s3 = pick(e[4], 'state', (a) => a.machine === f1.machine) ?? (quoted(e[4]) ? { name: nameOf(e[4]) } : null);
+      const roles = e[2] ? [...e[2].matchAll(/⟦(\d+)⟧/g)].map((y) => pick(y[1], 'role') ?? (/^процесс$/i.test(nameOf(y[1]) ?? '') ? { name: 'процесс' } : null)) : f1.who.map((name) => ({ name }));
+      if (!capt || !s3 || !roles.every(Boolean) || capt.name === f1.caption) return null;
+      return { facts: [{ ...f1, guard: c.guard }, { ...f1, to: s3.name, caption: capt.name, who: roles.map((r) => r.name), unless: c.guard }] };
+    }
     const f = trans(m[2]);
     const c = f && condition(m[1], f.table, { pick, quoted, nameOf, exprs });
     if (c) return { facts: [{ ...f, ...(c.guard.length ? { guard: c.guard } : {}), ...(c.comment ? { comment: true } : {}) }] };

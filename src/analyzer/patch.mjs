@@ -314,10 +314,10 @@ export function applyFacts(files, model, facts) {
       else if (!names.has(f.from) || !names.has(f.to)) r = { error: `төлөв «${names.has(f.from) ? f.to : f.from}» машинд алга — эхлээд төлвийг нэмнэ` };
       else if (m.transitions.some((t) => t.from === f.from && t.caption === f.caption)) {
         const t = m.transitions.find((x) => x.from === f.from && x.caption === f.caption);
-        r = t.to === f.to && compare({ ...f, guard: [], comment: false }, model) === 'present' && missingGuard(f, t).length ? addGuard(cur, m, t, missingGuard(f, t))
+        r = t.to === f.to && compare({ ...f, guard: [], comment: false, unless: undefined }, model) === 'present' && missingGuard(f, t).length ? addGuard(cur, m, t, missingGuard(f, t))
           : { error: 'ижил товчтой шилжилт өөр зорилт/хэнтэй байна — зөрчил, гараар' };
       } else {
-        const g = [f.comment ? 'тайлбар заавал' : null, ...(f.guard ?? [])].filter(Boolean).join(' and ');
+        const g = [f.comment ? 'тайлбар заавал' : null, ...(f.guard ?? []), ...(f.unless?.length ? [negation(f.unless)] : [])].filter(Boolean).join(' and ');
         r = addToMachine(cur, model, m.name, [`${f.from} --> ${f.to} : ${f.caption}${g ? ` [${g}]` : ''} / хэн: ${f.who.map((w) => knownRole(model, w) ?? w).join(', ')}`]);
       }
     } else if (f.kind === 'block') {
