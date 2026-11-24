@@ -74,9 +74,6 @@ services:
       BUTEEMJ_OIDC_SECRETS: ${BUTEEMJ_OIDC_SECRETS:-}
       BUTEEMJ_PUBLIC_URL: ${BUTEEMJ_PUBLIC_URL:-}
       BUTEEMJ_CGI_WORKERS: ${BUTEEMJ_CGI_WORKERS:-8}
-      BUTEEMJ_AI_PROVIDER: ${BUTEEMJ_AI_PROVIDER:-mock}
-      BUTEEMJ_AI_KEY: ${BUTEEMJ_AI_KEY:-}
-      BUTEEMJ_AI_MODEL: ${BUTEEMJ_AI_MODEL:-}
     volumes:
       - fcgiwrap_socket:/var/run/fcgiwrap
       - uploads:/var/uploads
@@ -92,9 +89,6 @@ services:
     sysctls: *sysctls
     environment:
       BUTEEMJ_DSN: *dsn
-      BUTEEMJ_AI_PROVIDER: ${BUTEEMJ_AI_PROVIDER:-mock}
-      BUTEEMJ_AI_KEY: ${BUTEEMJ_AI_KEY:-}
-      BUTEEMJ_AI_MODEL: ${BUTEEMJ_AI_MODEL:-}
     depends_on:
       pgbouncer:
         condition: service_started
