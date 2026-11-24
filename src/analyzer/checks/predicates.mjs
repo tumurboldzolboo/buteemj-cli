@@ -27,7 +27,14 @@ const unmask = (t, strings) => t.replace(/§(\d+)§/g, (_, i) => strings[Number(
 const unquote = (s) => s.slice(1, -1).replace(/\\(.)/g, '$1');
 
 // багананы нэрийн байрлал: өмнө нь үсэг/тоо/`.` биш, ард нь үсэг/тоо/`.` биш (FK замыг багана гэж үзэхгүй)
-const nameRe = (name) => new RegExp(`(?<![\\p{L}\\p{N}_.])${escapeRe(name)}(?![\\p{L}\\p{N}_.])`, 'gu');
+// PLAN15 F5d (хурд): кэш (g флагтай — test/replace-ийн өмнө lastIndex = 0)
+const nameReCache = new Map();
+const nameRe = (name) => {
+  let re = nameReCache.get(name);
+  if (!re) { re = new RegExp(`(?<![\\p{L}\\p{N}_.])${escapeRe(name)}(?![\\p{L}\\p{N}_.])`, 'gu'); nameReCache.set(name, re); }
+  re.lastIndex = 0;
+  return re;
+};
 
 // guard-ын ард «мессеж» — хэрэглэгчид харуулах (README states.mmd) — шинжилгээнд хамаарахгүй
 const stripMessage = (g) => str(g).replace(/«[^»]*»\s*$/u, '').trim();
@@ -48,6 +55,7 @@ export function toSimple(text, cols) {
   let t = masked;
   const vars = [];
   for (const c of cols) {
+    if (!t.includes(c)) continue; // regex нэрийг үгчлэн шаарддаг
     const re = nameRe(c);
     if (!re.test(t)) continue;
     t = t.replace(nameRe(c), () => { if (!vars.includes(c)) vars.push(c); return ` v${vars.indexOf(c)} `; });

@@ -29,18 +29,37 @@ export function stems(name) {
 
 // vocab: [{kind, name, …}] → өгүүлбэр дэх нэрсийг ⟦i⟧ болгоно; found[i] = {name, alts: [ижил нэртэй бүх толь]} — загвар өөрийн хүрээнд сонгоно
 // (FK багана хүснэгттэйгээ ижил нэртэй, «Ноорог» олон машинд г.м.). Урт нэр эхэнд; «…» — шууд (толинд байхгүй бол quoted)
-export function tag(sentence, vocab) {
+// PLAN15 F5d (хурд, QuickJS): толь бүрийн нэр/үндэс ба үндэс бүрийн RegExp-ийг кэшлэнэ; өгүүлбэрт үндэс огт байхгүй бол regex-ийг алгасна
+// (regex нь үндсийг үгчлэн шаарддаг тул үр дүн өөрчлөгдөхгүй). Өмнө нь өгүүлбэр × үндэс бүрт шинэ RegExp — том багцад CPU-ийн ~90%.
+const SUFFIX_RE = SUFFIXES.filter(Boolean).map(esc).join('|');
+const stemReCache = new Map();
+const stemRe = (st) => {
+  let re = stemReCache.get(st);
+  if (!re) { re = new RegExp(`(?<![\\p{L}\\p{N}_⟦])${esc(st)}(${SUFFIX_RE}|-(?:[\\p{L}]{1,5}))?(?![\\p{L}\\p{N}_])`, 'gu'); stemReCache.set(st, re); }
+  return re;
+};
+const vocabCache = new WeakMap(); // vocab → {len, byName, cands}
+function vocabIndex(vocab) {
+  const hit = vocabCache.get(vocab);
+  if (hit && hit.len === vocab.length) return hit;
   const byName = new Map();
   for (const v of vocab) byName.set(v.name, [...(byName.get(v.name) ?? []), v]);
+  const cands = [...byName.keys()].flatMap((name) => stems(name).map((st) => ({ name, st }))).sort((x, y) => y.st.length - x.st.length);
+  const out = { len: vocab.length, byName, cands };
+  vocabCache.set(vocab, out);
+  return out;
+}
+
+export function tag(sentence, vocab) {
+  const { byName, cands } = vocabIndex(vocab);
   const found = [];
   let s = sentence.replace(/«([^»]+)»(?:-?[\p{L}]{0,5})?/gu, (m, inner) => {
     found.push({ name: inner.trim(), alts: byName.get(inner.trim()) ?? [], quoted: true });
     return ` ⟦${found.length - 1}⟧ `;
   });
-  const cands = [...byName.keys()].flatMap((name) => stems(name).map((st) => ({ name, st }))).sort((x, y) => y.st.length - x.st.length);
   for (const { name, st } of cands) {
-    const re = new RegExp(`(?<![\\p{L}\\p{N}_⟦])${esc(st)}(${SUFFIXES.filter(Boolean).map(esc).join('|')}|-(?:[\\p{L}]{1,5}))?(?![\\p{L}\\p{N}_])`, 'gu');
-    s = s.replace(re, (m, suf) => {
+    if (!s.includes(st)) continue;
+    s = s.replace(stemRe(st), (m, suf) => {
       if (st !== name && !suf) return m; // богиносгосон үндэс дагавартай л
       found.push({ name, alts: byName.get(name) });
       return ` ⟦${found.length - 1}⟧ `;
