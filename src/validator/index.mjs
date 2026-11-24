@@ -191,7 +191,8 @@ export function validatePackage(files, opts = {}) {
       if (!kind) return 'угтвар танигдсангүй (дэлгэц:, товч:, тайлан:, хуудас:, api:, хэрэглэгч:, платформ:)';
       const key = trim(m[2]);
       if (kind === 'platform') { // P-WP-34: багцын хүрээний эрх удирдлага — SolutionDeploy.cpp role_object (auth/PermScope.h canonicalKey)
-        if (!['эрх-удирдах', 'permissions', 'эрх-удирдах-бүрэн', 'permissions-full'].includes(key)) return `платформын эрх «${key}» танигдсангүй (\`платформ:эрх-удирдах\`, \`платформ:эрх-удирдах-бүрэн\` — P-WP-38)`;
+        // PLAN15 F5b: `платформ:ноорог` (`platform:drafts`) — remote MCP-ээр ноорог унших/бичих (PermScope.h kDraft)
+        if (!['эрх-удирдах', 'permissions', 'эрх-удирдах-бүрэн', 'permissions-full', 'ноорог', 'drafts'].includes(key)) return `платформын эрх «${key}» танигдсангүй (\`платформ:эрх-удирдах\`, \`платформ:эрх-удирдах-бүрэн\`, \`платформ:ноорог\`)`;
         if (trim(role).startsWith('@')) return 'хувийн («@…») мөрөөр эрх удирдлага олгохгүй';
         return '';
       }
